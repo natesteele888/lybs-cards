@@ -283,6 +283,18 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 </style>
 </head>
 <body>
+<div id="errBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;max-height:40vh;overflow:auto"></div>
+<script>
+window.addEventListener('error',function(e){
+  var b=document.getElementById('errBanner');
+  if(b){b.style.display='block';b.textContent+='ERROR: '+e.message+'  ('+(e.filename||'').split('/').pop()+':'+e.lineno+')\n';}
+});
+window.addEventListener('unhandledrejection',function(e){
+  var b=document.getElementById('errBanner');
+  if(b){b.style.display='block';b.textContent+='PROMISE: '+(e.reason&&e.reason.message||e.reason)+'\n';}
+});
+</script>
+
 
 <div id="loginScreen">
   <div class="lc">
