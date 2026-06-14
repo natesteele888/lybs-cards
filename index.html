@@ -94,6 +94,28 @@ body{position:fixed;inset:0}
   -webkit-background-clip:text;background-clip:text;color:transparent}
 .series{font-family:"Michroma",sans-serif;font-size:10px;letter-spacing:5px;color:rgba(255,255,255,.55);margin-top:12px}
 .pack-bolts{display:flex;gap:18px;margin-top:20px;font-size:20px;opacity:.5;filter:grayscale(1) brightness(2)}
+/* Tear-off top strip */
+.pack-tear{position:absolute;top:0;left:0;right:0;height:62px;z-index:5;border-radius:16px 16px 0 0;overflow:hidden;
+  transform-origin:center bottom;transition:transform .6s cubic-bezier(.5,0,.7,.4),opacity .5s}
+.pack-tear-inner{position:absolute;inset:0;
+  background:linear-gradient(150deg,#0a0a0c,#1a1a1f 40%,#050506);
+  border-bottom:2px dashed rgba(255,255,255,.15)}
+.foil-pack.ripping .pack-tear{transform:translateY(-50px) rotate(-14deg) scale(1.05);opacity:0}
+/* Jagged tear edge revealed after rip */
+.tear-edge{position:absolute;left:0;right:0;height:14px;opacity:0;
+  background:linear-gradient(180deg,#1a1a1f,transparent);
+  -webkit-mask:repeating-linear-gradient(90deg,#000 0,#000 6px,transparent 6px,transparent 9px,#000 9px,#000 13px,transparent 13px,transparent 15px);
+  mask:repeating-linear-gradient(90deg,#000 0,#000 6px,transparent 6px,transparent 9px,#000 9px,#000 13px,transparent 13px,transparent 15px)}
+.tear-edge-top{top:0;transform:scaleY(-1)}
+.foil-pack.ripping .tear-edge{opacity:1}
+.foil-pack.ripping .foil-pack-inner{animation:packWobble .5s ease}
+@keyframes packWobble{0%,100%{transform:rotate(0)}25%{transform:rotate(-1.5deg)}75%{transform:rotate(1.5deg)}}
+/* Cards sliding out of the pack */
+.pack-cards{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:210px;height:295px;z-index:3;pointer-events:none}
+.pack-card-peek{position:absolute;inset:0;border-radius:8px;background:linear-gradient(135deg,#2a3a6a,#0d1530);
+  box-shadow:0 8px 30px rgba(0,0,0,.6);opacity:0}
+.foil-pack.ripping .pack-card-peek{animation:cardRise 1s ease forwards}
+@keyframes cardRise{0%{opacity:0;transform:translateY(40px) scale(.9)}40%{opacity:1}100%{opacity:1;transform:translateY(-70px) scale(1)}}
 @keyframes burst{0%{opacity:0;transform:scale(.3)}40%{opacity:1}100%{opacity:0;transform:scale(2.5)}}
 
 /* ── REVEAL / card viewer ── */
@@ -218,7 +240,13 @@ window.addEventListener('error',function(e){
 <!-- PACK SCREEN -->
 <div class="screen" id="packScreen" onclick="openPack()">
   <div class="foil-pack" id="foilPack">
-    <div class="foil-pack-inner">
+    <!-- Top tear-off strip -->
+    <div class="pack-tear" id="packTear">
+      <div class="pack-tear-inner"></div>
+      <div class="tear-edge"></div>
+    </div>
+    <!-- Main pack body -->
+    <div class="foil-pack-inner" id="packBody">
       <div class="pack-logo">
         <img id="packSLogo" class="pack-s" alt="S">
         <h1 class="pack-title">STEELE<span>CARDS</span></h1>
@@ -227,9 +255,12 @@ window.addEventListener('error',function(e){
           <span>&#x26A1;</span><span>&#x26A1;</span><span>&#x26A1;</span>
         </div>
       </div>
+      <div class="tear-edge tear-edge-top"></div>
     </div>
+    <!-- Cards that slide out -->
+    <div class="pack-cards" id="packCards"></div>
   </div>
-  <div class="pack-prompt">TAP TO RIP THE PACK</div>
+  <div class="pack-prompt">TAP TO RIP OPEN</div>
 </div>
 <div class="pack-burst" id="packBurst"></div>
 
@@ -484,18 +515,22 @@ function openPack(){
   if(packOpened)return;packOpened=true;
   const pack=document.getElementById('foilPack');
   const burst=document.getElementById('packBurst');
-  pack.classList.add('opening');
+  const cards=document.getElementById('packCards');
+  // Spawn a couple of peeking card backs that rise out
+  if(cards){cards.innerHTML='';for(let i=0;i<3;i++){const d=document.createElement('div');d.className='pack-card-peek';d.style.animationDelay=(0.15*i)+'s';d.style.transform='translateX('+((i-1)*4)+'px)';cards.appendChild(d);}}
+  // Rip!
+  pack.classList.add('ripping');
+  setTimeout(()=>{ burst.classList.add('go'); },650);
   setTimeout(()=>{
-    burst.classList.add('go');
     pack.style.transition='all .5s ease';
-    pack.style.transform='scale(1.4)';pack.style.opacity='0';
-  },500);
+    pack.style.transform='scale(1.5) translateY(-30px)';pack.style.opacity='0';
+  },1100);
   setTimeout(()=>{
     document.getElementById('packScreen').classList.remove('active');
     packIdx=0;
     showCard(0);
     document.getElementById('revealScreen').classList.add('active');
-  },1300);
+  },1650);
 }
 
 // ═══════════════════════════════════════════
