@@ -417,16 +417,7 @@ window.addEventListener('unhandledrejection',function(e){
             <div class="drag-hint">&#x2725; DRAG ON CARD PREVIEW TO REPOSITION</div>
           </div>
 
-          <div style="margin-top:10px;padding:10px 12px;background:rgba(0,39,94,0.04);border:1px solid var(--border);border-radius:4px">
-            <div class="slabel" style="margin-bottom:6px">3D Breakout (Lasso)</div>
-            <div style="font-family:Oswald,sans-serif;font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:8px">Trace around the hat / head / hand that should pop above the frame. That exact shape is copied on top of the border.</div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap">
-              <button class="t-btn" id="lassoBtn" onclick="toggleLasso()" style="flex:1;min-width:80px">&#x270E; DRAW LASSO</button>
-              <button class="t-btn" onclick="clearLasso()" style="flex:1;min-width:60px">CLEAR</button>
-            </div>
-            <div class="drag-hint" id="lassoHint" style="margin-top:6px;display:none">Click points around the player, then click DONE. (Or click-drag to freehand.)</div>
-            <button class="save-btn" id="lassoDone" onclick="finishLasso()" style="display:none;margin-top:6px;padding:8px">&#x2713; DONE TRACING</button>
-          </div>
+          
         </div>
 
         <div class="fsec">
@@ -1067,32 +1058,7 @@ function photoMaskPath(ctx){
    The user defines a band (L/R %, top/bottom in PSD px). That band is
    re-rendered from the photo and drawn ON TOP of the frame so the hat/head
    appears to break out of the white border. A soft drop shadow sells the 3D. ── */
-function drawBreakout(ctx){
-  const img=CS.photoImg; if(!img) return;
-  const poly=CS.breakoutPoly; if(!poly||poly.length<3) return;
-  const areaW=MASK.x1-MASK.x4, areaH=MASK.y2-MASK.y0;
-  const iw=img.naturalWidth||200, ih=img.naturalHeight||300;
-  const baseScale=Math.max(areaW/iw, areaH/ih);
-  const sc=baseScale*(CS.imgScale||1);
-  const dw=iw*sc, dh=ih*sc;
-  const dx=(MASK.x4+MASK.x1)/2 - dw/2 + (CS.imgOffsetX||0);
-  const dy=(MASK.y0+MASK.y2)/2 - dh/2 + (CS.imgOffsetY||0);
 
-  // Render full photo to temp canvas (same transform as main photo)
-  const tmp=document.createElement('canvas');tmp.width=PW;tmp.height=PH;
-  const tc=tmp.getContext('2d');
-  tc.drawImage(img,dx,dy,dw,dh);
-
-  // Clip to the lasso polygon and draw ON TOP of the frame — no shadow, exact shape
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(poly[0].x,poly[0].y);
-  for(let i=1;i<poly.length;i++) ctx.lineTo(poly[i].x,poly[i].y);
-  ctx.closePath();
-  ctx.clip();
-  ctx.drawImage(tmp,0,0);
-  ctx.restore();
-}
 
 function drawPhotoLayer(ctx){
   const areaW = MASK.x1-MASK.x4;   // 603
@@ -1213,7 +1179,6 @@ function drawFront(ctx){
   }
 
   // ── 3D BREAKOUT: player pokes above the top frame ──
-  if(CS.breakout && CS.photoImg) drawBreakout(ctx);
 
   // ── LAYER 06: Logo circle chrome ──
   if(LAYERS.logo) ctx.drawImage(LAYERS.logo,0,0,PW,PH);
@@ -1280,8 +1245,8 @@ function drawFront(ctx){
     const rightX=MASK.x1;    // photo/frame right edge reference
     if(CS.allStar && LAYERS.allstar_logo){
       // All-Star crest variant — sized to fit the corner with padding
-      const aw=104, ah=aw*(LAYERS.allstar_logo.naturalHeight/LAYERS.allstar_logo.naturalWidth);
-      ctx.save();ctx.drawImage(LAYERS.allstar_logo, rightX-aw-2, 50, aw, ah);ctx.restore();
+      const aw=99, ah=aw*(LAYERS.allstar_logo.naturalHeight/LAYERS.allstar_logo.naturalWidth);
+      ctx.save();ctx.drawImage(LAYERS.allstar_logo, rightX-aw-10, 50, aw, ah);ctx.restore();
     } else if(CS.macImg){
       ctx.save();ctx.drawImage(CS.macImg, rightX-78, 52, 76, 82);ctx.restore();
     } else if(LAYERS.mac_logo){
@@ -1290,8 +1255,8 @@ function drawFront(ctx){
     }
   }
 
-  // ── STEELE "S" brand embossment (replaces Topps mark) ──
-  drawSteeleS(ctx);
+  // ── STEELE "S" brand embossment — HIDDEN per request ──
+  // drawSteeleS(ctx);
 
   // ── GOLD NUMBERED embossment ──
   if(CS.numbered) drawGoldEmbossment(ctx);
