@@ -94,28 +94,54 @@ body{position:fixed;inset:0}
   -webkit-background-clip:text;background-clip:text;color:transparent}
 .series{font-family:"Michroma",sans-serif;font-size:10px;letter-spacing:5px;color:rgba(255,255,255,.55);margin-top:12px}
 .pack-bolts{display:flex;gap:18px;margin-top:20px;font-size:20px;opacity:.5;filter:grayscale(1) brightness(2)}
-/* Tear-off top strip */
-.pack-tear{position:absolute;top:0;left:0;right:0;height:62px;z-index:5;border-radius:16px 16px 0 0;overflow:hidden;
-  transform-origin:center bottom;transition:transform .6s cubic-bezier(.5,0,.7,.4),opacity .5s}
-.pack-tear-inner{position:absolute;inset:0;
-  background:linear-gradient(150deg,#0a0a0c,#1a1a1f 40%,#050506);
-  border-bottom:2px dashed rgba(255,255,255,.15)}
-.foil-pack.ripping .pack-tear{transform:translateY(-50px) rotate(-14deg) scale(1.05);opacity:0}
-/* Jagged tear edge revealed after rip */
-.tear-edge{position:absolute;left:0;right:0;height:14px;opacity:0;
-  background:linear-gradient(180deg,#1a1a1f,transparent);
-  -webkit-mask:repeating-linear-gradient(90deg,#000 0,#000 6px,transparent 6px,transparent 9px,#000 9px,#000 13px,transparent 13px,transparent 15px);
-  mask:repeating-linear-gradient(90deg,#000 0,#000 6px,transparent 6px,transparent 9px,#000 9px,#000 13px,transparent 13px,transparent 15px)}
-.tear-edge-top{top:0;transform:scaleY(-1)}
-.foil-pack.ripping .tear-edge{opacity:1}
-.foil-pack.ripping .foil-pack-inner{animation:packWobble .5s ease}
-@keyframes packWobble{0%,100%{transform:rotate(0)}25%{transform:rotate(-1.5deg)}75%{transform:rotate(1.5deg)}}
-/* Cards sliding out of the pack */
-.pack-cards{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:210px;height:295px;z-index:3;pointer-events:none}
-.pack-card-peek{position:absolute;inset:0;border-radius:8px;background:linear-gradient(135deg,#2a3a6a,#0d1530);
-  box-shadow:0 8px 30px rgba(0,0,0,.6);opacity:0}
-.foil-pack.ripping .pack-card-peek{animation:cardRise 1s ease forwards}
-@keyframes cardRise{0%{opacity:0;transform:translateY(40px) scale(.9)}40%{opacity:1}100%{opacity:1;transform:translateY(-70px) scale(1)}}
+/* Light rays behind pack */
+.pack-rays{position:absolute;top:50%;left:50%;width:600px;height:600px;transform:translate(-50%,-50%) scale(0);
+  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.18) 0deg,transparent 6deg,transparent 12deg,rgba(255,255,255,.18) 18deg);
+  border-radius:50%;opacity:0;z-index:1;pointer-events:none}
+.foil-pack.peeling ~ .pack-rays,.peeling .pack-rays{}
+.pack-rays.go{animation:raysGo 1.4s ease-out forwards}
+@keyframes raysGo{0%{opacity:0;transform:translate(-50%,-50%) scale(0) rotate(0)}30%{opacity:.9}100%{opacity:0;transform:translate(-50%,-50%) scale(2.4) rotate(60deg)}}
+/* Pack halves */
+.pack-half{position:absolute;top:0;height:100%;width:50%;overflow:hidden;z-index:3;
+  transition:transform .8s cubic-bezier(.6,0,.3,1),opacity .8s}
+.pack-half-l{left:0;border-radius:16px 0 0 16px;transform-origin:left center}
+.pack-half-r{right:0;border-radius:0 16px 16px 0;transform-origin:right center}
+.pack-half-inner{position:absolute;top:0;height:100%;width:300px;
+  background:linear-gradient(150deg,#0a0a0c,#1a1a1f 30%,#050506 55%,#222227 75%,#08080a);
+  box-shadow:inset 0 2px 30px rgba(255,255,255,.12),inset 0 -4px 24px rgba(0,0,0,.6);
+  border:1px solid rgba(255,255,255,.08)}
+.pack-half-l .pack-half-inner{left:0;border-radius:16px 0 0 16px}
+.pack-half-r .pack-half-inner{right:0;border-radius:0 16px 16px 0}
+.pack-half-inner::after{content:"";position:absolute;top:-50%;left:-60%;width:60%;height:200%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),rgba(255,255,255,.05),transparent);
+  transform:rotate(8deg);animation:sheen 4.5s ease-in-out infinite}
+.pack-logo{position:absolute;top:0;height:100%;width:300px;left:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px;z-index:2}
+.pack-half-r .pack-logo{left:-300px}
+/* Seam glow line down the middle */
+.pack-seam{position:absolute;top:0;left:50%;width:3px;height:100%;transform:translateX(-50%);z-index:4;opacity:0;
+  background:linear-gradient(180deg,transparent,#fff,#bcd8ff,#fff,transparent);
+  box-shadow:0 0 20px 6px rgba(180,216,255,.8)}
+/* PEEL animation */
+.foil-pack.peeling .pack-seam{animation:seamFlash .5s ease-out}
+@keyframes seamFlash{0%{opacity:0}40%{opacity:1}100%{opacity:0}}
+.foil-pack.peeling .pack-half-l{transform:translateX(-60px) rotateY(55deg) scale(.95);opacity:0}
+.foil-pack.peeling .pack-half-r{transform:translateX(60px) rotateY(-55deg) scale(.95);opacity:0}
+/* Particles */
+.pack-particles{position:absolute;top:50%;left:50%;width:0;height:0;z-index:2;pointer-events:none}
+.pack-particles span{position:absolute;width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle,#fff,#bcd8ff);opacity:0}
+.pack-particles.go span{animation:particleFly .9s ease-out forwards}
+@keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--px),var(--py)) scale(0)}}
+/* Big card reveal flash */
+.reveal-flash{position:fixed;inset:0;background:radial-gradient(circle,rgba(255,255,255,.95),transparent 60%);
+  opacity:0;z-index:200;pointer-events:none}
+.reveal-flash.go{animation:flashGo .7s ease-out}
+@keyframes flashGo{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.card-holder.revealing{animation:cardReveal .8s cubic-bezier(.2,.8,.3,1)}
+@keyframes cardReveal{0%{transform:scale(.3) rotateY(180deg);opacity:0;filter:brightness(3)}
+  40%{opacity:1}60%{filter:brightness(1.6)}100%{transform:scale(1) rotateY(0);opacity:1;filter:brightness(1)}}
+.card-holder.nav-in{animation:navIn .35s ease}
+@keyframes navIn{0%{opacity:.4;transform:scale(.96)}100%{opacity:1;transform:scale(1)}}40%{opacity:1}100%{opacity:1;transform:translateY(-70px) scale(1)}}
 @keyframes burst{0%{opacity:0;transform:scale(.3)}40%{opacity:1}100%{opacity:0;transform:scale(2.5)}}
 
 /* ── REVEAL / card viewer ── */
@@ -239,27 +265,27 @@ window.addEventListener('error',function(e){
 
 <!-- PACK SCREEN -->
 <div class="screen" id="packScreen" onclick="openPack()">
+  <div class="pack-rays" id="packRays"></div>
   <div class="foil-pack" id="foilPack">
-    <!-- Top tear-off strip -->
-    <div class="pack-tear" id="packTear">
-      <div class="pack-tear-inner"></div>
-      <div class="tear-edge"></div>
-    </div>
-    <!-- Main pack body -->
-    <div class="foil-pack-inner" id="packBody">
-      <div class="pack-logo">
-        <img id="packSLogo" class="pack-s" alt="S">
-        <h1 class="pack-title">STEELE<span>CARDS</span></h1>
-        <div class="series">2026 &middot; SERIES ONE</div>
-        <div class="pack-bolts">
-          <span>&#x26A1;</span><span>&#x26A1;</span><span>&#x26A1;</span>
+    <!-- Left half -->
+    <div class="pack-half pack-half-l" id="packHalfL">
+      <div class="pack-half-inner">
+        <div class="pack-logo">
+          <img id="packSLogo" class="pack-s" alt="S">
+          <h1 class="pack-title">STEELE<span>CARDS</span></h1>
+          <div class="series">2026 &middot; SERIES ONE</div>
+          <div class="pack-bolts"><span>&#x26A1;</span><span>&#x26A1;</span><span>&#x26A1;</span></div>
         </div>
       </div>
-      <div class="tear-edge tear-edge-top"></div>
     </div>
-    <!-- Cards that slide out -->
-    <div class="pack-cards" id="packCards"></div>
+    <!-- Right half -->
+    <div class="pack-half pack-half-r" id="packHalfR">
+      <div class="pack-half-inner"></div>
+    </div>
+    <!-- Seam glow -->
+    <div class="pack-seam" id="packSeam"></div>
   </div>
+  <div class="pack-particles" id="packParticles"></div>
   <div class="pack-prompt">TAP TO RIP OPEN</div>
 </div>
 <div class="pack-burst" id="packBurst"></div>
@@ -490,6 +516,7 @@ function shuffleTake(arr,n){
 }
 
 function finishBuildPack(){
+  window._packBrowsed=false;
   try{var sl=document.getElementById('packSLogo');if(sl&&LAYER_SRCS.steele_s_silver)sl.src=LAYER_SRCS.steele_s_silver;}catch(e){}
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('topbar').style.display='flex';
@@ -514,23 +541,36 @@ let packOpened=false;
 function openPack(){
   if(packOpened)return;packOpened=true;
   const pack=document.getElementById('foilPack');
-  const burst=document.getElementById('packBurst');
-  const cards=document.getElementById('packCards');
-  // Spawn a couple of peeking card backs that rise out
-  if(cards){cards.innerHTML='';for(let i=0;i<3;i++){const d=document.createElement('div');d.className='pack-card-peek';d.style.animationDelay=(0.15*i)+'s';d.style.transform='translateX('+((i-1)*4)+'px)';cards.appendChild(d);}}
-  // Rip!
-  pack.classList.add('ripping');
-  setTimeout(()=>{ burst.classList.add('go'); },650);
-  setTimeout(()=>{
-    pack.style.transition='all .5s ease';
-    pack.style.transform='scale(1.5) translateY(-30px)';pack.style.opacity='0';
-  },1100);
+  const rays=document.getElementById('packRays');
+  const particles=document.getElementById('packParticles');
+  // Spawn particles flying outward
+  if(particles){
+    particles.innerHTML='';
+    for(let i=0;i<24;i++){
+      const s=document.createElement('span');
+      const ang=Math.random()*Math.PI*2, dist=120+Math.random()*180;
+      s.style.setProperty('--px',Math.cos(ang)*dist+'px');
+      s.style.setProperty('--py',Math.sin(ang)*dist+'px');
+      s.style.animationDelay=(Math.random()*0.2)+'s';
+      particles.appendChild(s);
+    }
+  }
+  // 1. Peel + seam flash
+  pack.classList.add('peeling');
+  if(rays) rays.classList.add('go');
+  setTimeout(()=>{ if(particles) particles.classList.add('go'); },250);
+  // 2. Big card reveal with flash
   setTimeout(()=>{
     document.getElementById('packScreen').classList.remove('active');
     packIdx=0;
     showCard(0);
     document.getElementById('revealScreen').classList.add('active');
-  },1650);
+    // flash
+    const flash=document.createElement('div');
+    flash.className='reveal-flash go';
+    document.body.appendChild(flash);
+    setTimeout(()=>flash.remove(),800);
+  },900);
 }
 
 // ═══════════════════════════════════════════
@@ -559,6 +599,13 @@ function loadCardIntoCS(card){
 function showCard(i){
   const card=PACK[i];if(!card)return;
   loadCardIntoCS(card);
+  // Entrance animation: dramatic on first reveal, subtle when navigating
+  const holder=document.getElementById('cardHolder');
+  if(holder){
+    holder.classList.remove('revealing','nav-in'); void holder.offsetWidth;
+    holder.classList.add(i===0 && !window._packBrowsed ? 'revealing' : 'nav-in');
+    window._packBrowsed=true;
+  }
   // Bind canvas
   window._activeCanvas='revealCanvas';
   drawCard();
