@@ -350,6 +350,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Build the pack & show
   buildPack();
+  // Failsafe: never let the loading spinner hang forever
+  setTimeout(()=>{
+    const ls=document.getElementById('loadingScreen');
+    if(ls && ls.style.display!=='none'){
+      console.warn('Failsafe: forcing demo pack after stall');
+      if(!PACK||!PACK.length) PACK=shuffleTake(DEMO_CARDS.slice(),5);
+      try{ finishBuildPack(); }catch(e){ ls.style.display='none'; }
+    }
+  }, 10000);
 });
 
 function updateAuthUI(){
@@ -393,11 +402,17 @@ async function buildPack(){
   }
 
   try{
-    const snap=await window._db.collection('players').get();
+    const snap=await Promise.race([
+      window._db.collection('players').get(),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))
+    ]);
     let all=[];snap.forEach(d=>all.push({id:d.id,...d.data()}));
     if(all.length===0){ all=DEMO_CARDS.slice(); }
     PACK=shuffleTake(all,5);
-    await Promise.all(PACK.map(preloadCardImages));
+    try{ await Promise.race([
+      Promise.all(PACK.map(preloadCardImages)),
+      new Promise(res=>setTimeout(res,6000))
+    ]); }catch(e){}
   }catch(e){
     console.error('Pack build error — using demo cards',e);
     PACK=shuffleTake(DEMO_CARDS.slice(),5);
@@ -1379,22 +1394,9 @@ function drawIceOverlay(ctx){
 }
 
 /* ── Logo transform controls ── */
-function onLogoTransform(){
-  (CS.data.logoScale||1)   = document.getElementById('logoScale').value/100;
-  (CS.data.logoOffsetX||0) = parseInt(document.getElementById('logoOffsetX').value);
-  (CS.data.logoOffsetY||0) = parseInt(document.getElementById('logoOffsetY').value);
-  syncLogoUI();qR();
-}
-function syncLogoUI(){
-  const s=Math.round((CS.data.logoScale||1)*100),x=Math.round((CS.data.logoOffsetX||0)),y=Math.round((CS.data.logoOffsetY||0));
-  document.getElementById('logoScale').value=s;
-  document.getElementById('logoOffsetX').value=x;
-  document.getElementById('logoOffsetY').value=y;
-  document.getElementById('logoScaleVal').textContent=s+'%';
-  document.getElementById('logoOffsetXVal').textContent=x;
-  document.getElementById('logoOffsetYVal').textContent=y;
-}
-function resetLogoTransform(){(CS.data.logoScale||1)=1;(CS.data.logoOffsetX||0)=0;(CS.data.logoOffsetY||0)=0;syncLogoUI();qR();}
+function onLogoTransform(){ /* not used in receiver */ }
+function syncLogoUI(){ /* not used in receiver */ }
+function resetLogoTransform(){ /* not used in receiver */ }
 
 
 // ═══════════════════════════════════════════
