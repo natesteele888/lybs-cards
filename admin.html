@@ -301,7 +301,7 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 <div id="adminApp">
   <div class="topbar">
     <div class="tb-l">
-      <div class="tb-logo">STEELE <span>CARDS</span></div>
+      <div class="tb-logo">STEELE <span>CARDS</span><span style="font-size:8px;opacity:.4;margin-left:4px">v3</span></div>
       <div class="tb-badge">2026 SERIES ONE</div>
     </div>
     <div class="tb-r">
@@ -1004,6 +1004,8 @@ function drawCard(){
   const cv=document.getElementById('cardCanvas'); if(!cv) return;
   const ctx=cv.getContext('2d');
   ctx.clearRect(0,0,PW,PH);
+  // Guaranteed opaque base so the card is never transparent-black
+  ctx.fillStyle='#eeece6';ctx.fillRect(0,0,PW,PH);
   ctx.save();
   const sx=Math.abs(Math.cos(CS.flipT*Math.PI));
   ctx.translate(PW/2,PH/2);
