@@ -803,10 +803,16 @@ function drawPhotoLayer(ctx){
 }
 
 function drawFallbackBg(ctx){
-  ctx.fillStyle='#e8e6e0';ctx.fillRect(0,0,PW,PH);
-  for(let y=0;y<PH;y+=3){ctx.fillStyle=y%6===0?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.55)';ctx.fillRect(0,y,PW,1);}
+  ctx.fillStyle='#eeece6';ctx.fillRect(0,0,PW,PH);
+  for(let y=0;y<PH;y+=3){ctx.fillStyle=(y%6===0)?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.6)';ctx.fillRect(0,y,PW,1);}
+  for(let x=0;x<PW;x+=4){ctx.fillStyle=(x%8===0)?'rgba(0,0,0,0.03)':'rgba(255,255,255,0.2)';ctx.fillRect(x,0,1,PH);}
+  const rg=ctx.createLinearGradient(360,0,PW,0);
+  rg.addColorStop(0,'rgba(255,255,255,0)');rg.addColorStop(1,'rgba(255,255,255,0.55)');
+  ctx.fillStyle=rg;ctx.fillRect(360,0,PW-360,PH);
   ctx.fillStyle='#9a9da4';ctx.fillRect(58,0,150,PH);
-  ctx.fillStyle='#13357f';ctx.fillRect(70,0,7,PH);ctx.fillStyle='#13357f';ctx.fillRect(201,0,7,PH);
+  for(let y=0;y<PH;y+=3){ctx.fillStyle='rgba(255,255,255,0.07)';ctx.fillRect(58,y,150,1);}
+  ctx.fillStyle='#13357f';ctx.fillRect(69,0,8,PH);ctx.fillStyle='#13357f';ctx.fillRect(200,0,8,PH);
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(58,0,2,PH);ctx.fillRect(206,0,2,PH);
 }
 function drawFront(ctx){
   const par=PAR[CS.parallel]||PAR.base;
@@ -818,9 +824,9 @@ function drawFront(ctx){
   const abbr=((d.team||'').substring(0,3)||'LYB').toUpperCase();
 
   // ── LAYER 01: Background ──
+  drawFallbackBg(ctx);
   const bgOK = LAYERS.bg && (LAYERS.bg.naturalWidth>0 || LAYERS.bg.width>0);
-  if(bgOK){ try{ ctx.drawImage(LAYERS.bg,0,0,PW,PH); }catch(e){ drawFallbackBg(ctx); } }
-  else { drawFallbackBg(ctx); }
+  if(bgOK){ try{ ctx.drawImage(LAYERS.bg,0,0,PW,PH); }catch(e){} }
 
   // ── Parallel tint ──
   if(par.tint){
