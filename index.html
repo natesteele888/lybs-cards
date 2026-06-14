@@ -177,10 +177,28 @@ body{position:fixed;inset:0}
 <div id="bgGlow"></div>
 
 <div class="loading-screen" id="loadingScreen"><div class="spinner"></div></div>
+<script>
+// Hard failsafe — runs independently of the main app. If the app crashes on load,
+// this still removes the spinner so the user never sees an infinite wheel.
+window.addEventListener('load',function(){
+  setTimeout(function(){
+    var ls=document.getElementById('loadingScreen');
+    if(ls && ls.style.display!=='none'){ ls.style.display='none'; }
+    var pk=document.getElementById('packScreen');
+    if(pk && !pk.classList.contains('active')){ pk.classList.add('active'); }
+    var tb=document.getElementById('topbar');
+    if(tb){ tb.style.display='flex'; }
+  }, 7000);
+});
+// Surface any uncaught error visibly instead of silently hanging
+window.addEventListener('error',function(e){
+  console.error('Receiver error:',e.message,e.filename,e.lineno);
+});
+</script>
 
 <!-- Top bar -->
 <div class="topbar" id="topbar" style="display:none">
-  <div class="tb-logo">LYBS <span>CARDS</span></div>
+  <div class="tb-logo">LYBS <span>CARDS</span><span style="font-size:8px;opacity:.4;margin-left:6px">v2</span></div>
   <div class="tb-actions">
     <button class="tb-btn" id="caseBtn" onclick="showCase()" style="display:none">MY COLLECTION</button>
     <button class="tb-btn gold" id="authBtn" onclick="openAuth()">SIGN IN</button>
