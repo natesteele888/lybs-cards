@@ -1175,20 +1175,7 @@ function drawFrontTieDye(ctx, fullName, posText){
     ctx.drawImage(pi, dx, dy, iw*sc, ih*sc);
   }
 
-  // LAYER 3: Large team logo — bottom-left quadrant
-  if(CS.logoImg){
-    const li=CS.logoImg;
-    const iw=li.naturalWidth||100, ih=li.naturalHeight||100;
-    // Big logo: up to 200px wide in bottom-left area
-    const maxLogoW=200, maxLogoH=200;
-    const baseScL=Math.min(maxLogoW/iw, maxLogoH/ih);
-    const scL=baseScL*CS.logoScale;
-    const lx=28+CS.logoOffsetX;
-    const ly=PH-220+CS.logoOffsetY;
-    ctx.drawImage(li, lx, ly, iw*scL, ih*scL);
-  }
-
-  // LAYER 4: Player name — bottom right
+  // LAYER 3: Player name — bottom right
   ctx.save();
   let nfs=58;
   ctx.font=`italic ${nfs}px Anton,sans-serif`;
@@ -1202,7 +1189,7 @@ function drawFrontTieDye(ctx, fullName, posText){
   ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
   ctx.restore();
 
-  // LAYER 5: Position text — same position as normal cards
+  // LAYER 4: Position text — same position as normal cards
   ctx.save();
   let pfs=24;
   ctx.font=`italic ${pfs}px Michroma,sans-serif`;
@@ -1215,7 +1202,40 @@ function drawFrontTieDye(ctx, fullName, posText){
   ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
   ctx.restore();
 
-  // LAYER 6: MAC / corner badge — top right, same as normal
+  // LAYER 6: Certified auto overlay (behind frame/name) — if toggled
+  if(CS.certAuto && LAYERS.auto_frame){
+    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
+  }
+
+  // LAYER 7: Signature — on top of auto overlay
+  drawAutoSig(ctx);
+
+  // LAYER 8: Banner only — top + bottom strips over the photo/bg
+  if(CS.showBanner && LAYERS.banner_only) ctx.drawImage(LAYERS.banner_only,0,0,PW,PH);
+
+  // LAYER 9: White frame
+  if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
+
+  // LAYER 10: Accent bar (position color block) — inside the frame cutout
+  drawAccentBar(ctx);
+
+  // LAYER 11: Logo circle
+  if(LAYERS.logo) ctx.drawImage(LAYERS.logo,0,0,PW,PH);
+  if(CS.logoImg){
+    const lcx=163, lcy=891, lr=72;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(lcx,lcy,lr,0,Math.PI*2);
+    ctx.fillStyle='#ffffff'; ctx.fill();
+    ctx.clip();
+    const li=CS.logoImg;
+    const iw=li.naturalWidth||100, ih=li.naturalHeight||100;
+    const baseScL=Math.max((lr*2)/iw,(lr*2)/ih);
+    const scL=baseScL*CS.logoScale;
+    ctx.drawImage(li,lcx-(iw*scL)/2+CS.logoOffsetX,lcy-(ih*scL)/2+CS.logoOffsetY,iw*scL,ih*scL);
+    ctx.restore();
+  }
+
+  // LAYER 12: MAC / corner badge — top right
   {
     const rightX=MASK.x1;
     if(CS.allStar && LAYERS.allstar_logo){
@@ -1229,7 +1249,10 @@ function drawFrontTieDye(ctx, fullName, posText){
     }
   }
 
-  // Gloss / specular overlay (subtle)
+  // Numbered embossment
+  if(CS.numbered) drawGoldEmbossment(ctx);
+
+  // Gloss
   drawGloss(ctx, par);
 }
 
