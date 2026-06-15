@@ -138,7 +138,7 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .sig-tab{flex:1;padding:5px;border:1.5px solid var(--border);border-radius:3px;background:var(--cream);color:var(--muted);font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:2px;cursor:pointer;transition:.15s}
 .sig-tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .sig-tab:hover:not(.active){background:#f0eee8}
-.sig-pad-wrap{position:relative;border:1.5px solid var(--border);border-radius:3px;background:#fff;overflow:hidden;cursor:crosshair;user-select:none}
+.sig-pad-wrap{position:relative;border:1.5px solid var(--border);border-radius:3px;background:#f5f3ee;overflow:hidden;cursor:crosshair;user-select:none}
 #sigPad{display:block;width:100%;touch-action:none}
 .sig-pad-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:14px;color:rgba(0,0,0,0.18);pointer-events:none;transition:opacity .25s}
 .sig-pad-hint.gone{opacity:0}
@@ -1868,64 +1868,14 @@ function drawAutoSig(ctx){
   ctx.save();
   const si=CS.sigImg;
 
-  // Placement — upper portion of the auto overlay (above the "CERTIFIED" line ~y=800)
-  const sx=41, sy=500, sw_area=630, sh_area=375;
+  // Place the sig PNG as-is on the card — strokes already carry the chosen ink color
+  // from the pad. Positioned in the upper portion of the auto overlay area.
+  const sx=41, sy=500, sw_area=630, sh_area=295;
   const sc=Math.min(sw_area/(si.naturalWidth||100), sh_area/(si.naturalHeight||50));
   const sw=(si.naturalWidth||100)*sc, sh=(si.naturalHeight||50)*sc;
   const dx=sx+(sw_area-sw)/2, dy=sy+(sh_area-sh)/2;
 
-  // ── Build a transparent signature mask from the pad ──
-  // The sig pad has a light background + dark strokes. We sample each pixel's
-  // darkness and use that as alpha, so only strokes survive (background = transparent).
-  const padW=si.naturalWidth||si.width||560;
-  const padH=si.naturalHeight||si.height||200;
-
-  // Render sig to a small offscreen canvas so we can read pixels
-  const sample=document.createElement('canvas');
-  sample.width=padW; sample.height=padH;
-  const sc2=sample.getContext('2d');
-  sc2.drawImage(si,0,0,padW,padH);
-  const imgData=sc2.getImageData(0,0,padW,padH);
-  const d=imgData.data;
-
-  // Ink color
-  const sigColor=CS.sigColor||'black';
-  const inkMap={
-    black:[17,17,17],
-    red:[170,17,17],
-    blue:[17,51,170],
-    gold:[184,134,11],
-    silver:[120,120,125]
-  };
-  const [ir,ig,ib]=inkMap[sigColor]||inkMap.black;
-
-  // Recolor: for each pixel, compute darkness (how far from white), use as alpha
-  // Background is ~rgb(245,243,238); strokes are dark. Threshold to ignore near-white.
-  for(let i=0;i<d.length;i+=4){
-    const brightness=(d[i]+d[i+1]+d[i+2])/3;
-    const darkness=255-brightness; // 0=white/transparent, 255=black/opaque
-    const threshold=30; // ignore near-white pixels
-    if(darkness<threshold){
-      d[i+3]=0; // fully transparent
-    } else {
-      // Map darkness to alpha with a curve for sharpie feel
-      const a=Math.min(255, Math.round((darkness-threshold)/(255-threshold)*255*1.1));
-      d[i]=ir; d[i+1]=ig; d[i+2]=ib; d[i+3]=a;
-    }
-  }
-  sc2.putImageData(imgData,0,0);
-
-  // Draw main stroke at full opacity
-  ctx.globalAlpha=0.92;
-  ctx.drawImage(sample, dx, dy, sw, sh);
-
-  // Ghost pass — sharpie bleed/spread effect
-  ctx.globalAlpha=0.28;
-  ctx.drawImage(sample, dx+1.5, dy+0.8, sw, sh);
-  ctx.globalAlpha=0.18;
-  ctx.drawImage(sample, dx-1, dy+1.2, sw, sh);
-
-  ctx.globalAlpha=1.0;
+  ctx.drawImage(si, dx, dy, sw, sh);
   ctx.restore();
 }
 
@@ -1995,9 +1945,7 @@ function initSigPad(){
   if(!pad || pad._ready) return;
   pad._ready = true;
   const ctx = pad.getContext('2d');
-  // Subtle card-stock tint so the sig pad feels like signing a real card
-  ctx.fillStyle='rgba(245,243,238,1)';
-  ctx.fillRect(0,0,pad.width,pad.height);
+  // Transparent background so exported PNG only contains strokes
   let drawing=false, lx=0, ly=0, hasMark=false;
 
   function pos(e){
@@ -2071,8 +2019,6 @@ function clearSigPad(){
   if(!pad) return;
   const pctx=pad.getContext('2d');
   pctx.clearRect(0,0,pad.width,pad.height);
-  pctx.fillStyle='rgba(245,243,238,1)';
-  pctx.fillRect(0,0,pad.width,pad.height);
   pad._ready=false;
   CS.sigImg=null; sD=''; sigHasMark=false;
   const hint=document.getElementById('sigPadHint');
