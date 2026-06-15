@@ -1395,17 +1395,33 @@ function drawFront(ctx){
 /* ── Rainbow ── */
 /* ── Holo — strong full-card prismatic tiles ── */
 function drawHolo(ctx){
-  const mx=CS.mx, my=CS.my, sz=6;
-  for(let y=0;y<PH;y+=sz){
-    for(let x=0;x<PW;x+=sz){
-      const dist=Math.sqrt(((x/PW)-mx)**2+((y/PH)-my)**2);
-      const hue=((x*1.8+y*1.2)+mx*260+my*180)%360;
-      // Strong base alpha + proximity boost near cursor
-      const alpha=0.18+0.22*(1-Math.min(dist*1.4,1));
-      ctx.fillStyle=`hsla(${hue},100%,62%,${alpha})`;
-      ctx.fillRect(x,y,sz,sz);
-    }
+  const mx=CS.mx, my=CS.my;
+  // Use overlapping radial gradients — no grid seams
+  // Layer 1: base prismatic sweep across the card
+  const sweep=ctx.createLinearGradient(mx*PW*0.6,0,(mx*0.6+1)*PW,PH);
+  const hueBase=(mx*280+my*140)%360;
+  for(let i=0;i<=8;i++){
+    const h=(hueBase+i*45)%360;
+    sweep.addColorStop(i/8,`hsla(${h},100%,60%,0.28)`);
   }
+  ctx.fillStyle=sweep; ctx.fillRect(0,0,PW,PH);
+
+  // Layer 2: second sweep at 90° offset
+  const sweep2=ctx.createLinearGradient(0,my*PH*0.6,PW,(my*0.6+1)*PH);
+  const hueBase2=(hueBase+120)%360;
+  for(let i=0;i<=6;i++){
+    const h=(hueBase2+i*60)%360;
+    sweep2.addColorStop(i/6,`hsla(${h},100%,58%,0.18)`);
+  }
+  ctx.fillStyle=sweep2; ctx.fillRect(0,0,PW,PH);
+
+  // Layer 3: radial highlight near mouse — no seams, smooth
+  const rg=ctx.createRadialGradient(mx*PW,my*PH,0,mx*PW,my*PH,PW*0.7);
+  const hueSpot=(hueBase+200)%360;
+  rg.addColorStop(0,`hsla(${hueSpot},100%,70%,0.22)`);
+  rg.addColorStop(0.4,`hsla(${(hueSpot+60)%360},100%,60%,0.12)`);
+  rg.addColorStop(1,`hsla(${(hueSpot+120)%360},100%,55%,0.0)`);
+  ctx.fillStyle=rg; ctx.fillRect(0,0,PW,PH);
 }
 
 /* ── Gold Glitter — dense gold sparkle field ── */
@@ -1450,32 +1466,28 @@ function drawGlitter(ctx, goldTint){
   const baseFill=0.18;
 
   ctx.save();
-  ctx.globalCompositeOperation='screen';
+  ctx.globalCompositeOperation='source-over';
   facets.forEach(f=>{
     const diff=((tiltDir-f.phase+540)%360)-180;
     const tiltCf=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
     const cf=Math.max(baseFill*f.peak, tiltCf);
     if(cf<0.01) return;
     let hue=goldTint ? (42+((f.hue/360)*18)) : f.hue;
-    // Mouse proximity boosts the nearest facets
     const cx=(f.verts[0].x+f.verts[1].x+f.verts[2].x)/3;
     const cy=(f.verts[0].y+f.verts[1].y+f.verts[2].y)/3;
     const dist=Math.sqrt(((cx/PW)-mx)**2+((cy/PH)-my)**2);
-    const boost=(1-Math.min(dist*1.8,1))*0.3;
-    const finalA=Math.min(cf+boost, 1.0);
-    const sat=goldTint?90:f.sat;
-    const lit=goldTint?(55+cf*30):(62+cf*20);
+    const boost=(1-Math.min(dist*1.8,1))*0.25;
+    const finalA=Math.min(cf+boost, 0.72);
+    // Darker, richer fill — lower lightness so overlay is visible not washed out
+    const sat=goldTint?88:f.sat;
+    const lit=goldTint?(32+cf*28):(28+cf*32);
     ctx.globalAlpha=finalA;
     ctx.fillStyle=`hsl(${hue},${sat}%,${lit}%)`;
     ctx.beginPath();
     ctx.moveTo(f.verts[0].x,f.verts[0].y);
     f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
     ctx.closePath(); ctx.fill();
-    // Edge glint
-    ctx.globalAlpha=finalA*0.5;
-    ctx.strokeStyle=goldTint?`hsl(${hue},100%,85%)`:`hsl(${hue},100%,90%)`;
-    ctx.lineWidth=0.5;
-    ctx.stroke();
+
   });
   ctx.globalAlpha=1;
   ctx.globalCompositeOperation='source-over';
@@ -2302,25 +2314,20 @@ function drawIceOverlay(ctx){
   // ── Prismatic facets — visible at rest, light up on tilt ──
   // Base visibility even at tilt=0 so fragments show on load
   const baseFill=0.06;
-  ctx.globalCompositeOperation='screen';
+  ctx.globalCompositeOperation='source-over';
   _ICE_FACETS.forEach(f=>{
     const diff=((tiltDir-f.phase+540)%360)-180;
     const tiltCf=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
     const cf=Math.max(baseFill*f.peak, tiltCf);
     if(cf<0.012) return;
-    // Hue shifts with tilt direction so colors change as card rotates
     const hue=(f.hue+tiltDir*1.2+360)%360;
-    ctx.globalAlpha=cf;
-    ctx.fillStyle=`hsl(${hue},${f.sat}%,68%)`;
+    ctx.globalAlpha=Math.min(cf,0.68);
+    ctx.fillStyle=`hsl(${hue},${f.sat}%,32%)`;
     ctx.beginPath();
     ctx.moveTo(f.verts[0].x,f.verts[0].y);
     f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
     ctx.closePath(); ctx.fill();
-    // Bright edge on each lit facet
-    ctx.globalAlpha=cf*0.4;
-    ctx.strokeStyle=`hsl(${hue},100%,88%)`;
-    ctx.lineWidth=0.6;
-    ctx.stroke();
+
   });
 
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
