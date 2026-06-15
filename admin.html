@@ -1279,6 +1279,11 @@ function drawFront(ctx){
   // ── BANNER ONLY (top + bottom strip, for cutout card style) ──
   if(CS.showBanner && LAYERS.banner_only) ctx.drawImage(LAYERS.banner_only,0,0,PW,PH);
 
+  // ── CERTIFIED AUTO overlay — behind frame, logo, and name ──
+  if(CS.parallel==='auto' && LAYERS.auto_frame){
+    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
+  }
+
   // ── LAYER 04: Player frame (now colorless bottom bar) ──
   if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
 
@@ -1376,11 +1381,6 @@ function drawFront(ctx){
 
   // ── GLOSS ──
   drawGloss(ctx,par);
-
-  // ── CERTIFIED AUTO overlay PNG (on top of everything) ──
-  if(CS.parallel==='auto' && LAYERS.auto_frame){
-    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
-  }
 
   // ── CRACKED ICE full-card prismatic overlay (after everything) ──
   if(par.name==='CRACKED ICE') drawIceOverlay(ctx);
