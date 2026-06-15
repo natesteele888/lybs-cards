@@ -792,6 +792,7 @@ let CS = {
 };
 let rPending=false, sCnt=0;
 let pD='',sD='',lD='',mD='',pS='',sS='',lS='',mS='';
+let sigHasMark=false;  // true only after user actually draws a stroke
 let pCache=[];
 const PW2='lybs2026';
 
@@ -1863,7 +1864,7 @@ function rr2(ctx,x,y,w,h,r){
 
 /* ── drawAutoSig — big sharpie signature drawn ON the card, under the frame ── */
 function drawAutoSig(ctx){
-  if(!CS.sigImg) return;
+  if(!CS.sigImg || (!sigHasMark && !sD)) return;
   ctx.save();
   const si=CS.sigImg;
 
@@ -2025,6 +2026,7 @@ function initSigPad(){
     ctx.globalAlpha=1.0;
     lx=p.x; ly=p.y;
     hasMark=true;
+    sigHasMark=true;
     // Live-update card preview
     liveUpdateSig();
     e.preventDefault();
@@ -2056,7 +2058,7 @@ function clearSigPad(){
   pctx.fillStyle='rgba(245,243,238,1)';
   pctx.fillRect(0,0,pad.width,pad.height);
   pad._ready=false;
-  CS.sigImg=null; sD='';
+  CS.sigImg=null; sD=''; sigHasMark=false;
   const hint=document.getElementById('sigPadHint');
   if(hint) hint.classList.remove('gone');
   qR();
@@ -2372,7 +2374,7 @@ function hPhoto(i){
   };
   fr.readAsDataURL(i.files[0]);
 }
-function hSig(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{sD=e.target.result;setThumb('sigThumb','sigIcon','sigName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.sigImg=img;qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
+function hSig(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{sD=e.target.result;sigHasMark=true;setThumb('sigThumb','sigIcon','sigName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.sigImg=img;qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
 function hMac(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{setThumb('macThumb','macIcon','macName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.macImg=img;qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
 function hLogo(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{lD=e.target.result;setThumb('logoThumb','logoIcon','logoName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.logoImg=img;document.getElementById('logoTransform').style.display='block';qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
 function setThumb(tid,iid,nid,src,name){const t=document.getElementById(tid);t.src=src;t.style.display='block';document.getElementById(iid).style.display='none';document.getElementById(nid).textContent=name;}
@@ -2575,7 +2577,7 @@ function resetForm(){
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
   document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}
   pD='';sD='';lD='';pS='';sS='';lS='';
-  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');
+  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
   CS.imgScale=1.0;CS.imgOffsetX=0;CS.imgOffsetY=0;
   ['photoThumb','sigThumb','logoThumb'].forEach(id=>{document.getElementById(id).style.display='none';document.getElementById(id).src='';});
   ['photoIcon','sigIcon','logoIcon'].forEach(id=>document.getElementById(id).style.display='');
