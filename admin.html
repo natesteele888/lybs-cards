@@ -1276,23 +1276,9 @@ function drawFront(ctx){
   // ── BANNER ONLY (top + bottom strip, for cutout card style) ──
   if(CS.showBanner && LAYERS.banner_only) ctx.drawImage(LAYERS.banner_only,0,0,PW,PH);
 
-  // ── CERTIFIED AUTO overlay — accent-colored bg + white gradient PNG on top ──
-  if(CS.parallel==='auto'){
-    // Fill the overlay area with the accent color (same logic as drawAccentBar)
-    const hex=(CS.accentColor||'#1546a0').replace('#','');
-    let ar=parseInt(hex.substr(0,2),16),ag=parseInt(hex.substr(2,2),16),ab=parseInt(hex.substr(4,2),16);
-    const sat=(CS.accentSat==null?100:CS.accentSat)/100;
-    const avg=(ar+ag+ab)/3;
-    ar=Math.round(Math.max(0,Math.min(255,avg+(ar-avg)*sat)));
-    ag=Math.round(Math.max(0,Math.min(255,avg+(ag-avg)*sat)));
-    ab=Math.round(Math.max(0,Math.min(255,avg+(ab-avg)*sat)));
-    // The overlay spans the lower photo area: y=532-901, x=53-673 (from PNG analysis)
-    ctx.save();
-    ctx.fillStyle=`rgb(${ar},${ag},${ab})`;
-    ctx.fillRect(53,532,620,370);
-    ctx.restore();
-    // Draw the white gradient + certified text PNG on top
-    if(LAYERS.auto_frame) ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
+  // ── CERTIFIED AUTO overlay — draw PNG as-is, never altered ──
+  if(CS.parallel==='auto' && LAYERS.auto_frame){
+    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
   }
 
   // ── SIGNATURE (auto parallel) — ON TOP of the auto overlay ──
