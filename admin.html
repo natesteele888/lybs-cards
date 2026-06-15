@@ -364,19 +364,21 @@ window.addEventListener('unhandledrejection',function(e){
         </div>
 
         <div class="fsec">
-          <div class="slabel">Parallel / Finish</div>
-          <div class="pg" id="parallelGrid"></div>
+          <div class="slabel">Card Type</div>
+          <div id="cardTypeGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:12px"></div>
           <input type="hidden" id="fPar" value="base">
-          <div style="margin-top:12px">
-            <div class="slabel" style="margin-bottom:6px">Accent Color</div>
-            <div class="transform-row">
-              <label>Color</label>
-              <input type="color" id="accentColor" value="#1546a0" oninput="CS.accentColor=this.value;qR()" style="width:46px;height:28px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none">
+
+          <div id="colorOverlaySection" style="margin-top:4px">
+            <div class="slabel" style="margin-bottom:6px">Color Overlay</div>
+            <div id="colorSwatchGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px"></div>
+            <div class="transform-row" style="margin-top:4px">
+              <label>Custom</label>
+              <input type="color" id="accentColor" value="#1546a0" oninput="CS.accentColor=this.value;applyAccentToPar();syncAccentVal();qR()" style="width:46px;height:28px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none">
               <span class="val" id="accentColorVal">#1546A0</span>
             </div>
             <div class="transform-row">
               <label>Saturation</label>
-              <input type="range" id="accentSat" min="0" max="160" value="100" oninput="CS.accentSat=parseInt(this.value);document.getElementById('accentSatVal').textContent=this.value+'%';qR()">
+              <input type="range" id="accentSat" min="0" max="160" value="100" oninput="CS.accentSat=parseInt(this.value);document.getElementById('accentSatVal').textContent=this.value+'%';applyAccentToPar();qR()">
               <span class="val" id="accentSatVal">100%</span>
             </div>
           </div>
@@ -462,7 +464,7 @@ window.addEventListener('unhandledrejection',function(e){
           </label>
         </div>
 
-        <div class="fsec" id="sigSec" style="display:none">
+        <div class="fsec" id="sigSec">
           <div class="slabel">Signature</div>
           <!-- Tab switcher -->
           <div class="sig-tabs">
@@ -773,7 +775,7 @@ const PAR = {
    STATE
 ═══════════════════════════════════════════ */
 let CS = {
-  parallel:'base', flipped:false, flipT:0,
+  parallel:'base', cardType:'base', flipped:false, flipT:0,
   mx:0.5, my:0.5, rotX:0, rotY:0,
   loadedBatting:null, loadedPitching:null, statsPulled:false,
   breakout:false, breakoutPoly:null, lassoMode:false, lassoDrawing:false,
@@ -803,7 +805,7 @@ let layersReady=false;
 ═══════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   fbDiag();
-  buildPills();
+  CS.cardType=CS.cardType||'base'; buildCardTypeUI(); buildColorSwatches();
 
   // Preload all template layers
   const keys=Object.keys(LAYER_SRCS);
@@ -1281,8 +1283,8 @@ function drawFront(ctx){
     ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
   }
 
-  // ── SIGNATURE (auto parallel) — ON TOP of the auto overlay ──
-  if(CS.parallel==='auto') drawAutoSig(ctx);
+  // ── SIGNATURE — ON TOP of auto overlay, available on any parallel ──
+  drawAutoSig(ctx);
 
   // ── LAYER 04: Player frame (now colorless bottom bar) ──
   if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
@@ -1404,17 +1406,6 @@ function drawHolo(ctx){
       ctx.fillRect(x,y,sz,sz);
     }
   }
-  // Second pass: diagonal shimmer band that shifts with mouse
-  const off=mx*PW*0.8+my*PH*0.4;
-  const sg=ctx.createLinearGradient(off,0,off+PW*0.6,PH);
-  sg.addColorStop(0,'rgba(255,255,255,0)');
-  sg.addColorStop(0.4,'rgba(255,255,255,0)');
-  sg.addColorStop(0.48,'rgba(255,255,255,0.18)');
-  sg.addColorStop(0.5,'rgba(255,255,255,0.32)');
-  sg.addColorStop(0.52,'rgba(255,255,255,0.18)');
-  sg.addColorStop(0.6,'rgba(255,255,255,0)');
-  sg.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=sg; ctx.fillRect(0,0,PW,PH);
 }
 
 /* ── Gold Glitter — dense gold sparkle field ── */
@@ -1645,15 +1636,7 @@ function drawGloss(ctx,par){
   const ev=ctx.createRadialGradient(PW/2,PH/2,PH*.3,PW/2,PH/2,PH*.75);
   ev.addColorStop(0,'rgba(0,0,0,0)');ev.addColorStop(1,'rgba(0,0,0,0.2)');
   ctx.fillStyle=ev;ctx.fillRect(0,0,PW,PH);
-  if(['HOLO FOIL','GLITTER HOLO'].includes(par.name)){
-    const ang=mx*.6-.2,bx2=Math.cos(ang),by2=Math.sin(ang);
-    const pb=ctx.createLinearGradient(sx-bx2*300,sy-by2*300,sx+bx2*300,sy+by2*300);
-    pb.addColorStop(0,'rgba(255,255,255,0)');pb.addColorStop(.44,'rgba(255,255,255,0)');
-    pb.addColorStop(.48,'rgba(255,255,255,0.20)');pb.addColorStop(.50,'rgba(255,255,255,0.38)');
-    pb.addColorStop(.52,'rgba(255,255,255,0.20)');pb.addColorStop(.56,'rgba(255,255,255,0)');
-    pb.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=pb;ctx.fillRect(0,0,PW,PH);
-  }
+
 }
 
 /* ── Card back ── portrait, mirrors front sidebar, clean Topps layout ── */
@@ -1904,7 +1887,7 @@ function drawBack(ctx){
   }
 
   // ══ SIG BOX ON BACK (auto) ══
-  if(CS.parallel==='auto'&&CS.sigImg&&cy+45<FY+FH-24){
+  if(CS.sigImg&&sigHasMark&&cy+45<FY+FH-24){
     ctx.fillStyle='rgba(255,255,255,0.94)';rr2(ctx,CX2,cy,TW,42,3);ctx.fill();
     ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=0.5;ctx.stroke();
     const si=CS.sigImg,sc2=Math.min((TW-10)/(si.naturalWidth||100),(42-10)/(si.naturalHeight||50));
@@ -2365,35 +2348,135 @@ function resetLogoTransform(){CS.logoScale=1;CS.logoOffsetX=0;CS.logoOffsetY=0;s
 /* ═══════════════════════════════════════════
    PARALLEL PILLS
 ═══════════════════════════════════════════ */
-function buildPills(){
-  const grid=document.getElementById('parallelGrid');
-  Object.entries(PAR).forEach(([key,p])=>{
-    const div=document.createElement('div');
-    div.className='pp'+(key==='base'?' active':'');
-    div.onclick=()=>pickPar(key,div);
-    const sw=document.createElement('div');sw.className='sw';
-    if(p.sw==='ice')sw.style.background='linear-gradient(135deg,#e0f0ff,#c8e8ff,#b0d8f8,#90c8f0,#f0e8ff,#e8d0ff,#c8e8ff)';
-    else if(p.sw==='rainbow')sw.style.background='linear-gradient(135deg,#f00,#f80,#ff0,#0c0,#08f,#80f,#f00)';
-    else if(p.sw==='holo')sw.style.background='linear-gradient(135deg,#7eb8ff,#cc00ff,#00ffcc,#ffcc00)';
-    else sw.style.background=p.sw;
-    const lbl=document.createElement('span');lbl.textContent=p.name;
-    div.appendChild(sw);div.appendChild(lbl);grid.appendChild(div);
+function syncAccentVal(){
+  const v=(CS.accentColor||'#1546a0');
+  const el=document.getElementById('accentColorVal');
+  if(el) el.textContent=v.toUpperCase();
+}
+
+// Card types — finish only, no color baked in
+const CARD_TYPES = [
+  {key:'base',         label:'Base',         sw:'#aaaaaa'},
+  {key:'holo',         label:'Holo',         sw:'holo'},
+  {key:'glitter',      label:'Glitter',      sw:'#d4a800'},
+  {key:'glitter_holo', label:'Glitter Holo', sw:'holo'},
+  {key:'ice',          label:'Cracked Ice',  sw:'ice'},
+  {key:'bubbles',      label:'Bubble Prizm', sw:'holo'},
+  {key:'tie_dye',      label:'Tie Dye',      sw:'#4a90d9'},
+  {key:'auto',         label:'Certified Auto',sw:'#1546a0'},
+  {key:'black',        label:'Black',        sw:'#111111'},
+];
+
+// Preset color swatches for overlay
+const COLOR_SWATCHES = [
+  {label:'Navy',   hex:'#1546a0'},
+  {label:'Red',    hex:'#cc1122'},
+  {label:'Gold',   hex:'#c09020'},
+  {label:'Green',  hex:'#0a6a2a'},
+  {label:'Orange', hex:'#cc4400'},
+  {label:'Purple', hex:'#6010a8'},
+  {label:'Black',  hex:'#111111'},
+  {label:'White',  hex:'#e8e8e8'},
+];
+
+// Types that don't use a color overlay tint
+const NO_TINT_TYPES = new Set(['holo','glitter_holo','ice','bubbles','tie_dye','black','auto']);
+
+function buildCardTypeUI(){
+  const grid = document.getElementById('cardTypeGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  CARD_TYPES.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='t-btn'+(CS.cardType===t.key?' active':'');
+    btn.id='ctype_'+t.key;
+    btn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;font-size:9px;letter-spacing:1px';
+    const sw=document.createElement('div');
+    sw.style.cssText='width:28px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,0.15)';
+    if(t.sw==='ice') sw.style.background='linear-gradient(135deg,#e0f0ff,#c8e8ff,#b0d8f8,#90c8f0,#f0e8ff)';
+    else if(t.sw==='holo') sw.style.background='linear-gradient(135deg,#7eb8ff,#cc00ff,#00ffcc,#ffcc00)';
+    else sw.style.background=t.sw;
+    btn.appendChild(sw);
+    btn.appendChild(document.createTextNode(t.label));
+    btn.onclick=()=>pickCardType(t.key);
+    grid.appendChild(btn);
+  });
+  updateColorOverlayVisibility();
+}
+
+function buildColorSwatches(){
+  const grid=document.getElementById('colorSwatchGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  COLOR_SWATCHES.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='t-btn';
+    btn.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 3px;font-size:8px;letter-spacing:0.5px';
+    const sw=document.createElement('div');
+    sw.style.cssText=`width:24px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,0.15);background:${s.hex}`;
+    btn.appendChild(sw);
+    btn.appendChild(document.createTextNode(s.label));
+    btn.onclick=()=>{
+      CS.accentColor=s.hex;
+      const el=document.getElementById('accentColor');
+      if(el) el.value=s.hex;
+      syncAccentVal();
+      qR();
+    };
+    grid.appendChild(btn);
   });
 }
-function pickPar(key,el){
-  CS.parallel=key;
-  document.getElementById('fPar').value=key;
-  document.querySelectorAll('.pp').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('sigSec').style.display=key==='auto'?'block':'none'; if(key==='auto') setSigColor(CS.sigColor||'black');
-  if(key==='auto'){ showSigTab('draw'); }
-  const p=PAR[key];const pv=document.getElementById('pvPar');
-  pv.textContent=p.name;
-  const g=p.glow;
-  pv.style.color=g?`rgb(${g[0]},${g[1]},${g[2]})`:'rgba(255,255,255,0.3)';
-  pv.style.borderColor=g?`rgba(${g[0]},${g[1]},${g[2]},0.3)`:'rgba(255,255,255,0.08)';
-  pv.style.background=g?`rgba(${g[0]},${g[1]},${g[2]},0.08)`:'transparent';
+
+function updateColorOverlayVisibility(){
+  const sec=document.getElementById('colorOverlaySection');
+  if(!sec) return;
+  const hide=NO_TINT_TYPES.has(CS.cardType||'base');
+  sec.style.display=hide?'none':'block';
+}
+
+function pickCardType(key){
+  CS.cardType=key;
+  // Map card type to parallel key — type IS the parallel for special finishes,
+  // for color-tint types we apply the tint via accentColor
+  const tintTypes=new Set(['base','glitter']);
+  if(tintTypes.has(key)||!NO_TINT_TYPES.has(key)){
+    // color overlay applies — keep accentColor, set par to key
+    CS.parallel=key;
+  } else {
+    CS.parallel=key;
+  }
+  // Update PAR tint dynamically for tintable types
+  applyAccentToPar();
+  // Rebuild button states
+  document.querySelectorAll('[id^="ctype_"]').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('ctype_'+key);
+  if(btn) btn.classList.add('active');
+  // Auto sig section
+  document.getElementById('sigSec').style.display='block';
+  setSigColor(CS.sigColor||'black');
+  updateColorOverlayVisibility();
+  const pv=document.getElementById('pvPar');
+  if(pv) pv.textContent=(PAR[key]||PAR.base).name;
   qR();
+}
+
+function applyAccentToPar(){
+  // For color-overlay types, dynamically set the tint from accentColor
+  const key=CS.cardType||'base';
+  if(NO_TINT_TYPES.has(key)) return;
+  const hex=(CS.accentColor||'#1546a0').replace('#','');
+  const r=parseInt(hex.substr(0,2),16),g=parseInt(hex.substr(2,2),16),b=parseInt(hex.substr(4,2),16);
+  const sat=(CS.accentSat==null?100:CS.accentSat)/100;
+  const avg=(r+g+b)/3;
+  const tr=Math.round(Math.max(0,Math.min(255,avg+(r-avg)*sat)));
+  const tg=Math.round(Math.max(0,Math.min(255,avg+(g-avg)*sat)));
+  const tb=Math.round(Math.max(0,Math.min(255,avg+(b-avg)*sat)));
+  if(PAR[key]) PAR[key].tint=[tr,tg,tb,0.40];
+}
+
+function pickPar(key,el){
+  // Legacy — delegate to new card type picker
+  pickCardType(key);
 }
 
 /* ═══════════════════════════════════════════
@@ -2579,7 +2662,7 @@ function editCard(id){
   document.querySelectorAll('.pp').forEach(el=>{if(el.querySelector('span')&&el.querySelector('span').textContent===(PAR[parKey]||PAR.base).name)el.classList.add('active');});
   CS.parallel=parKey;CS.flipped=false;CS.flipT=0;
   CS.imgScale=p.imgScale||1.0;CS.imgOffsetX=p.imgOffsetX||0;CS.imgOffsetY=p.imgOffsetY||0;
-  document.getElementById('sigSec').style.display=parKey==='auto'?'block':'none'; if(parKey==='auto') setSigColor(CS.sigColor||'black');
+  document.getElementById('sigSec').style.display='block'; setSigColor(CS.sigColor||'black'); buildCardTypeUI();
   pS=p.photoURL||'';sS=p.sigURL||'';lS=p.logoURL||'';
   pD='';sD='';lD='';CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;
   if(p.photoURL){
@@ -2594,7 +2677,7 @@ function editCard(id){
   document.getElementById('statsRows').innerHTML='';sCnt=0;(p.stats||[]).forEach(s=>addSR(s));document.getElementById('pitchRows').innerHTML='';pCnt=0;(p.pitchStats||[]).forEach(s=>addPR(s));
   // Restore pulled-stats state
   CS.statsPulled=!!p.statsPulled;
-  CS.breakout=!!p.breakout;CS.breakoutPoly=p.breakoutPoly||null;CS.numbered=!!p.numbered;CS.allStar=!!p.allStar;CS.sPos=p.sPos||'br';CS.sigColor=p.sigColor||'black';
+  CS.breakout=!!p.breakout;CS.breakoutPoly=p.breakoutPoly||null;CS.numbered=!!p.numbered;CS.allStar=!!p.allStar;CS.sPos=p.sPos||'br';CS.sigColor=p.sigColor||'black';CS.cardType=parKey;
   if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.toggle('active',CS.sPos==='br');document.getElementById('sPosBL').classList.toggle('active',CS.sPos==='bl');}
   if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=CS.allStar;
   if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=CS.numbered;document.getElementById('numberedFields').style.display=CS.numbered?'block':'none';}
@@ -2620,7 +2703,7 @@ function resetForm(){
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
   document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}
   pD='';sD='';lD='';pS='';sS='';lS='';
-  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
+  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;CS.cardType='base';buildCardTypeUI();
   CS.imgScale=1.0;CS.imgOffsetX=0;CS.imgOffsetY=0;
   ['photoThumb','sigThumb','logoThumb'].forEach(id=>{document.getElementById(id).style.display='none';document.getElementById(id).src='';});
   ['photoIcon','sigIcon','logoIcon'].forEach(id=>document.getElementById(id).style.display='');
@@ -2628,7 +2711,7 @@ function resetForm(){
   document.getElementById('sigName').textContent='Click to upload signature';
   document.getElementById('logoName').textContent='Click to upload team logo';
   ['photoFile','sigFile','logoFile'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('sigSec').style.display='none';
+  // sigSec always visible
   document.getElementById('numberedSec').style.display='none';
   CS.macImg=null;
   document.getElementById('macThumb').style.display='none';
