@@ -1274,9 +1274,6 @@ function drawFront(ctx){
   // ── Position bar color fill (BEHIND frame so hatching shows on top) ──
   drawAccentBar(ctx);
 
-  // ── SIGNATURE (auto parallel) — drawn ON the photo, UNDER the frame ──
-  if(CS.parallel==='auto') drawAutoSig(ctx);
-
   // ── BANNER ONLY (top + bottom strip, for cutout card style) ──
   if(CS.showBanner && LAYERS.banner_only) ctx.drawImage(LAYERS.banner_only,0,0,PW,PH);
 
@@ -1284,6 +1281,9 @@ function drawFront(ctx){
   if(CS.parallel==='auto' && LAYERS.auto_frame){
     ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
   }
+
+  // ── SIGNATURE (auto parallel) — ON TOP of the auto overlay ──
+  if(CS.parallel==='auto') drawAutoSig(ctx);
 
   // ── LAYER 04: Player frame (now colorless bottom bar) ──
   if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
@@ -1978,14 +1978,14 @@ function initSigPad(){
     ctx.lineWidth=lw;
     ctx.lineCap='round';
     ctx.lineJoin='round';
-    ctx.globalAlpha=0.82;
+    ctx.globalAlpha=0.78;
     ctx.stroke();
-    // Ghost pass — slightly offset, lower opacity — sharpie bleed
+    // Ghost pass — sharpie edge bleed, very subtle
     ctx.beginPath();
-    ctx.moveTo(lx+0.8,ly+0.5);
-    ctx.lineTo(p.x+0.8,p.y+0.5);
-    ctx.lineWidth=lw*0.55;
-    ctx.globalAlpha=0.22;
+    ctx.moveTo(lx+0.6,ly+0.4);
+    ctx.lineTo(p.x+0.6,p.y+0.4);
+    ctx.lineWidth=lw*0.4;
+    ctx.globalAlpha=0.14;
     ctx.stroke();
     ctx.globalAlpha=1.0;
     lx=p.x; ly=p.y;
