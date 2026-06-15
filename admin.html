@@ -368,7 +368,7 @@ window.addEventListener('unhandledrejection',function(e){
           <div class="pg" id="parallelGrid"></div>
           <input type="hidden" id="fPar" value="base">
           <div style="margin-top:12px">
-            <div class="slabel" style="margin-bottom:6px">Accent Bar Color</div>
+            <div class="slabel" style="margin-bottom:6px">Accent Color</div>
             <div class="transform-row">
               <label>Color</label>
               <input type="color" id="accentColor" value="#1546a0" oninput="CS.accentColor=this.value;qR()" style="width:46px;height:28px;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:none">
@@ -752,23 +752,21 @@ const POS_X = 506, POS_Y = 942, POS_MAXW = 152;
    PARALLELS
 ═══════════════════════════════════════════ */
 const PAR = {
-  base:        {name:'BASE',          sw:'#aaaaaa', tint:null,               glow:null},
-  silver:      {name:'SILVER',        sw:'#c8c8d0', tint:[200,200,215,0.30], glow:[200,200,220]},
-  blue:        {name:'BLUE',          sw:'#1a4aaa', tint:[20,70,210,0.40],   glow:[40,100,220]},
-  red:         {name:'RED',           sw:'#cc1122', tint:[200,15,35,0.40],   glow:[200,20,40]},
-  gold:        {name:'GOLD',          sw:'#c09020', tint:[190,140,15,0.38],  glow:[195,145,35]},
-  green:       {name:'GREEN',         sw:'#0a6a2a', tint:[15,140,55,0.38],   glow:[15,145,55]},
-  orange:      {name:'ORANGE',        sw:'#cc4400', tint:[200,75,10,0.38],   glow:[205,80,15]},
-  purple:      {name:'PURPLE',        sw:'#6010a8', tint:[125,15,205,0.38],  glow:[135,25,215]},
-  rainbow:     {name:'RAINBOW FOIL',  sw:'rainbow', tint:null,               glow:[255,180,0]},
-  holo:        {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
-  sandglitter: {name:'SANDGLITTER',   sw:'#ffd700', tint:[215,165,0,0.32],   glow:[255,200,0]},
-  diamante:    {name:'DIAMANTE',      sw:'#b0d8f8', tint:[115,175,235,0.28], glow:[155,205,255]},
-  black:       {name:'BLACK 1/1',     sw:'#222222', tint:[0,0,0,0.52],       glow:null},
-  auto:        {name:'CERTIFIED AUTO',sw:'#cc0018', tint:[195,8,28,0.38],   glow:[200,15,45]},
-  ice:         {name:'CRACKED ICE',     sw:'ice',     tint:null,               glow:[180,220,255]},
-  bubbles:     {name:'BUBBLE PRIZM',    sw:'holo',    tint:null,               glow:[150,210,255]},
-  tie_dye:     {name:'TIE DYE',         sw:'#4a90d9', tint:null,               glow:[100,160,230]},
+  base:         {name:'BASE',          sw:'#aaaaaa', tint:null,               glow:null},
+  blue:         {name:'BLUE',          sw:'#1a4aaa', tint:[20,70,210,0.40],   glow:[40,100,220]},
+  red:          {name:'RED',           sw:'#cc1122', tint:[200,15,35,0.40],   glow:[200,20,40]},
+  gold:         {name:'GOLD',          sw:'#c09020', tint:[190,140,15,0.38],  glow:[195,145,35]},
+  green:        {name:'GREEN',         sw:'#0a6a2a', tint:[15,140,55,0.38],   glow:[15,145,55]},
+  orange:       {name:'ORANGE',        sw:'#cc4400', tint:[200,75,10,0.38],   glow:[205,80,15]},
+  purple:       {name:'PURPLE',        sw:'#6010a8', tint:[125,15,205,0.38],  glow:[135,25,215]},
+  holo:         {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
+  glitter:      {name:'GOLD GLITTER',  sw:'#d4a800', tint:[190,140,0,0.25],   glow:[255,210,0]},
+  glitter_holo: {name:'GLITTER HOLO',  sw:'holo',    tint:null,               glow:[180,220,255]},
+  black:        {name:'BLACK',         sw:'#111111', tint:[0,0,0,0.72],       glow:null},
+  auto:         {name:'CERTIFIED AUTO',sw:'#1546a0', tint:null,               glow:[100,130,200]},
+  ice:          {name:'CRACKED ICE',   sw:'ice',     tint:null,               glow:[180,220,255]},
+  bubbles:      {name:'BUBBLE PRIZM',  sw:'holo',    tint:null,               glow:[150,210,255]},
+  tie_dye:      {name:'TIE DYE',       sw:'#4a90d9', tint:null,               glow:[100,160,230]},
 };
 
 /* ═══════════════════════════════════════════
@@ -1258,8 +1256,9 @@ function drawFront(ctx){
     ctx.fillStyle=`rgba(${r},${g},${b},${a})`;
     ctx.fillRect(0,0,PW,PH);
   }
-  if(par.name==='RAINBOW FOIL') drawRainbow(ctx);
-  if(par.name==='HOLO FOIL')    drawHolo(ctx);
+  if(par.name==='HOLO FOIL')       drawHolo(ctx);
+  if(par.name==='GOLD GLITTER')    drawGlitter(ctx, true);
+  if(par.name==='GLITTER HOLO')    drawGlitter(ctx, false);
 
   // ── LAYER 02: banner (toggle) ──
   if(CS.showBanner && LAYERS.banner) ctx.drawImage(LAYERS.banner,0,0,PW,PH);
@@ -1277,9 +1276,23 @@ function drawFront(ctx){
   // ── BANNER ONLY (top + bottom strip, for cutout card style) ──
   if(CS.showBanner && LAYERS.banner_only) ctx.drawImage(LAYERS.banner_only,0,0,PW,PH);
 
-  // ── CERTIFIED AUTO overlay — behind frame, logo, and name ──
-  if(CS.parallel==='auto' && LAYERS.auto_frame){
-    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
+  // ── CERTIFIED AUTO overlay — accent-colored bg + white gradient PNG on top ──
+  if(CS.parallel==='auto'){
+    // Fill the overlay area with the accent color (same logic as drawAccentBar)
+    const hex=(CS.accentColor||'#1546a0').replace('#','');
+    let ar=parseInt(hex.substr(0,2),16),ag=parseInt(hex.substr(2,2),16),ab=parseInt(hex.substr(4,2),16);
+    const sat=(CS.accentSat==null?100:CS.accentSat)/100;
+    const avg=(ar+ag+ab)/3;
+    ar=Math.round(Math.max(0,Math.min(255,avg+(ar-avg)*sat)));
+    ag=Math.round(Math.max(0,Math.min(255,avg+(ag-avg)*sat)));
+    ab=Math.round(Math.max(0,Math.min(255,avg+(ab-avg)*sat)));
+    // The overlay spans the lower photo area: y=532-901, x=53-673 (from PNG analysis)
+    ctx.save();
+    ctx.fillStyle=`rgb(${ar},${ag},${ab})`;
+    ctx.fillRect(53,532,620,370);
+    ctx.restore();
+    // Draw the white gradient + certified text PNG on top
+    if(LAYERS.auto_frame) ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
   }
 
   // ── SIGNATURE (auto parallel) — ON TOP of the auto overlay ──
@@ -1387,28 +1400,69 @@ function drawFront(ctx){
   if(par.name==='CRACKED ICE') drawIceOverlay(ctx);
   // ── BUBBLE PRIZM full-card shimmer ──
   if(par.name==='BUBBLE PRIZM') drawBubbleOverlay(ctx);
+  // ── GLITTER HOLO second pass — over gloss, max sparkle ──
+  if(par.name==='GLITTER HOLO'){ ctx.save(); ctx.globalAlpha=0.55; drawGlitter(ctx,false); ctx.restore(); }
 }
 
 /* ── Rainbow ── */
-function drawRainbow(ctx){
-  const mx=CS.mx,my=CS.my,off=mx*300+my*150;
-  const rg=ctx.createLinearGradient(off,0,off+PW*1.2,PH);
-  rg.addColorStop(0,'rgba(255,0,80,0.38)');rg.addColorStop(.14,'rgba(255,120,0,0.35)');
-  rg.addColorStop(.28,'rgba(255,220,0,0.32)');rg.addColorStop(.42,'rgba(0,220,80,0.35)');
-  rg.addColorStop(.57,'rgba(0,120,255,0.38)');rg.addColorStop(.71,'rgba(120,0,255,0.35)');
-  rg.addColorStop(.85,'rgba(255,0,180,0.35)');rg.addColorStop(1,'rgba(255,0,80,0.38)');
-  ctx.fillStyle=rg;ctx.fillRect(0,0,PW,PH);
-}
-/* ── Holo ── */
+/* ── Holo — strong full-card prismatic tiles ── */
 function drawHolo(ctx){
-  const mx=CS.mx,my=CS.my,sz=8;
-  for(let y=0;y<PH;y+=sz){for(let x=0;x<PW;x+=sz){
+  const mx=CS.mx, my=CS.my, sz=6;
+  for(let y=0;y<PH;y+=sz){
+    for(let x=0;x<PW;x+=sz){
+      const dist=Math.sqrt(((x/PW)-mx)**2+((y/PH)-my)**2);
+      const hue=((x*1.8+y*1.2)+mx*260+my*180)%360;
+      // Strong base alpha + proximity boost near cursor
+      const alpha=0.18+0.22*(1-Math.min(dist*1.4,1));
+      ctx.fillStyle=`hsla(${hue},100%,62%,${alpha})`;
+      ctx.fillRect(x,y,sz,sz);
+    }
+  }
+  // Second pass: diagonal shimmer band that shifts with mouse
+  const off=mx*PW*0.8+my*PH*0.4;
+  const sg=ctx.createLinearGradient(off,0,off+PW*0.6,PH);
+  sg.addColorStop(0,'rgba(255,255,255,0)');
+  sg.addColorStop(0.4,'rgba(255,255,255,0)');
+  sg.addColorStop(0.48,'rgba(255,255,255,0.18)');
+  sg.addColorStop(0.5,'rgba(255,255,255,0.32)');
+  sg.addColorStop(0.52,'rgba(255,255,255,0.18)');
+  sg.addColorStop(0.6,'rgba(255,255,255,0)');
+  sg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sg; ctx.fillRect(0,0,PW,PH);
+}
+
+/* ── Gold Glitter — dense gold sparkle field ── */
+function drawGlitter(ctx, goldTint){
+  const mx=CS.mx, my=CS.my;
+  // Seed a deterministic sparkle field using a simple LCG
+  let seed=42;
+  const rand=()=>{ seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; };
+  const count=2200;
+  ctx.save();
+  for(let i=0;i<count;i++){
+    const x=rand()*PW, y=rand()*PH;
+    const r=rand()*1.8+0.3;
+    // Proximity to mouse boosts brightness
     const dist=Math.sqrt(((x/PW)-mx)**2+((y/PH)-my)**2);
-    const hue=((x+y)*1.6+mx*180+my*120)%360;
-    const alpha=0.07+0.11*(1-Math.min(dist*2,1));
-    ctx.fillStyle=`hsla(${hue},100%,60%,${alpha})`;
-    ctx.fillRect(x,y,sz-1,sz-1);
-  }}
+    const boost=1-Math.min(dist*1.6,1);
+    if(goldTint){
+      // Gold: warm yellow-gold sparkles
+      const hue=42+rand()*18; // 42-60°
+      const lit=55+rand()*25+boost*20;
+      const a=0.45+rand()*0.45+boost*0.25;
+      ctx.fillStyle=`hsla(${hue},90%,${lit}%,${Math.min(a,1)})`;
+    } else {
+      // Holo glitter: full spectrum
+      const hue=rand()*360;
+      const lit=60+rand()*30+boost*15;
+      const a=0.5+rand()*0.4+boost*0.2;
+      ctx.fillStyle=`hsla(${hue},100%,${lit}%,${Math.min(a,1)})`;
+    }
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 /* ── Recolor accent bar region ── */
 function drawAccentBar(ctx){
@@ -1565,12 +1619,12 @@ function drawGloss(ctx,par){
   const ev=ctx.createRadialGradient(PW/2,PH/2,PH*.3,PW/2,PH/2,PH*.75);
   ev.addColorStop(0,'rgba(0,0,0,0)');ev.addColorStop(1,'rgba(0,0,0,0.2)');
   ctx.fillStyle=ev;ctx.fillRect(0,0,PW,PH);
-  if(['RAINBOW FOIL'].includes(par.name)){
+  if(['HOLO FOIL','GLITTER HOLO'].includes(par.name)){
     const ang=mx*.6-.2,bx2=Math.cos(ang),by2=Math.sin(ang);
-    const pb=ctx.createLinearGradient(sx-bx2*250,sy-by2*250,sx+bx2*250,sy+by2*250);
-    pb.addColorStop(0,'rgba(255,255,255,0)');pb.addColorStop(.46,'rgba(255,255,255,0)');
-    pb.addColorStop(.49,'rgba(255,255,255,0.22)');pb.addColorStop(.50,'rgba(255,255,255,0.40)');
-    pb.addColorStop(.51,'rgba(255,255,255,0.22)');pb.addColorStop(.54,'rgba(255,255,255,0)');
+    const pb=ctx.createLinearGradient(sx-bx2*300,sy-by2*300,sx+bx2*300,sy+by2*300);
+    pb.addColorStop(0,'rgba(255,255,255,0)');pb.addColorStop(.44,'rgba(255,255,255,0)');
+    pb.addColorStop(.48,'rgba(255,255,255,0.20)');pb.addColorStop(.50,'rgba(255,255,255,0.38)');
+    pb.addColorStop(.52,'rgba(255,255,255,0.20)');pb.addColorStop(.56,'rgba(255,255,255,0)');
     pb.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=pb;ctx.fillRect(0,0,PW,PH);
   }
@@ -2567,7 +2621,7 @@ function resetForm(){
    BULK IMPORT — spreadsheet + photo ZIP → cards
 ═══════════════════════════════════════════ */
 let BULK={rows:[],photos:{},matched:[]};
-const VALID_PARALLELS=['base','silver','blue','red','gold','green','orange','purple','rainbow','holo','sandglitter','diamante','black','auto','ice','numbered','tie_dye'];
+const VALID_PARALLELS=['base','blue','red','gold','green','orange','purple','holo','glitter','glitter_holo','black','auto','ice','bubbles','tie_dye'];
 
 function openBulk(){document.getElementById('bulkOverlay').style.display='flex';}
 function closeBulk(){
