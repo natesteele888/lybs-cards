@@ -1868,46 +1868,62 @@ function drawAutoSig(ctx){
   ctx.save();
   const si=CS.sigImg;
 
-  // Fill the lower-center of the photo area — large, bold, like a real auto
-  // Card is 712x1000. Photo mask bottom is ~y=897. Name bar starts ~y=860.
-  // Target: big sig in the lower half of the photo, roughly y=580-820, x=80-650
+  // Placement — upper portion of the auto overlay (above the "CERTIFIED" line ~y=800)
   const sx=41, sy=500, sw_area=630, sh_area=375;
   const sc=Math.min(sw_area/(si.naturalWidth||100), sh_area/(si.naturalHeight||50));
   const sw=(si.naturalWidth||100)*sc, sh=(si.naturalHeight||50)*sc;
   const dx=sx+(sw_area-sw)/2, dy=sy+(sh_area-sh)/2;
 
+  // ── Build a transparent signature mask from the pad ──
+  // The sig pad has a light background + dark strokes. We sample each pixel's
+  // darkness and use that as alpha, so only strokes survive (background = transparent).
+  const padW=si.naturalWidth||si.width||560;
+  const padH=si.naturalHeight||si.height||200;
+
+  // Render sig to a small offscreen canvas so we can read pixels
+  const sample=document.createElement('canvas');
+  sample.width=padW; sample.height=padH;
+  const sc2=sample.getContext('2d');
+  sc2.drawImage(si,0,0,padW,padH);
+  const imgData=sc2.getImageData(0,0,padW,padH);
+  const d=imgData.data;
+
   // Ink color
   const sigColor=CS.sigColor||'black';
   const inkMap={
-    black:[[17,17,17],[22,22,22],[12,12,12]],
-    red:[[170,17,17],[195,25,25],[140,10,10]],
-    blue:[[17,51,170],[25,65,200],[12,38,140]],
-    gold:[[184,134,11],[210,160,20],[155,110,5]],
-    silver:[[130,130,135],[155,155,160],[105,105,110]]
+    black:[17,17,17],
+    red:[170,17,17],
+    blue:[17,51,170],
+    gold:[184,134,11],
+    silver:[120,120,125]
   };
-  const shades=inkMap[sigColor]||inkMap.black;
+  const [ir,ig,ib]=inkMap[sigColor]||inkMap.black;
 
-  // Sharpie feel: draw 3 slightly-offset passes with varying opacity/color
-  // simulates the inconsistent ink coverage of a marker on glossy card stock
-  const offsets=[
-    {ox:0,   oy:0,   alpha:0.82, shade:0},
-    {ox:1.5, oy:0.5, alpha:0.38, shade:1},
-    {ox:-1,  oy:1,   alpha:0.28, shade:2},
-  ];
+  // Recolor: for each pixel, compute darkness (how far from white), use as alpha
+  // Background is ~rgb(245,243,238); strokes are dark. Threshold to ignore near-white.
+  for(let i=0;i<d.length;i+=4){
+    const brightness=(d[i]+d[i+1]+d[i+2])/3;
+    const darkness=255-brightness; // 0=white/transparent, 255=black/opaque
+    const threshold=30; // ignore near-white pixels
+    if(darkness<threshold){
+      d[i+3]=0; // fully transparent
+    } else {
+      // Map darkness to alpha with a curve for sharpie feel
+      const a=Math.min(255, Math.round((darkness-threshold)/(255-threshold)*255*1.1));
+      d[i]=ir; d[i+1]=ig; d[i+2]=ib; d[i+3]=a;
+    }
+  }
+  sc2.putImageData(imgData,0,0);
 
-  offsets.forEach(({ox,oy,alpha,shade})=>{
-    const tmp=document.createElement('canvas');
-    tmp.width=PW; tmp.height=PH;
-    const tc=tmp.getContext('2d');
-    const [r,g,b]=shades[shade];
-    tc.fillStyle=`rgb(${r},${g},${b})`;
-    tc.fillRect(0,0,PW,PH);
-    tc.globalCompositeOperation='destination-in';
-    tc.drawImage(si, dx+ox, dy+oy, sw, sh);
-    tc.globalCompositeOperation='source-over';
-    ctx.globalAlpha=alpha;
-    ctx.drawImage(tmp,0,0);
-  });
+  // Draw main stroke at full opacity
+  ctx.globalAlpha=0.92;
+  ctx.drawImage(sample, dx, dy, sw, sh);
+
+  // Ghost pass — sharpie bleed/spread effect
+  ctx.globalAlpha=0.28;
+  ctx.drawImage(sample, dx+1.5, dy+0.8, sw, sh);
+  ctx.globalAlpha=0.18;
+  ctx.drawImage(sample, dx-1, dy+1.2, sw, sh);
 
   ctx.globalAlpha=1.0;
   ctx.restore();
