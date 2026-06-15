@@ -1272,6 +1272,9 @@ function drawFront(ctx){
   // ── Position bar color fill (BEHIND frame so hatching shows on top) ──
   drawAccentBar(ctx);
 
+  // ── SIGNATURE (auto parallel) — drawn ON the photo, UNDER the frame ──
+  if(CS.parallel==='auto') drawAutoSig(ctx);
+
   // ── LAYER 04: Player frame (now colorless bottom bar) ──
   if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
 
@@ -1344,9 +1347,6 @@ function drawFront(ctx){
   ctx.shadowOffsetY=0;
   ctx.restore();
 
-  // ── SIGNATURE BOX (auto parallel) ──
-  if(CS.parallel==='auto') drawAutoBox(ctx);
-
   // ── LAYER 09: Top-right corner logo (MAC, or MAC All-Star variant) ──
   // Standard cards show the MAC apple. All-Stars show the MAC All-Star crest.
   {
@@ -1372,6 +1372,11 @@ function drawFront(ctx){
 
   // ── GLOSS ──
   drawGloss(ctx,par);
+
+  // ── CERTIFIED AUTO overlay PNG (on top of everything) ──
+  if(CS.parallel==='auto' && LAYERS.auto_frame){
+    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
+  }
 
   // ── CRACKED ICE full-card prismatic overlay (after everything) ──
   if(par.name==='CRACKED ICE') drawIceOverlay(ctx);
@@ -1852,53 +1857,55 @@ function rr2(ctx,x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
-/* ── drawAutoBox ── */
-function drawAutoBox(ctx){
-  // Draw the certified auto overlay PNG (black gradient + white line + text)
-  if(LAYERS.auto_frame){
-    ctx.drawImage(LAYERS.auto_frame,0,0,PW,PH);
-  }
+/* ── drawAutoSig — big sharpie signature drawn ON the card, under the frame ── */
+function drawAutoSig(ctx){
+  if(!CS.sigImg) return;
+  ctx.save();
+  const si=CS.sigImg;
 
-  // Signature drawn into the white gradient zone above the "CERTIFIED" line.
-  // PNG analysis: white band y=801-824, visible area x=55-671.
-  // We place sig in the gradient zone above the line: y≈741-800.
-  if(CS.sigImg){
-    ctx.save();
-    const si=CS.sigImg;
-    // Signature area: within the card above the white bar
-    const sx=60, sy=745, sw_area=610, sh_area=54;
-    // Scale sig to fit the area
-    const sc=Math.min(sw_area/(si.naturalWidth||100), sh_area/(si.naturalHeight||50));
-    const sw=(si.naturalWidth||100)*sc, sh=(si.naturalHeight||50)*sc;
-    // Center horizontally, bottom-align vertically (above the white line)
-    const dx=sx+(sw_area-sw)/2, dy=sy+(sh_area-sh)/2;
+  // Fill the lower-center of the photo area — large, bold, like a real auto
+  // Card is 712x1000. Photo mask bottom is ~y=897. Name bar starts ~y=860.
+  // Target: big sig in the lower half of the photo, roughly y=580-820, x=80-650
+  const sx=80, sy=570, sw_area=540, sh_area=250;
+  const sc=Math.min(sw_area/(si.naturalWidth||100), sh_area/(si.naturalHeight||50));
+  const sw=(si.naturalWidth||100)*sc, sh=(si.naturalHeight||50)*sc;
+  const dx=sx+(sw_area-sw)/2, dy=sy+(sh_area-sh)/2;
 
-    // Sharpie effect: tinted composite
-    const sigColor=CS.sigColor||'black';
-    const inkMap={black:'#111111',red:'#aa1111',blue:'#1133aa',gold:'#b8860b',silver:'#888888'};
-    const inkHex=inkMap[sigColor]||'#111111';
+  // Ink color
+  const sigColor=CS.sigColor||'black';
+  const inkMap={
+    black:[[17,17,17],[22,22,22],[12,12,12]],
+    red:[[170,17,17],[195,25,25],[140,10,10]],
+    blue:[[17,51,170],[25,65,200],[12,38,140]],
+    gold:[[184,134,11],[210,160,20],[155,110,5]],
+    silver:[[130,130,135],[155,155,160],[105,105,110]]
+  };
+  const shades=inkMap[sigColor]||inkMap.black;
 
-    // Draw signature tinted to ink color using multiply-style composite
-    // Step 1: draw sig as-is (it's dark on white from the pad)
-    // Step 2: use color via multiply on an offscreen canvas
+  // Sharpie feel: draw 3 slightly-offset passes with varying opacity/color
+  // simulates the inconsistent ink coverage of a marker on glossy card stock
+  const offsets=[
+    {ox:0,   oy:0,   alpha:0.82, shade:0},
+    {ox:1.5, oy:0.5, alpha:0.38, shade:1},
+    {ox:-1,  oy:1,   alpha:0.28, shade:2},
+  ];
+
+  offsets.forEach(({ox,oy,alpha,shade})=>{
     const tmp=document.createElement('canvas');
     tmp.width=PW; tmp.height=PH;
     const tc=tmp.getContext('2d');
-
-    // Draw ink-colored flood fill
-    tc.fillStyle=inkHex;
+    const [r,g,b]=shades[shade];
+    tc.fillStyle=`rgb(${r},${g},${b})`;
     tc.fillRect(0,0,PW,PH);
-    // Use sig as mask: destination-in clips color to sig strokes
     tc.globalCompositeOperation='destination-in';
-    tc.drawImage(si,dx,dy,sw,sh);
+    tc.drawImage(si, dx+ox, dy+oy, sw, sh);
     tc.globalCompositeOperation='source-over';
-
-    // Composite onto card with slight transparency for sharpie feel
-    ctx.globalAlpha=0.92;
+    ctx.globalAlpha=alpha;
     ctx.drawImage(tmp,0,0);
-    ctx.globalAlpha=1.0;
-    ctx.restore();
-  }
+  });
+
+  ctx.globalAlpha=1.0;
+  ctx.restore();
 }
 
 /* ── Download front/back ── */
@@ -1967,6 +1974,9 @@ function initSigPad(){
   if(!pad || pad._ready) return;
   pad._ready = true;
   const ctx = pad.getContext('2d');
+  // Subtle card-stock tint so the sig pad feels like signing a real card
+  ctx.fillStyle='rgba(245,243,238,1)';
+  ctx.fillRect(0,0,pad.width,pad.height);
   let drawing=false, lx=0, ly=0, hasMark=false;
 
   function pos(e){
@@ -1987,14 +1997,26 @@ function initSigPad(){
     if(!drawing) return;
     const p=pos(e);
     const sc=getSigPadColor();
+    const dist=Math.sqrt((p.x-lx)**2+(p.y-ly)**2);
+    // Thicker for slow strokes (pressure sim), thinner for fast flicks
+    const speed=Math.min(dist,40)/40;
+    const lw=7-speed*3.5; // 3.5–7px range
+    // Main stroke
     ctx.beginPath();
     ctx.moveTo(lx,ly);
     ctx.lineTo(p.x,p.y);
     ctx.strokeStyle=sc;
-    ctx.lineWidth=4.5;
+    ctx.lineWidth=lw;
     ctx.lineCap='round';
     ctx.lineJoin='round';
-    ctx.globalAlpha=0.88;
+    ctx.globalAlpha=0.82;
+    ctx.stroke();
+    // Ghost pass — slightly offset, lower opacity — sharpie bleed
+    ctx.beginPath();
+    ctx.moveTo(lx+0.8,ly+0.5);
+    ctx.lineTo(p.x+0.8,p.y+0.5);
+    ctx.lineWidth=lw*0.55;
+    ctx.globalAlpha=0.22;
     ctx.stroke();
     ctx.globalAlpha=1.0;
     lx=p.x; ly=p.y;
@@ -2025,7 +2047,10 @@ function liveUpdateSig(){
 function clearSigPad(){
   const pad=document.getElementById('sigPad');
   if(!pad) return;
-  pad.getContext('2d').clearRect(0,0,pad.width,pad.height);
+  const pctx=pad.getContext('2d');
+  pctx.clearRect(0,0,pad.width,pad.height);
+  pctx.fillStyle='rgba(245,243,238,1)';
+  pctx.fillRect(0,0,pad.width,pad.height);
   pad._ready=false;
   CS.sigImg=null; sD='';
   const hint=document.getElementById('sigPadHint');
