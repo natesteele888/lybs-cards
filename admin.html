@@ -1464,33 +1464,61 @@ function drawFront(ctx){
 /* ── Rainbow ── */
 /* ── Holo — strong full-card prismatic tiles ── */
 function drawHolo(ctx){
-  const mx=CS.mx, my=CS.my;
-  // Use overlapping radial gradients — no grid seams
-  // Layer 1: base prismatic sweep across the card
-  const sweep=ctx.createLinearGradient(mx*PW*0.6,0,(mx*0.6+1)*PW,PH);
-  const hueBase=(mx*280+my*140)%360;
-  for(let i=0;i<=8;i++){
-    const h=(hueBase+i*45)%360;
-    sweep.addColorStop(i/8,`hsla(${h},100%,60%,0.28)`);
+  const mx=CS.mx||0.5, my=CS.my||0.5;
+  const rx=CS.rotX||0, ry=CS.rotY||0;
+  const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
+  const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+
+  ctx.save();
+  ctx.globalCompositeOperation='screen';
+
+  // Layer 1: sweeping rainbow — reduced alpha
+  const hueBase=(mx*300+my*180+tiltDir*0.8)%360;
+  const sweep=ctx.createLinearGradient(mx*PW*0.4,0,(mx*0.4+1.2)*PW,PH);
+  for(let i=0;i<=10;i++){
+    const h=(hueBase+i*36)%360;
+    sweep.addColorStop(i/10,`hsla(${h},90%,60%,0.11)`);
   }
   ctx.fillStyle=sweep; ctx.fillRect(0,0,PW,PH);
 
-  // Layer 2: second sweep at 90° offset
-  const sweep2=ctx.createLinearGradient(0,my*PH*0.6,PW,(my*0.6+1)*PH);
-  const hueBase2=(hueBase+120)%360;
-  for(let i=0;i<=6;i++){
-    const h=(hueBase2+i*60)%360;
-    sweep2.addColorStop(i/6,`hsla(${h},100%,58%,0.18)`);
+  // Layer 2: cross-sweep — reduced alpha
+  const sweep2=ctx.createLinearGradient(0,my*PH*0.4,PW,(my*0.4+1.2)*PH);
+  const hueBase2=(hueBase+140)%360;
+  for(let i=0;i<=8;i++){
+    const h=(hueBase2+i*45)%360;
+    sweep2.addColorStop(i/8,`hsla(${h},90%,56%,0.08)`);
   }
   ctx.fillStyle=sweep2; ctx.fillRect(0,0,PW,PH);
 
-  // Layer 3: radial highlight near mouse — no seams, smooth
-  const rg=ctx.createRadialGradient(mx*PW,my*PH,0,mx*PW,my*PH,PW*0.7);
-  const hueSpot=(hueBase+200)%360;
-  rg.addColorStop(0,`hsla(${hueSpot},100%,70%,0.22)`);
-  rg.addColorStop(0.4,`hsla(${(hueSpot+60)%360},100%,60%,0.12)`);
-  rg.addColorStop(1,`hsla(${(hueSpot+120)%360},100%,55%,0.0)`);
+  // Layer 3: radial highlight — tilt-reactive, reduced
+  const rg=ctx.createRadialGradient(mx*PW,my*PH,0,mx*PW,my*PH,PW*0.85);
+  const hueSpot=(hueBase+220)%360;
+  rg.addColorStop(0,`hsla(${hueSpot},100%,70%,${0.10+tilt*0.07})`);
+  rg.addColorStop(0.4,`hsla(${(hueSpot+60)%360},100%,62%,${0.05+tilt*0.04})`);
+  rg.addColorStop(1,'hsla(0,0%,0%,0)');
   ctx.fillStyle=rg; ctx.fillRect(0,0,PW,PH);
+
+  // Layer 4: tilt flash — only when tilting, kept subtle
+  if(tilt>0.06){
+    const flashX=mx*PW+ry*14, flashY=my*PH-rx*10;
+    const flash=ctx.createRadialGradient(flashX,flashY,0,flashX,flashY,PW*0.4);
+    const flashHue=(hueBase+tiltDir*0.4)%360;
+    flash.addColorStop(0,`hsla(${flashHue},100%,85%,${tilt*0.16})`);
+    flash.addColorStop(0.4,`hsla(${(flashHue+40)%360},100%,72%,${tilt*0.06})`);
+    flash.addColorStop(1,'hsla(0,0%,100%,0)');
+    ctx.fillStyle=flash; ctx.fillRect(0,0,PW,PH);
+  }
+
+  // Layer 5: always-on subtle sheen at rest — very faint
+  ctx.globalAlpha=0.045;
+  const sheen=ctx.createLinearGradient(0,0,PW,PH);
+  sheen.addColorStop(0,'#a0d8ff');sheen.addColorStop(0.33,'#ffb0e8');
+  sheen.addColorStop(0.66,'#b0ffd8');sheen.addColorStop(1,'#ffe8a0');
+  ctx.fillStyle=sheen; ctx.fillRect(0,0,PW,PH);
+
+  ctx.globalAlpha=1;
+  ctx.globalCompositeOperation='source-over';
+  ctx.restore();
 }
 
 /* ── Recolor accent bar region ── */
@@ -1639,67 +1667,56 @@ function drawSteeleS(ctx){
 
 /* ── Embossment — tilt-reactive sheen on card regions ── */
 function drawEmboss(ctx){
-  const lx=CS.rotY/14, ly=-CS.rotX/10;  // light shift from tilt
+  const lx=CS.rotY/14, ly=-CS.rotX/10;
   const tilt=Math.sqrt(lx*lx+ly*ly);
-  if(tilt<0.01) return;  // skip at rest — no emboss at rest
+  if(tilt<0.015) return;
 
   ctx.save();
-  ctx.globalCompositeOperation='screen';
 
-  // ── Frame / card border edge highlights ──
-  // The white frame has raised edges — light catches the top/left at one tilt, bottom/right at another
-  const edgeAlpha=Math.min(tilt*0.55, 0.45);
-  // Top edge highlight
-  if(ly<-0.05){
-    const tg=ctx.createLinearGradient(0,0,0,28);
-    tg.addColorStop(0,`rgba(255,255,255,${edgeAlpha})`);
-    tg.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=tg; ctx.fillRect(0,0,PW,28);
-  }
-  // Bottom edge highlight
-  if(ly>0.05){
-    const bg2=ctx.createLinearGradient(0,PH-28,0,PH);
-    bg2.addColorStop(0,'rgba(255,255,255,0)');
-    bg2.addColorStop(1,`rgba(255,255,255,${edgeAlpha})`);
-    ctx.fillStyle=bg2; ctx.fillRect(0,PH-28,PW,28);
-  }
-  // Left edge
-  if(lx<-0.05){
-    const leg=ctx.createLinearGradient(0,0,28,0);
+  // ── Left/right frame edge catch lights (screen) ──
+  // Only side edges — top/bottom edges caused unwanted bright flash
+  ctx.globalCompositeOperation='screen';
+  const edgeAlpha=Math.min(tilt*0.7, 0.55);
+  if(lx<-0.06){
+    const leg=ctx.createLinearGradient(0,0,22,0);
     leg.addColorStop(0,`rgba(255,255,255,${edgeAlpha})`);
     leg.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=leg; ctx.fillRect(0,0,28,PH);
+    ctx.fillStyle=leg; ctx.fillRect(0,0,22,PH);
   }
-  // Right edge
-  if(lx>0.05){
-    const reg=ctx.createLinearGradient(PW-28,0,PW,0);
+  if(lx>0.06){
+    const reg=ctx.createLinearGradient(PW-22,0,PW,0);
     reg.addColorStop(0,'rgba(255,255,255,0)');
     reg.addColorStop(1,`rgba(255,255,255,${edgeAlpha})`);
-    ctx.fillStyle=reg; ctx.fillRect(PW-28,0,28,PH);
+    ctx.fillStyle=reg; ctx.fillRect(PW-22,0,22,PH);
   }
 
-  // ── Banner strip (top ~110px) — raised panel sheen ──
-  const bannerAlpha=Math.min(tilt*0.4, 0.32);
-  const bannerSheen=ctx.createLinearGradient(lx>0?0:PW, 0, lx>0?PW:0, 110);
+  // ── Banner strip (top ~100px) — use overlay blend for natural panel depth ──
+  // Gradient goes horizontally (side the light hits) then fades out — no top/bottom spillage
+  ctx.globalCompositeOperation='overlay';
+  const bannerAlpha=Math.min(tilt*0.7, 0.55);
+  const bx0=lx>0?0:PW, bx1=lx>0?PW*0.6:PW*0.4;
+  const bannerSheen=ctx.createLinearGradient(bx0,50,bx1,50);
   bannerSheen.addColorStop(0,`rgba(255,255,255,${bannerAlpha})`);
-  bannerSheen.addColorStop(0.5,`rgba(255,255,255,${bannerAlpha*0.3})`);
+  bannerSheen.addColorStop(0.55,`rgba(255,255,255,${bannerAlpha*0.15})`);
   bannerSheen.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=bannerSheen; ctx.fillRect(0,0,PW,110);
+  ctx.fillStyle=bannerSheen; ctx.fillRect(0,0,PW,105);
 
-  // ── Position bar region (bottom ~140px) — raised plate ──
-  const posBarAlpha=Math.min(tilt*0.45, 0.36);
-  const posSheen=ctx.createLinearGradient(lx<0?0:PW, PH-140, lx<0?PW:0, PH);
+  // ── Position bar (bottom ~135px) — opposite side from banner ──
+  const posBarAlpha=Math.min(tilt*0.65, 0.52);
+  const px0=lx<0?0:PW, px1=lx<0?PW*0.55:PW*0.45;
+  const posSheen=ctx.createLinearGradient(px0,PH-70,px1,PH-70);
   posSheen.addColorStop(0,`rgba(255,255,255,${posBarAlpha})`);
-  posSheen.addColorStop(0.6,`rgba(255,255,255,${posBarAlpha*0.25})`);
-  posSheen.addColorStop(1,'rgba(0,0,0,0.05)');
-  ctx.fillStyle=posSheen; ctx.fillRect(0,PH-140,PW,140);
+  posSheen.addColorStop(0.5,`rgba(255,255,255,${posBarAlpha*0.2})`);
+  posSheen.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=posSheen; ctx.fillRect(0,PH-135,PW,135);
 
-  // ── Logo circle highlight ──
+  // ── Logo circle — screen, punchy highlight ──
+  ctx.globalCompositeOperation='screen';
   const lcx=163, lcy=891, lr=80;
-  const logoAlpha=Math.min(tilt*0.5, 0.42);
-  const logoG=ctx.createRadialGradient(lcx-lx*lr*0.6,lcy-ly*lr*0.6,0,lcx,lcy,lr);
+  const logoAlpha=Math.min(tilt*0.7, 0.58);
+  const logoG=ctx.createRadialGradient(lcx-lx*lr*0.7,lcy+ly*lr*0.7,0,lcx,lcy,lr);
   logoG.addColorStop(0,`rgba(255,255,255,${logoAlpha})`);
-  logoG.addColorStop(0.5,`rgba(255,255,255,${logoAlpha*0.3})`);
+  logoG.addColorStop(0.4,`rgba(255,255,255,${logoAlpha*0.35})`);
   logoG.addColorStop(1,'rgba(255,255,255,0)');
   ctx.fillStyle=logoG;
   ctx.beginPath(); ctx.arc(lcx,lcy,lr,0,Math.PI*2); ctx.fill();
