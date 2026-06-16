@@ -1447,6 +1447,8 @@ function drawFront(ctx){
   if(par.name==='BUBBLE PRIZM') drawBubbleOverlay(ctx);
   // ── GLITTER HOLO second pass — sparkle pop over gloss ──
   if(par.name==='GLITTER HOLO'){ ctx.save(); ctx.globalAlpha=0.45; drawSparkleHolo(ctx); ctx.restore(); }
+  // ── GOLD GLITTER border pass — dense speckles in the area outside the photo mask ──
+  if(par.name==='GOLD GLITTER') drawGlitterBorder(ctx);
 }
 
 /* ── Rainbow ── */
@@ -1572,6 +1574,63 @@ function drawGlitter(ctx, goldTint){
       ctx.globalAlpha=Math.min(finalA*1.4,1);
       ctx.fillStyle=`rgb(255,255,${b+80})`;
       ctx.fillRect(-w*0.25,-h*0.25,w*0.5,h*0.5);
+    }
+    ctx.restore();
+  });
+
+  ctx.globalAlpha=1;
+  ctx.globalCompositeOperation='source-over';
+  ctx.restore();
+}
+
+/* ── Gold Glitter border — dense speckles clipped OUTSIDE the photo mask ── */
+function drawGlitterBorder(ctx){
+  if(!_GLITTER_SPECKLES) _GLITTER_SPECKLES=_buildGlitterSpeckles();
+  const sp=_GLITTER_SPECKLES;
+  const mx=CS.mx, my=CS.my;
+  const ry=CS.rotY||0, rx=CS.rotX||0;
+  const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
+  const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+
+  ctx.save();
+  // Clip to OUTSIDE the photo mask — the border/corner areas around the frame
+  ctx.beginPath();
+  ctx.rect(0,0,PW,PH);          // full card
+  // Cut out the photo area (even-odd rule punches a hole)
+  photoMaskPath(ctx);
+  ctx.clip('evenodd');
+
+  ctx.globalCompositeOperation='screen';
+
+  sp.forEach(s=>{
+    const diff=((tiltDir-s.phase+540)%360)-180;
+    const tiltFlash=Math.exp(-(diff*diff)/(s.bw*s.bw))*tilt*s.peak;
+    // Much higher base visibility in border — this is where they should POP
+    const baseGlow=s.peak*0.35;
+    const alpha=Math.min(baseGlow+tiltFlash, s.peak);
+    const dist=Math.sqrt(((s.x/PW)-mx)**2+((s.y/PH)-my)**2);
+    const mouseBoost=(1-Math.min(dist*2.2,1))*0.25*s.peak;
+    const finalA=Math.min(alpha+mouseBoost, 0.98);
+    if(finalA<0.05) return;
+
+    // Warm gold colors — brighter and more saturated in border
+    const warmFactor=s.warmth*0.6+finalA*0.4;
+    const r2=255;
+    const g2=Math.round(185+warmFactor*70);
+    const b2=Math.round(10+s.warmth*50);
+
+    ctx.globalAlpha=finalA;
+    const w=s.size*1.2, h=s.size*1.2*s.aspect;
+    ctx.save();
+    ctx.translate(s.x,s.y);
+    ctx.rotate(s.rot);
+    ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
+    ctx.fillRect(-w/2,-h/2,w,h);
+    // Bright glint on larger border speckles
+    if(s.size>1.8&&finalA>0.25){
+      ctx.globalAlpha=Math.min(finalA*1.6,1);
+      ctx.fillStyle=`rgb(255,255,${b2+100})`;
+      ctx.fillRect(-w*0.2,-h*0.2,w*0.4,h*0.4);
     }
     ctx.restore();
   });
