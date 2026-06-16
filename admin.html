@@ -414,6 +414,27 @@ window.addEventListener('unhandledrejection',function(e){
           <div class="slabel">Card Type</div>
           <div id="cardTypeGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:12px"></div>
           <input type="hidden" id="fPar" value="base">
+
+          <!-- Tie Dye color controls — only shown when Tie Dye is selected -->
+          <div id="tieDyeSection" style="display:none;margin-bottom:12px">
+            <div class="slabel" style="margin-bottom:6px">Tie Dye Colors</div>
+            <div class="transform-row">
+              <label>Saturation</label>
+              <input type="range" id="tieDyeSat" min="0" max="200" value="100" oninput="CS.tieDyeSat=parseInt(this.value);document.getElementById('tieDyeSatVal').textContent=this.value+'%';qR()">
+              <span class="val" id="tieDyeSatVal">100%</span>
+            </div>
+            <div class="transform-row">
+              <label>Hue Shift</label>
+              <input type="range" id="tieDyeHue" min="-180" max="180" value="0" oninput="CS.tieDyeHueShift=parseInt(this.value);document.getElementById('tieDyeHueVal').textContent=this.value+'°';qR()">
+              <span class="val" id="tieDyeHueVal">0°</span>
+            </div>
+            <div class="transform-row">
+              <label>Lightness</label>
+              <input type="range" id="tieDyeLight" min="-100" max="100" value="0" oninput="CS.tieDyeLightness=parseInt(this.value);document.getElementById('tieDyeLightVal').textContent=(this.value>0?'+':'')+this.value;qR()">
+              <span class="val" id="tieDyeLightVal">0</span>
+            </div>
+          </div>
+
           <div id="colorOverlaySection" style="margin-top:4px">
             <div class="slabel" style="margin-bottom:6px">Outer Card Color</div>
             <div id="colorSwatchGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px"></div>
@@ -874,6 +895,7 @@ let CS = {
   numbered:false, allStar:false, sPos:'br', sigColor:'black',
   accentColor:'#1546a0', accentSat:100,
   cutoutImg:null, cutoutScale:1.0, cutoutOffsetX:0, cutoutOffsetY:0,
+  tieDyeSat:100, tieDyeHueShift:0, tieDyeLightness:0,
   logoScale:1.0, logoOffsetX:0, logoOffsetY:0, showBanner:true,
   macImg:null, serialPos:'br',
   photoImg:null, logoImg:null, sigImg:null,
@@ -1243,16 +1265,38 @@ function drawFrontTieDye(ctx, fullName, posText){
   if(CS.customBgImg){
     try{ ctx.drawImage(CS.customBgImg,0,0,PW,PH); }catch(e){ drawFallbackBg(ctx); }
   } else if(LAYERS.tie_dye_bg && (LAYERS.tie_dye_bg.naturalWidth>0||LAYERS.tie_dye_bg.width>0)){
-    ctx.drawImage(LAYERS.tie_dye_bg, 0, 0, PW, PH);
+    // Apply saturation / hue / lightness controls via CSS filter on an offscreen canvas
+    const sat=(CS.tieDyeSat!=null?CS.tieDyeSat:100);
+    const hue=(CS.tieDyeHueShift||0);
+    const lit=(CS.tieDyeLightness||0);
+    if(sat!==100 || hue!==0 || lit!==0){
+      const ot=document.createElement('canvas'); ot.width=PW; ot.height=PH;
+      const oc=ot.getContext('2d');
+      const litPct=lit>0?`brightness(${1+lit/100})`:(lit<0?`brightness(${1+lit/100})`:'');
+      oc.filter=`saturate(${sat}%) hue-rotate(${hue}deg) ${litPct}`.trim();
+      oc.drawImage(LAYERS.tie_dye_bg,0,0,PW,PH);
+      ctx.drawImage(ot,0,0,PW,PH);
+    } else {
+      ctx.drawImage(LAYERS.tie_dye_bg, 0, 0, PW, PH);
+    }
   } else {
     // Fallback: gradient approximation of tie-dye
-    const tg = ctx.createLinearGradient(0,0,PW,PH);
+    const tdot=document.createElement('canvas'); tdot.width=PW; tdot.height=PH;
+    const tdoc=tdot.getContext('2d');
+    const tg = tdoc.createLinearGradient(0,0,PW,PH);
     tg.addColorStop(0,  '#1a3db8');
     tg.addColorStop(0.3,'#6ab04c');
     tg.addColorStop(0.6,'#f9ca24');
     tg.addColorStop(0.8,'#8e44ad');
     tg.addColorStop(1,  '#1abc9c');
-    ctx.fillStyle=tg; ctx.fillRect(0,0,PW,PH);
+    tdoc.fillStyle=tg; tdoc.fillRect(0,0,PW,PH);
+    const fsat=(CS.tieDyeSat!=null?CS.tieDyeSat:100);
+    const fhue=(CS.tieDyeHueShift||0);
+    const flit=(CS.tieDyeLightness||0);
+    const flt=`saturate(${fsat}%) hue-rotate(${fhue}deg)${flit!==0?' brightness('+(1+flit/100)+')':''}`.trim();
+    ctx.filter=flt;
+    ctx.drawImage(tdot,0,0,PW,PH);
+    ctx.filter='none';
   }
 
   // LAYER 2: Player photo cutout — drawn directly (no clipping mask)
@@ -1375,7 +1419,9 @@ function drawFront(ctx){
 
 
   // ── Outer card color overlay (separate from position bar) ──
-  if(!NO_TINT_TYPES.has(CS.cardType||'base')){
+  // For tie_dye the background is already controlled by its own color sliders, so skip overlay there.
+  const _skipTint=(CS.cardType==='tie_dye'||CS.cardType==='black');
+  if(!_skipTint){
     const ohex=(CS.outerColor||CS.accentColor||'#1546a0').replace('#','');
     let or2=parseInt(ohex.substr(0,2),16),og2=parseInt(ohex.substr(2,2),16),ob2=parseInt(ohex.substr(4,2),16);
     const oa=Math.max(0,Math.min(1,CS.outerOpacity!=null?CS.outerOpacity:0.40));
@@ -2638,7 +2684,7 @@ const COLOR_SWATCHES = [
 ];
 
 // Types that don't use a color overlay tint
-const NO_TINT_TYPES = new Set(['holo','ice','bubbles','tie_dye','black']);
+const NO_TINT_TYPES = new Set([]); // color overlay now shown for all card types
 
 function buildCardTypeUI(){
   const grid = document.getElementById('cardTypeGrid');
@@ -2693,10 +2739,9 @@ function buildColorSwatches(){
 }
 
 function updateColorOverlayVisibility(){
+  // Color overlay always visible for all card types
   const sec=document.getElementById('colorOverlaySection');
-  if(!sec) return;
-  const hide=NO_TINT_TYPES.has(CS.cardType||'base');
-  sec.style.display=hide?'none':'block';
+  if(sec) sec.style.display='block';
 }
 
 function pickCardType(key){
@@ -2720,6 +2765,8 @@ function pickCardType(key){
   document.getElementById('sigSec').style.display='block';
   setSigColor(CS.sigColor||'black');
   updateColorOverlayVisibility();
+  const tdSec=document.getElementById('tieDyeSection');
+  if(tdSec) tdSec.style.display=(key==='tie_dye'?'block':'none');
   const pv=document.getElementById('pvPar');
   if(pv) pv.textContent=(PAR[key]||PAR.base).name;
   qR();
@@ -3023,6 +3070,12 @@ function editCard(id){
   if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=CS.breakout;document.getElementById('breakoutCtrls').style.display=CS.breakout?'block':'none';}
   CS.accentColor=p.accentColor||'#1546a0';CS.accentSat=p.accentSat==null?100:p.accentSat;
   CS.outerColor=p.outerColor||p.accentColor||'#1546a0';CS.outerOpacity=p.outerOpacity!=null?p.outerOpacity:0.40;
+  CS.tieDyeSat=p.tieDyeSat!=null?p.tieDyeSat:100;CS.tieDyeHueShift=p.tieDyeHueShift||0;CS.tieDyeLightness=p.tieDyeLightness||0;
+  if(document.getElementById('tieDyeSat')){document.getElementById('tieDyeSat').value=CS.tieDyeSat;document.getElementById('tieDyeSatVal').textContent=CS.tieDyeSat+'%';}
+  if(document.getElementById('tieDyeHue')){document.getElementById('tieDyeHue').value=CS.tieDyeHueShift;document.getElementById('tieDyeHueVal').textContent=CS.tieDyeHueShift+'°';}
+  if(document.getElementById('tieDyeLight')){document.getElementById('tieDyeLight').value=CS.tieDyeLightness;document.getElementById('tieDyeLightVal').textContent=(CS.tieDyeLightness>0?'+':'')+CS.tieDyeLightness;}
+  const tdSecLoad=document.getElementById('tieDyeSection');
+  if(tdSecLoad) tdSecLoad.style.display=(p.parallel==='tie_dye'?'block':'none');
   if(document.getElementById('accentColor'))document.getElementById('accentColor').value=CS.accentColor;
   if(document.getElementById('accentSat')){document.getElementById('accentSat').value=CS.accentSat;document.getElementById('accentSatVal').textContent=CS.accentSat+'%';}
   syncOuterColorVal();
@@ -3043,7 +3096,7 @@ function resetForm(){
   ['fFirst','fLast','fTeam','fJersey','fCardNum','fHeight','fWeight','fHometown'].forEach(id=>document.getElementById(id).value=''); if(document.getElementById('fBio'))document.getElementById('fBio').value='';
   document.getElementById('fPos').value='PITCHER';document.getElementById('fPosCustomWrap').style.display='none';if(document.getElementById('fPosCustom'))document.getElementById('fPosCustom').value='';document.getElementById('fDiv').value='T-BALL';
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
-  document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}
+  document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.tieDyeSat=100;CS.tieDyeHueShift=0;CS.tieDyeLightness=0;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}const tdSecReset=document.getElementById('tieDyeSection');if(tdSecReset)tdSecReset.style.display='none';if(document.getElementById('tieDyeSat')){document.getElementById('tieDyeSat').value=100;document.getElementById('tieDyeSatVal').textContent='100%';}if(document.getElementById('tieDyeHue')){document.getElementById('tieDyeHue').value=0;document.getElementById('tieDyeHueVal').textContent='0°';}if(document.getElementById('tieDyeLight')){document.getElementById('tieDyeLight').value=0;document.getElementById('tieDyeLightVal').textContent='0';}
   pD='';sD='';lD='';pS='';sS='';lS='';
   CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.customBgImg=null;CS.customBgURL=null;CS.cutoutImg=null;CS.cutoutURL=null;CS.cutoutScale=1.0;CS.cutoutOffsetX=0;CS.cutoutOffsetY=0;
   CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
