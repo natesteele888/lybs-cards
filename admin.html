@@ -537,6 +537,38 @@ window.addEventListener('unhandledrejection',function(e){
               <div class="un"><p id="macName">Click to upload badge</p><span>Shows top-right corner</span></div>
             </div>
           </div>
+          <!-- Sparkle cutout photo — only relevant for Sparkle Foil parallel -->
+          <div style="margin-top:10px" id="cutoutSection">
+            <div class="slabel" style="margin-bottom:6px">Sparkle Cutout Photo <span style="font-size:8px;color:#bbb;font-weight:400;letter-spacing:0">(Sparkle Foil only — PNG with transparent bg)</span></div>
+            <div class="ub">
+              <input type="file" id="cutoutFile" accept="image/*" onchange="hCutout(this)">
+              <img class="ut" id="cutoutThumb">
+              <div class="ui" id="cutoutIcon">&#x2702;</div>
+              <div class="un"><p id="cutoutName">Click to upload cutout PNG</p><span>Player on transparent background</span></div>
+            </div>
+            <div class="img-transform" id="cutoutTransform" style="display:none">
+              <div class="slabel">Cutout Position &amp; Scale</div>
+              <div class="transform-row">
+                <label>Scale</label>
+                <input type="range" id="cutoutScale" min="30" max="200" value="100" step="1" oninput="onCutoutTransform()">
+                <span class="val" id="cutoutScaleVal">100%</span>
+              </div>
+              <div class="transform-row">
+                <label>Left / Right</label>
+                <input type="range" id="cutoutOffsetX" min="-300" max="300" value="0" step="1" oninput="onCutoutTransform()">
+                <span class="val" id="cutoutOffsetXVal">0</span>
+              </div>
+              <div class="transform-row">
+                <label>Up / Down</label>
+                <input type="range" id="cutoutOffsetY" min="-400" max="400" value="0" step="1" oninput="onCutoutTransform()">
+                <span class="val" id="cutoutOffsetYVal">0</span>
+              </div>
+              <div class="transform-btns">
+                <button class="t-btn" onclick="resetCutoutTransform()">RESET</button>
+              </div>
+            </div>
+          </div>
+
           <div style="margin-top:10px">
             <div class="slabel" style="margin-bottom:5px">CUSTOM BACKGROUND</div>
             <div class="upload-row" onclick="document.getElementById('bgUpload').click()" style="cursor:pointer">
@@ -827,7 +859,7 @@ const PAR = {
   black:        {name:'BLACK',         sw:'#111111', tint:[0,0,0,0.72],       glow:null},
   auto:         {name:'CERTIFIED AUTO',sw:'#1546a0', tint:null,               glow:[100,130,200]},
   ice:          {name:'CRACKED ICE',   sw:'ice',     tint:null,               glow:[180,220,255]},
-  bubbles:      {name:'BUBBLE PRIZM',  sw:'holo',    tint:null,               glow:[150,210,255]},
+  bubbles:      {name:'SPARKLE FOIL',  sw:'sparkle', tint:null,               glow:[200,180,120]},
   tie_dye:      {name:'TIE DYE',       sw:'#4a90d9', tint:null,               glow:[100,160,230]},
 };
 
@@ -841,6 +873,7 @@ let CS = {
   breakout:false, breakoutPoly:null, lassoMode:false, lassoDrawing:false,
   numbered:false, allStar:false, sPos:'br', sigColor:'black',
   accentColor:'#1546a0', accentSat:100,
+  cutoutImg:null, cutoutScale:1.0, cutoutOffsetX:0, cutoutOffsetY:0,
   logoScale:1.0, logoOffsetX:0, logoOffsetY:0, showBanner:true,
   macImg:null, serialPos:'br',
   photoImg:null, logoImg:null, sigImg:null,
@@ -1359,6 +1392,21 @@ function drawFront(ctx){
   // ── LAYER 03: PHOTO — clipped to exact mask shape ──
   drawPhotoLayer(ctx);
 
+  // ── SPARKLE FOIL: drawn over photo, under frame ──
+  if(par.name==='SPARKLE FOIL') drawSparkleLayer(ctx);
+
+  // ── SPARKLE FOIL cutout: second player image on top of sparkle ──
+  if(par.name==='SPARKLE FOIL' && CS.cutoutImg){
+    const ci=CS.cutoutImg;
+    const cw2=ci.naturalWidth||ci.width||1, ch2=ci.naturalHeight||ci.height||1;
+    const sc2=(PW/cw2)*CS.cutoutScale;
+    const cx2=PW/2-cw2*sc2/2+CS.cutoutOffsetX;
+    const cy2=CS.cutoutOffsetY;
+    ctx.save();
+    ctx.drawImage(ci,cx2,cy2,cw2*sc2,ch2*sc2);
+    ctx.restore();
+  }
+
   // ── Position bar color fill (BEHIND frame so hatching shows on top) ──
   drawAccentBar(ctx);
 
@@ -1481,8 +1529,6 @@ function drawFront(ctx){
   if(par.name==='HOLO FOIL') drawHolo(ctx);
   // ── CRACKED ICE full-card prismatic overlay (after everything) ──
   if(par.name==='CRACKED ICE') drawIceOverlay(ctx);
-  // ── BUBBLE PRIZM full-card shimmer ──
-  if(par.name==='BUBBLE PRIZM') drawBubbleOverlay(ctx);
 }
 
 /* ── Rainbow ── */
@@ -2372,50 +2418,87 @@ function _buildIceFacets(){
   return facets;
 }
 
-/* ── Bubble Prizm — overlapping circles that shimmer per tilt ── */
-let _BUBBLES=null;
-function _buildBubbles(){
-  let s=8675309;
+/* ── Sparkle Foil — metallic confetti flakes, Topps-style ── */
+let _SPARKLES=null;
+function _buildSparkles(){
+  let s=5551234;
   function r(){s=(s*1664525+1013904223)>>>0;return(s>>>0)/4294967295;}
-  const arr=[];
-  // Multiple layers of circles at different sizes
-  const counts=[[28,90],[44,55],[70,32]]; // [count, radius]
-  counts.forEach(([n,rad])=>{
-    for(let i=0;i<n;i++){
-      arr.push({x:r()*PW,y:r()*PH,rad:rad*(0.6+r()*0.8),phase:r()*360,hue:r()*360,baseA:0.04+r()*0.06});
-    }
-  });
-  return arr;
+  // Flake palette: gold, silver, white, near-black (like the reference card)
+  const palettes=[
+    {fill:'rgba(212,175,55,1)',   edge:'rgba(255,230,100,1)',  dark:'rgba(100,75,0,1)'},   // gold
+    {fill:'rgba(192,192,192,1)', edge:'rgba(255,255,255,1)',  dark:'rgba(80,80,90,1)'},    // silver
+    {fill:'rgba(240,240,240,1)', edge:'rgba(255,255,255,1)',  dark:'rgba(120,120,130,1)'}, // white
+    {fill:'rgba(30,28,35,1)',    edge:'rgba(80,75,90,1)',     dark:'rgba(10,10,15,1)'},    // near-black
+  ];
+  const flakes=[];
+  const COUNT=1800;
+  for(let i=0;i<COUNT;i++){
+    const x=r()*PW, y=r()*PH;
+    const sz=1.2+r()*3.8;          // 1.2–5px
+    const angle=r()*Math.PI;       // orientation of ellipse
+    const aspect=0.25+r()*0.5;     // skinny to roundish
+    const pal=palettes[Math.floor(r()*palettes.length)];
+    const phase=r()*360;           // which tilt direction makes this flash
+    const bw=18+r()*40;            // how wide the flash window is
+    const peak=0.5+r()*0.5;        // max brightness multiplier
+    flakes.push({x,y,sz,angle,aspect,pal,phase,bw,peak});
+  }
+  return flakes;
 }
-function drawBubbleOverlay(ctx){
-  if(!_BUBBLES) _BUBBLES=_buildBubbles();
+
+function drawSparkleLayer(ctx){
+  // Draw the sparkle field — called from drawFront BETWEEN photo and frame
+  if(!_SPARKLES) _SPARKLES=_buildSparkles();
   const ry=CS.rotY||0,rx=CS.rotX||0;
   const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
   const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+
   ctx.save();
-  ctx.globalCompositeOperation='screen';
-  _BUBBLES.forEach(b=>{
-    // How aligned is tilt with this bubble's phase
-    const diff=((tiltDir-b.phase+540)%360)-180;
-    const align=Math.exp(-(diff*diff)/(60*60));
-    const a=b.baseA + align*tilt*0.4;
-    const hue=(b.hue+tiltDir*1.4)%360;
-    const grad=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.rad);
-    grad.addColorStop(0,`hsla(${hue},100%,75%,${a})`);
-    grad.addColorStop(0.6,`hsla(${(hue+40)%360},100%,70%,${a*0.5})`);
-    grad.addColorStop(1,'hsla(0,0%,100%,0)');
-    ctx.fillStyle=grad;
-    ctx.beginPath();ctx.arc(b.x,b.y,b.rad,0,Math.PI*2);ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+
+  _SPARKLES.forEach(f=>{
+    // Base opacity — always visible at rest
+    const diff=((tiltDir-f.phase+540)%360)-180;
+    const tiltBoost=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
+    const baseAlpha=0.55+tiltBoost*0.45;  // 0.55 rest, up to 1.0 on flash
+
+    ctx.save();
+    ctx.translate(f.x,f.y);
+    ctx.rotate(f.angle);
+    ctx.scale(1,f.aspect);
+
+    // Dark shadow behind (gives depth)
+    ctx.globalAlpha=baseAlpha*0.6;
+    ctx.fillStyle=f.pal.dark;
+    ctx.beginPath();ctx.ellipse(0.8,0.8,f.sz*0.9,f.sz*0.9,0,0,Math.PI*2);ctx.fill();
+
+    // Main flake face
+    ctx.globalAlpha=baseAlpha;
+    ctx.fillStyle=f.pal.fill;
+    ctx.beginPath();ctx.ellipse(0,0,f.sz,f.sz,0,0,Math.PI*2);ctx.fill();
+
+    // Bright edge catch when tilting
+    if(tiltBoost>0.08){
+      ctx.globalAlpha=tiltBoost*0.9;
+      ctx.fillStyle=f.pal.edge;
+      ctx.beginPath();ctx.ellipse(-f.sz*0.25,-f.sz*0.25,f.sz*0.55,f.sz*0.55,0,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
   });
-  // Faint always-on iridescent sheen
-  ctx.globalAlpha=0.06;
+
+  // Subtle warm-gold overall tint at rest so it reads metallic even without tilting
+  ctx.globalAlpha=0.08;
   ctx.globalCompositeOperation='overlay';
-  const sheen=ctx.createLinearGradient(0,0,PW,PH);
-  sheen.addColorStop(0,'#a0d0ff');sheen.addColorStop(0.5,'#ffd0f0');sheen.addColorStop(1,'#d0ffe0');
-  ctx.fillStyle=sheen;ctx.fillRect(0,0,PW,PH);
+  const warmTint=ctx.createLinearGradient(0,0,PW,PH);
+  warmTint.addColorStop(0,'#ffe0a0');warmTint.addColorStop(0.5,'#e8d090');warmTint.addColorStop(1,'#c0a060');
+  ctx.fillStyle=warmTint;ctx.fillRect(0,0,PW,PH);
+
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
+
+// drawBubbleOverlay kept as alias for legacy parallel key lookup
+function drawBubbleOverlay(ctx){ drawSparkleLayer(ctx); }
 
 /* ── Opening Day background — repeating text pattern behind player ── */
 function drawOpeningDayBg(ctx){
@@ -2531,7 +2614,7 @@ const CARD_TYPES = [
   {key:'base',         label:'Base',         sw:'#aaaaaa'},
   {key:'holo',         label:'Holo',         sw:'holo'},
   {key:'ice',          label:'Cracked Ice',  sw:'ice'},
-  {key:'bubbles',      label:'Bubble Prizm', sw:'holo'},
+  {key:'bubbles',      label:'Sparkle Foil', sw:'sparkle'},
   {key:'tie_dye',      label:'Tie Dye',      sw:'#4a90d9'},
   {key:'black',        label:'Black',        sw:'#111111'},
 ];
@@ -2564,6 +2647,7 @@ function buildCardTypeUI(){
     sw.style.cssText='width:28px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,0.15)';
     if(t.sw==='ice') sw.style.background='linear-gradient(135deg,#e0f0ff,#c8e8ff,#b0d8f8,#90c8f0,#f0e8ff)';
     else if(t.sw==='holo') sw.style.background='linear-gradient(135deg,#7eb8ff,#cc00ff,#00ffcc,#ffcc00)';
+    else if(t.sw==='sparkle') sw.style.background='linear-gradient(135deg,#1a1a1a,#888,#ffd700,#fff,#888,#1a1a1a)';
     else sw.style.background=t.sw;
     btn.appendChild(sw);
     btn.appendChild(document.createTextNode(t.label));
@@ -2681,6 +2765,37 @@ function hBg(i){
   fr.readAsDataURL(i.files[0]);
 }
 
+function hCutout(i){
+  if(!i.files[0])return;
+  const fr=new FileReader();
+  fr.onload=e=>{
+    setThumb('cutoutThumb','cutoutIcon','cutoutName',e.target.result,i.files[0].name);
+    const img=new Image();
+    img.onload=()=>{CS.cutoutImg=img;qR();};
+    img.src=e.target.result;
+    document.getElementById('cutoutTransform').style.display='block';
+  };
+  fr.readAsDataURL(i.files[0]);
+}
+function onCutoutTransform(){
+  CS.cutoutScale=document.getElementById('cutoutScale').value/100;
+  CS.cutoutOffsetX=parseInt(document.getElementById('cutoutOffsetX').value);
+  CS.cutoutOffsetY=parseInt(document.getElementById('cutoutOffsetY').value);
+  document.getElementById('cutoutScaleVal').textContent=Math.round(CS.cutoutScale*100)+'%';
+  document.getElementById('cutoutOffsetXVal').textContent=CS.cutoutOffsetX;
+  document.getElementById('cutoutOffsetYVal').textContent=CS.cutoutOffsetY;
+  qR();
+}
+function resetCutoutTransform(){
+  CS.cutoutScale=1.0;CS.cutoutOffsetX=0;CS.cutoutOffsetY=0;
+  if(document.getElementById('cutoutScale'))document.getElementById('cutoutScale').value=100;
+  if(document.getElementById('cutoutOffsetX'))document.getElementById('cutoutOffsetX').value=0;
+  if(document.getElementById('cutoutOffsetY'))document.getElementById('cutoutOffsetY').value=0;
+  document.getElementById('cutoutScaleVal').textContent='100%';
+  document.getElementById('cutoutOffsetXVal').textContent='0';
+  document.getElementById('cutoutOffsetYVal').textContent='0';
+  qR();
+}
 function hSig(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{sD=e.target.result;sigHasMark=true;setThumb('sigThumb','sigIcon','sigName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.sigImg=img;qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
 function hMac(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{setThumb('macThumb','macIcon','macName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.macImg=img;qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
 function hLogo(i){if(!i.files[0])return;const fr=new FileReader();fr.onload=e=>{lD=e.target.result;setThumb('logoThumb','logoIcon','logoName',e.target.result,i.files[0].name);const img=new Image();img.onload=()=>{CS.logoImg=img;document.getElementById('logoTransform').style.display='block';qR();};img.src=e.target.result;};fr.readAsDataURL(i.files[0]);}
@@ -2817,7 +2932,7 @@ async function saveCard(){
       team:str('fTeam'),teamAbbr:str('fTeamAbbr'),division:str('fDiv'),
       jerseyNum:str('fJersey'),cardNum:str('fCardNum'),
       parallel:CS.parallel||'base',cardType:CS.cardType||CS.parallel||'base',rarity:CS.parallel||'base',
-      photoURL:photoURL||'',sigURL:sigURL||'',logoURL:logoURL||'',macURL:macURL||'',
+      photoURL:photoURL||'',sigURL:sigURL||'',logoURL:logoURL||'',macURL:macURL||'',cutoutURL:CS.cutoutURL||'',
       stats:((CS.loadedBatting&&CS.loadedBatting.length)?CS.loadedBatting:getStats())||[],pitchStats:((CS.loadedPitching&&CS.loadedPitching.length)?CS.loadedPitching:getPitch())||[],statsPulled:!!CS.statsPulled,pitchPulled:!!(CS.statsPulled&&CS.loadedPitching&&CS.loadedPitching.length),
       bats:str('fBats'),throws:str('fThrows'),
       height:str('fHeight'),weight:str('fWeight'),hometown:str('fHometown'),bio:str('fBio'),
@@ -2924,7 +3039,7 @@ function resetForm(){
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
   document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}
   pD='';sD='';lD='';pS='';sS='';lS='';
-  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.customBgImg=null;CS.customBgURL=null;
+  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.customBgImg=null;CS.customBgURL=null;CS.cutoutImg=null;CS.cutoutURL=null;CS.cutoutScale=1.0;CS.cutoutOffsetX=0;CS.cutoutOffsetY=0;
   CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
   CS.certAuto=false;CS.showLybs=true;CS.cardType='base';
   buildCardTypeUI();
