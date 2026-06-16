@@ -1949,17 +1949,17 @@ function drawBack(ctx){
   // Jersey number — black box top right
   const jNum=d.jerseyNum||'';
   if(jNum){
-    const jW=48, jH=48;
+    const jW=64, jH=64;
     ctx.fillStyle='#111111'; ctx.fillRect(PW-jW-8,8,jW,jH);
-    ctx.font=`bold ${jNum.length>2?22:28}px Oswald,sans-serif`;
+    ctx.font=`bold ${jNum.length>2?38:46}px Oswald,sans-serif`;
     ctx.fillStyle='#ffffff'; ctx.textAlign='center';
     ctx.fillText(jNum,PW-jW-8+jW/2,8+jH-10);
     ctx.textAlign='left';
   }
 
   // First name — italic outline style
-  let firstFS=42; ctx.font=`italic bold ${firstFS}px Anton,sans-serif`;
-  while(ctx.measureText(fn).width>HW-60&&firstFS>24){firstFS-=2;ctx.font=`italic bold ${firstFS}px Anton,sans-serif`;}
+  let firstFS=54; ctx.font=`italic bold ${firstFS}px Anton,sans-serif`;
+  while(ctx.measureText(fn).width>HW-60&&firstFS>28){firstFS-=2;ctx.font=`italic bold ${firstFS}px Anton,sans-serif`;}
   // Outline effect (white stroke first)
   ctx.save();
   ctx.strokeStyle='#000000'; ctx.lineWidth=1; ctx.lineJoin='round';
@@ -1974,7 +1974,7 @@ function drawBack(ctx){
   ctx.save();
   // Reset font for last name
   let lastFontSz=lastFS; ctx.font=`bold ${lastFontSz}px Anton,sans-serif`;
-  while(HX+fnW+ctx.measureText(ln).width>PW-64&&lastFontSz>20){lastFontSz--;ctx.font=`bold ${lastFontSz}px Anton,sans-serif`;}
+  while(HX+fnW+ctx.measureText(ln).width>PW-64&&lastFontSz>24){lastFontSz--;ctx.font=`bold ${lastFontSz}px Anton,sans-serif`;}
   ctx.fillStyle='#111111';
   ctx.fillText(ln,HX+ctx.measureText(fn+' ').width,HY+firstFS);
   ctx.restore();
@@ -1983,11 +1983,11 @@ function drawBack(ctx){
 
   // Team · Position
   const teamPos=`${(d.team||'LYBS TEAM').toUpperCase()} · ${(d.position||'PLAYER').toUpperCase()}`;
-  ctx.font=`italic bold 16px "Source Serif 4",Georgia,serif`; ctx.fillStyle='#222';
-  ctx.fillText(teamPos,HX,hcy+16); hcy+=24;
+  ctx.font=`italic bold 28px "Source Serif 4",Georgia,serif`; ctx.fillStyle='#222';
+  ctx.fillText(teamPos,HX,hcy+16); hcy+=32;
 
   // Stats line 1: HT / WT / THROWS / BATS
-  ctx.font='bold 11px Oswald,sans-serif'; ctx.fillStyle='#333';
+  ctx.font='bold 19px Oswald,sans-serif'; ctx.fillStyle='#333';
   const bio1Parts=[
     d.height?`HT: ${d.height}`:'',
     d.weight?`WT: ${d.weight}`:'',
@@ -1999,12 +1999,12 @@ function drawBack(ctx){
     if(i>0){ctx.fillStyle='#aaa';ctx.fillText('  ',bx,hcy+11);bx+=ctx.measureText('   ').width;}
     const label=part.split(':')[0]+':';
     const val=' '+(part.split(':')[1]||'').trim();
-    ctx.fillStyle='#555'; ctx.font='bold 10px Oswald,sans-serif'; ctx.fillText(label,bx,hcy+11);
+    ctx.fillStyle='#555'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(label,bx,hcy+11);
     bx+=ctx.measureText(label).width;
-    ctx.fillStyle='#111'; ctx.font='bold 10px Oswald,sans-serif'; ctx.fillText(val,bx,hcy+11);
+    ctx.fillStyle='#111'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(val,bx,hcy+11);
     bx+=ctx.measureText(val+'  ').width;
   });
-  hcy+=14;
+  hcy+=20;
 
   // Stats line 2: division / hometown / card number
   bx=HX;
@@ -2016,12 +2016,12 @@ function drawBack(ctx){
   bio2Parts.forEach((part,i)=>{
     const label=part.split(':')[0]+':';
     const val=' '+(part.split(':')[1]||'').trim();
-    ctx.fillStyle='#555'; ctx.font='bold 10px Oswald,sans-serif'; ctx.fillText(label,bx,hcy+11);
+    ctx.fillStyle='#555'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(label,bx,hcy+11);
     bx+=ctx.measureText(label).width;
-    ctx.fillStyle='#111'; ctx.font='bold 10px Oswald,sans-serif'; ctx.fillText(val,bx,hcy+11);
+    ctx.fillStyle='#111'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(val,bx,hcy+11);
     bx+=ctx.measureText(val+'  ').width;
   });
-  hcy+=14;
+  hcy+=20;
 
   // Divider
   ctx.strokeStyle=`rgb(${pr},${pg},${pb})`; ctx.lineWidth=2;
@@ -2038,18 +2038,18 @@ function drawBack(ctx){
     cw[cw.length-1]+=TW-cw.reduce((a,b)=>a+b,0);
 
     // Table title
-    ctx.font='bold 11px Oswald,sans-serif'; ctx.fillStyle='#222'; ctx.textAlign='left';
-    ctx.fillText(title.toUpperCase(),TX,hcy+11);
+    ctx.font='bold 19px Oswald,sans-serif'; ctx.fillStyle='#222'; ctx.textAlign='left';
+    ctx.fillText(title.toUpperCase(),TX,hcy+22);
     if(note){
-      ctx.font='italic bold 8px Oswald,sans-serif'; ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`;
+      ctx.font='italic bold 13px Oswald,sans-serif'; ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`;
       ctx.textAlign='right'; ctx.fillText(note,PW-12,hcy+11); ctx.textAlign='left';
     }
-    hcy+=14;
+    hcy+=20;
 
     // Header row — solid blue band
-    const headH=19;
+    const headH=26;
     ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`; ctx.fillRect(TX,hcy,TW,headH);
-    ctx.font='bold 9.5px Oswald,sans-serif'; ctx.fillStyle='#ffffff';
+    ctx.font='bold 15px Oswald,sans-serif'; ctx.fillStyle='#ffffff';
     let hx=TX;
     headers.forEach((col,i)=>{
       ctx.textAlign=i<2?'left':'center';
@@ -2059,7 +2059,7 @@ function drawBack(ctx){
     ctx.textAlign='left'; hcy+=headH;
 
     // Data rows — white, thin gray border between rows
-    const RH=19;
+    const RH=28;
     rows.forEach((row,idx)=>{
       ctx.fillStyle=idx%2===0?'#ffffff':'#f4f6fa';
       ctx.fillRect(TX,hcy,TW,RH);
@@ -2069,11 +2069,11 @@ function drawBack(ctx){
       row.forEach((cell,i)=>{
         const v=(cell&&cell.v!==undefined)?cell.v:cell;
         const lead=(cell&&cell.lead);
-        ctx.font=lead?'bold italic 10px Oswald,sans-serif':'500 10px Oswald,sans-serif';
+        ctx.font=lead?'bold italic 16px Oswald,sans-serif':'500 16px Oswald,sans-serif';
         ctx.fillStyle=lead?`rgb(${ar},${ag2},${ab2})`:'#111';
         ctx.textAlign=i<2?'left':'center';
         const disp=(v===''||v==null||v===undefined)?'O':String(v);
-        ctx.fillText(disp,i<2?rx+4:rx+cw[i]/2,hcy+13);
+        ctx.fillText(disp,i<2?rx+4:rx+cw[i]/2,hcy+19);
         rx+=cw[i];
       });
       ctx.textAlign='left'; hcy+=RH;
@@ -2083,11 +2083,11 @@ function drawBack(ctx){
     });
     if(rows.length===0){
       ctx.fillStyle='#f9f9f9'; ctx.fillRect(TX,hcy,TW,RH);
-      ctx.font='italic 10px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#bbb';
+      ctx.font='italic 15px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#bbb';
       ctx.textAlign='center'; ctx.fillText('No stats recorded',TX+TW/2,hcy+13);
       ctx.textAlign='left'; hcy+=RH;
     }
-    hcy+=6;
+    hcy+=8;
   }
 
   // BATTING
@@ -2125,21 +2125,21 @@ function drawBack(ctx){
   if(bio && hcy+28<PH-32){
     ctx.strokeStyle=`rgb(${pr},${pg},${pb})`; ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(TX,hcy+2);ctx.lineTo(TX,hcy+28);ctx.stroke();
-    ctx.font='italic 9.5px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#444';
+    ctx.font='italic 15px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#444';
     const words=bio.split(' '); let line='',lineY=hcy+12, lc=0;
     words.forEach(w=>{
       const test=line+w+' ';
       if(ctx.measureText(test).width>TW-14&&line&&lc<2){
-        ctx.fillText(line.trim(),TX+8,lineY); line=w+' '; lineY+=12; lc++;
+        ctx.fillText(line.trim(),TX+8,lineY); line=w+' '; lineY+=18; lc++;
       } else line=test;
     });
     if(line&&lc<3) ctx.fillText(line.trim(),TX+8,lineY);
-    hcy=lineY+14;
+    hcy=lineY+20;
   }
 
   // ── SIGNATURE ──
   if(CS.sigImg&&sigHasMark&&hcy+44<PH-32){
-    const sigH=42;
+    const sigH=60;
     ctx.fillStyle='rgba(248,248,252,0.9)'; rr2(ctx,TX,hcy,TW,sigH,3); ctx.fill();
     ctx.strokeStyle=`rgba(${pr},${pg},${pb},0.2)`; ctx.lineWidth=0.8; ctx.stroke();
     const si=CS.sigImg;
@@ -2163,15 +2163,15 @@ function drawBack(ctx){
   // ── FOOTER ──
   const footY=PH-22;
   ctx.fillStyle=`rgb(${pr},${pg},${pb})`; ctx.fillRect(0,footY,PW,22);
-  ctx.font='400 7.5px Oswald,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.font='400 13px Oswald,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
   ctx.textAlign='center';
   ctx.fillText('® & © 2026 LYBS CARD SERIES · OFFICIAL VIRTUAL TRADING CARD · SERIES ONE',PW/2,footY+14);
   // Serial + parallel tags
   if(CS.numbered&&d.serialNum&&d.printRun){
-    ctx.font='bold 8px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.font='bold 13px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
     ctx.textAlign='right'; ctx.fillText(`#${d.serialNum}/${d.printRun}`,PW-10,footY+14);
   }
-  if(g){ ctx.font='bold 8px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
+  if(g){ ctx.font='bold 13px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
     ctx.textAlign='left'; ctx.fillText(par.name,SBW+10,footY+14); }
   ctx.textAlign='left';
 }
