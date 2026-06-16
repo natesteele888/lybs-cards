@@ -2589,7 +2589,6 @@ function doLogout(){if(window._auth)window._auth.signOut();document.getElementBy
 async function saveCard(){
   const fn=document.getElementById('fFirst').value.trim();
   const ln=document.getElementById('fLast').value.trim();
-  if(!fn||!ln){showToast('Name is required',true);return;}
   if(!window._db){showToast('Firebase not connected — check console',true);return;}
   document.getElementById('saveBtn').disabled=true;
   document.getElementById('spinner').style.display='flex';
@@ -2597,7 +2596,7 @@ async function saveCard(){
     const db=window._db, st=window._storage||null;
     if(!st) console.warn('Firebase Storage not initialized — file uploads will be skipped');
     const editId=document.getElementById('editId').value;
-    const slug=`${fn}_${ln}_${Date.now()}`.replace(/\s/g,'_');
+    const slug=`${fn||'unnamed'}_${ln||'player'}_${Date.now()}`.replace(/\s/g,'_');
     let photoURL=pS,sigURL=sS,logoURL=lS;
     const pf=document.getElementById('photoFile').files[0];
     const sf=document.getElementById('sigFile').files[0];
@@ -2686,7 +2685,7 @@ function editCard(id){
   const p=pCache.find(x=>x.id===id);if(!p)return;
   document.getElementById('editId').value=id;
   document.getElementById('fmH').textContent='EDIT PLAYER CARD';
-  document.getElementById('fmS').textContent=`Editing: ${p.firstName} ${p.lastName}`;
+  document.getElementById('fmS').textContent=`Editing: ${[p.firstName,p.lastName].filter(Boolean).join(' ')||'(unnamed)'}`;
   document.getElementById('fFirst').value=p.firstName||'';document.getElementById('fLast').value=p.lastName||'';
   const stdPositions=['PITCHER','CATCHER','FIRST BASE','SECOND BASE','THIRD BASE','SHORTSTOP','LEFT FIELD','CENTER FIELD','RIGHT FIELD','OUTFIELD','INFIELD','UTILITY','COACH','MANAGER','OTHER'];
   const savedPos=p.position||'PITCHER';
