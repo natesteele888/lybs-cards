@@ -2542,50 +2542,42 @@ function drawOpeningDayBg(ctx){
 function drawIceOverlay(ctx){
   if(!_ICE_FACETS) _ICE_FACETS=_buildIceFacets();
   ctx.save();
-  const ry=CS.rotY||0,rx=CS.rotX||0;
-  const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
-  const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+  const ry=CS.rotY||0, rx=CS.rotX||0;
+  const realTilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
+  const realTiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
 
-  // ── Always-on rest state: every facet gets a faint base color ──
-  // This gives the card visible ice fragment appearance even at rest / on export
+  // When the card is at rest (no user tilt), use a fixed "baked-in" tilt
+  // so facets render fully lit — looks like image 1, no grid lines.
+  // When the user actually tilts, smoothly hand off to the real tilt values.
+  const REST_TILT=0.72;       // strong enough to light most facets
+  const REST_DIR=38;           // fixed angle — diagonal upper-left light
+  const blend=realTilt;        // 0 at rest → 1 when fully tilted by user
+  const tilt   =REST_TILT*(1-blend) + realTilt*blend;
+  const tiltDir=REST_DIR *(1-blend) + realTiltDir*blend;
+
   ctx.globalCompositeOperation='screen';
+
   _ICE_FACETS.forEach(f=>{
-    // Each facet has its own hue from _buildIceFacets; use it at low fixed alpha
-    const restAlpha=0.055 + (f.peak-0.45)*0.04; // 0.055–0.09 range
-    ctx.globalAlpha=restAlpha;
-    ctx.fillStyle=`hsl(${f.hue},${f.sat}%,65%)`;
+    const diff=((tiltDir-f.phase+540)%360)-180;
+    const cf=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
+    if(cf<0.012) return;
+    const hue=(f.hue+tiltDir*1.2+360)%360;
+    ctx.globalAlpha=cf;
+    ctx.fillStyle=`hsl(${hue},${f.sat}%,68%)`;
     ctx.beginPath();
     ctx.moveTo(f.verts[0].x,f.verts[0].y);
     f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
     ctx.closePath(); ctx.fill();
-    // Subtle edge line to define facet boundaries
-    ctx.globalAlpha=0.06;
-    ctx.strokeStyle=`hsl(${f.hue},80%,80%)`;
-    ctx.lineWidth=0.5;
-    ctx.stroke();
-  });
-
-  // ── Tilt-reactive: facets light up brighter when tilt aligns with phase ──
-  if(tilt>0.03){
-    _ICE_FACETS.forEach(f=>{
-      const diff=((tiltDir-f.phase+540)%360)-180;
-      const cf=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
-      if(cf<0.015) return;
-      const hue=(f.hue+tiltDir*1.2+360)%360;
-      ctx.globalAlpha=cf;
-      ctx.fillStyle=`hsl(${hue},${f.sat}%,68%)`;
-      ctx.beginPath();
-      ctx.moveTo(f.verts[0].x,f.verts[0].y);
-      f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
-      ctx.closePath(); ctx.fill();
-      ctx.globalAlpha=cf*0.4;
+    // Edge highlight — only when lit enough to be worth drawing, no grid lines
+    if(cf>0.08){
+      ctx.globalAlpha=cf*0.35;
       ctx.strokeStyle=`hsl(${hue},100%,88%)`;
       ctx.lineWidth=0.6;
       ctx.stroke();
-    });
-  }
+    }
+  });
 
-  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
   ctx.restore();
 }
 
