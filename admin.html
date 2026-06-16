@@ -360,10 +360,15 @@ window.addEventListener('unhandledrejection',function(e){
             <div class="field"><label>Card #</label><input type="text" id="fCardNum" placeholder="001" oninput="qR()"></div>
           </div>
           <div class="field"><label>Division</label>
-            <select id="fDiv" onchange="qR()">
+            <select id="fDiv" onchange="document.getElementById('fDivCustomWrap').style.display=this.value==='OTHER'?'block':'none';qR()">
               <option>T-BALL</option><option>ROOKIES</option><option>MINORS BASEBALL</option><option>MAJORS BASEBALL</option>
               <option>FARM/8U SOFTBALL</option><option>MINORS/10U SOFTBALL</option><option>MAJORS/12U SOFTBALL</option><option>SENIORS/16U SOFTBALL</option>
+              <option>TRAVEL 8U</option><option>TRAVEL 10U</option><option>TRAVEL 12U</option><option>TRAVEL 14U</option><option>TRAVEL 16U</option>
+              <option value="OTHER">OTHER (write in)</option>
             </select>
+            <div id="fDivCustomWrap" style="display:none;margin-top:4px">
+              <input type="text" id="fDivCustom" placeholder="Write in division..." oninput="qR()" style="width:100%;box-sizing:border-box">
+            </div>
           </div>
         </div>
 
@@ -1311,7 +1316,6 @@ function drawFront(ctx){
     ctx.fillStyle=`rgba(${r},${g},${b},${a})`;
     ctx.fillRect(0,0,PW,PH);
   }
-  if(par.name==='HOLO FOIL')       drawHolo(ctx);
 
   // ── LAYER 02: banner (toggle) ──
   if(CS.showBanner && LAYERS.banner) ctx.drawImage(LAYERS.banner,0,0,PW,PH);
@@ -1438,42 +1442,72 @@ function drawFront(ctx){
   // ── GLOSS ──
   drawGloss(ctx,par);
 
+  // ── HOLO FOIL full-card prismatic skin (after everything) ──
+  if(par.name==='HOLO FOIL') drawHolo(ctx);
   // ── CRACKED ICE full-card prismatic overlay (after everything) ──
   if(par.name==='CRACKED ICE') drawIceOverlay(ctx);
   // ── BUBBLE PRIZM full-card shimmer ──
   if(par.name==='BUBBLE PRIZM') drawBubbleOverlay(ctx);
 }
 
-/* ── Rainbow ── */
-/* ── Holo — strong full-card prismatic tiles ── */
+/* ── Holo — full-card prismatic skin over everything, screen blend ── */
 function drawHolo(ctx){
-  const mx=CS.mx, my=CS.my;
-  // Use overlapping radial gradients — no grid seams
-  // Layer 1: base prismatic sweep across the card
-  const sweep=ctx.createLinearGradient(mx*PW*0.6,0,(mx*0.6+1)*PW,PH);
-  const hueBase=(mx*280+my*140)%360;
-  for(let i=0;i<=8;i++){
-    const h=(hueBase+i*45)%360;
-    sweep.addColorStop(i/8,`hsla(${h},100%,60%,0.28)`);
+  const mx=CS.mx||0.5, my=CS.my||0.5;
+  const rx=CS.rotX||0, ry=CS.rotY||0;
+  const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
+  const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+
+  ctx.save();
+  ctx.globalCompositeOperation='screen';
+
+  // Layer 1: sweeping rainbow, tilt-reactive hue
+  const hueBase=(mx*300+my*180+tiltDir*0.8)%360;
+  const sweep=ctx.createLinearGradient(mx*PW*0.4,0,(mx*0.4+1.2)*PW,PH);
+  for(let i=0;i<=10;i++){
+    const h=(hueBase+i*36)%360;
+    sweep.addColorStop(i/10,`hsla(${h},100%,62%,0.18)`);
   }
   ctx.fillStyle=sweep; ctx.fillRect(0,0,PW,PH);
 
-  // Layer 2: second sweep at 90° offset
-  const sweep2=ctx.createLinearGradient(0,my*PH*0.6,PW,(my*0.6+1)*PH);
-  const hueBase2=(hueBase+120)%360;
-  for(let i=0;i<=6;i++){
-    const h=(hueBase2+i*60)%360;
-    sweep2.addColorStop(i/6,`hsla(${h},100%,58%,0.18)`);
+  // Layer 2: cross-sweep at 90 deg
+  const sweep2=ctx.createLinearGradient(0,my*PH*0.4,PW,(my*0.4+1.2)*PH);
+  const hueBase2=(hueBase+140)%360;
+  for(let i=0;i<=8;i++){
+    const h=(hueBase2+i*45)%360;
+    sweep2.addColorStop(i/8,`hsla(${h},100%,58%,0.13)`);
   }
   ctx.fillStyle=sweep2; ctx.fillRect(0,0,PW,PH);
 
-  // Layer 3: radial highlight near mouse — no seams, smooth
-  const rg=ctx.createRadialGradient(mx*PW,my*PH,0,mx*PW,my*PH,PW*0.7);
-  const hueSpot=(hueBase+200)%360;
-  rg.addColorStop(0,`hsla(${hueSpot},100%,70%,0.22)`);
-  rg.addColorStop(0.4,`hsla(${(hueSpot+60)%360},100%,60%,0.12)`);
-  rg.addColorStop(1,`hsla(${(hueSpot+120)%360},100%,55%,0.0)`);
+  // Layer 3: radial highlight follows mouse/tilt
+  const rg=ctx.createRadialGradient(mx*PW,my*PH,0,mx*PW,my*PH,PW*0.85);
+  const hueSpot=(hueBase+220)%360;
+  rg.addColorStop(0,`hsla(${hueSpot},100%,72%,${0.16+tilt*0.1})`);
+  rg.addColorStop(0.35,`hsla(${(hueSpot+60)%360},100%,64%,${0.08+tilt*0.06})`);
+  rg.addColorStop(0.7,`hsla(${(hueSpot+120)%360},100%,56%,0.04)`);
+  rg.addColorStop(1,'hsla(0,0%,0%,0)');
   ctx.fillStyle=rg; ctx.fillRect(0,0,PW,PH);
+
+  // Layer 4: tilt-reactive specular flash
+  if(tilt>0.04){
+    const flashX=mx*PW+ry*18, flashY=my*PH-rx*12;
+    const flash=ctx.createRadialGradient(flashX,flashY,0,flashX,flashY,PW*0.45);
+    const flashHue=(hueBase+tiltDir*0.5)%360;
+    flash.addColorStop(0,`hsla(${flashHue},100%,90%,${tilt*0.28})`);
+    flash.addColorStop(0.4,`hsla(${(flashHue+40)%360},100%,75%,${tilt*0.1})`);
+    flash.addColorStop(1,'hsla(0,0%,100%,0)');
+    ctx.fillStyle=flash; ctx.fillRect(0,0,PW,PH);
+  }
+
+  // Layer 5: always-on subtle sheen so it reads holo at rest
+  ctx.globalAlpha=0.07;
+  const sheen=ctx.createLinearGradient(0,0,PW,PH);
+  sheen.addColorStop(0,'#a0d8ff');sheen.addColorStop(0.33,'#ffb0e8');
+  sheen.addColorStop(0.66,'#b0ffd8');sheen.addColorStop(1,'#ffe8a0');
+  ctx.fillStyle=sheen; ctx.fillRect(0,0,PW,PH);
+
+  ctx.globalAlpha=1;
+  ctx.globalCompositeOperation='source-over';
+  ctx.restore();
 }
 
 /* ── Recolor accent bar region ── */
@@ -1943,17 +1977,17 @@ function downloadCard(side){
   const tmp=document.createElement('canvas');
   tmp.width=PW; tmp.height=PH;
   const tctx=tmp.getContext('2d');
-  const mx0=CS.mx, my0=CS.my;
-  CS.mx=0.5; CS.my=0.5;  // neutral gloss for export
+  const mx0=CS.mx, my0=CS.my, rx0=CS.rotX, ry0=CS.rotY;
+  CS.mx=0.5; CS.my=0.5; CS.rotX=0; CS.rotY=0;  // neutral tilt for export
   try {
     if(side==='front') drawFront(tctx);
     else               drawBack(tctx);
   } catch(drawErr) {
-    CS.mx=mx0; CS.my=my0;
+    CS.mx=mx0; CS.my=my0; CS.rotX=rx0; CS.rotY=ry0;
     showToast('Render error: '+drawErr.message, true);
     return;
   }
-  CS.mx=mx0; CS.my=my0;
+  CS.mx=mx0; CS.my=my0; CS.rotX=rx0; CS.rotY=ry0;
 
   // Step 2: get data URL (may fail if canvas tainted by cross-origin image)
   let dataUrl;
@@ -2293,6 +2327,17 @@ function drawIceOverlay(ctx){
   const ry=CS.rotY||0,rx=CS.rotX||0;
   const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
   const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+
+  // ── Always-on crystalline structure (very faint) ──
+  ctx.globalCompositeOperation='source-over';
+  ctx.strokeStyle='rgba(160,165,200,0.05)';
+  ctx.lineWidth=0.5;
+  _ICE_FACETS.forEach(f=>{
+    ctx.beginPath();
+    ctx.moveTo(f.verts[0].x,f.verts[0].y);
+    f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
+    ctx.closePath(); ctx.stroke();
+  });
 
   if(tilt<0.03){ctx.restore();return;}
 
@@ -2638,7 +2683,7 @@ async function saveCard(){
     const str=id=>{const el=document.getElementById(id);return el?(el.value||''):'';};
     const data={
       firstName:fn,lastName:ln,position:(str('fPos')==='OTHER'?(str('fPosCustom')||'OTHER'):str('fPos')),
-      team:str('fTeam'),teamAbbr:str('fTeamAbbr'),division:str('fDiv'),
+      team:str('fTeam'),teamAbbr:str('fTeamAbbr'),division:(str('fDiv')==='OTHER'?(str('fDivCustom')||'OTHER'):str('fDiv')),
       jerseyNum:str('fJersey'),cardNum:str('fCardNum'),
       parallel:CS.parallel||'base',cardType:CS.cardType||CS.parallel||'base',rarity:CS.parallel||'base',
       photoURL:photoURL||'',sigURL:sigURL||'',logoURL:logoURL||'',macURL:macURL||'',
@@ -2689,7 +2734,17 @@ function editCard(id){
   }
   document.getElementById('fTeam').value=p.team||'';
   if(document.getElementById('fTeamAbbr'))document.getElementById('fTeamAbbr').value=p.teamAbbr||'';
-  document.getElementById('fDiv').value=p.division||'T-BALL';document.getElementById('fJersey').value=p.jerseyNum||'';
+  const stdDivisions=['T-BALL','ROOKIES','MINORS BASEBALL','MAJORS BASEBALL','FARM/8U SOFTBALL','MINORS/10U SOFTBALL','MAJORS/12U SOFTBALL','SENIORS/16U SOFTBALL','TRAVEL 8U','TRAVEL 10U','TRAVEL 12U','TRAVEL 14U','TRAVEL 16U'];
+  const savedDiv=p.division||'T-BALL';
+  if(stdDivisions.includes(savedDiv)){
+    document.getElementById('fDiv').value=savedDiv;
+    document.getElementById('fDivCustomWrap').style.display='none';
+  } else {
+    document.getElementById('fDiv').value='OTHER';
+    if(document.getElementById('fDivCustom'))document.getElementById('fDivCustom').value=savedDiv;
+    document.getElementById('fDivCustomWrap').style.display='block';
+  }
+  document.getElementById('fJersey').value=p.jerseyNum||'';
   document.getElementById('fCardNum').value=p.cardNum||'';document.getElementById('fBats').value=p.bats||'Right';
   document.getElementById('fThrows').value=p.throws||'Right';document.getElementById('fHeight').value=p.height||'';
   document.getElementById('fWeight').value=p.weight||'';document.getElementById('fHometown').value=p.hometown||''; if(document.getElementById('fBio'))document.getElementById('fBio').value=p.bio||'';
@@ -2741,7 +2796,7 @@ function resetForm(){
   document.getElementById('fmH').textContent='ADD PLAYER CARD';
   document.getElementById('fmS').textContent='Preview updates live';
   ['fFirst','fLast','fTeam','fJersey','fCardNum','fHeight','fWeight','fHometown'].forEach(id=>document.getElementById(id).value=''); if(document.getElementById('fBio'))document.getElementById('fBio').value='';
-  document.getElementById('fPos').value='PITCHER';document.getElementById('fPosCustomWrap').style.display='none';if(document.getElementById('fPosCustom'))document.getElementById('fPosCustom').value='';document.getElementById('fDiv').value='T-BALL';
+  document.getElementById('fPos').value='PITCHER';document.getElementById('fPosCustomWrap').style.display='none';if(document.getElementById('fPosCustom'))document.getElementById('fPosCustom').value='';document.getElementById('fDiv').value='T-BALL';if(document.getElementById('fDivCustomWrap'))document.getElementById('fDivCustomWrap').style.display='none';if(document.getElementById('fDivCustom'))document.getElementById('fDivCustom').value='';
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
   document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}
   pD='';sD='';lD='';pS='';sS='';lS='';
