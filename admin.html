@@ -2715,10 +2715,12 @@ async function saveCard(){
   const fn=document.getElementById('fFirst').value.trim();
   const ln=document.getElementById('fLast').value.trim();
   if(!fn||!ln){showToast('Name is required',true);return;}
+  if(!window._db){showToast('Firebase not connected — check console',true);return;}
   document.getElementById('saveBtn').disabled=true;
   document.getElementById('spinner').style.display='flex';
   try{
-    const db=window._db,st=window._storage;
+    const db=window._db, st=window._storage||null;
+    if(!st) console.warn('Firebase Storage not initialized — file uploads will be skipped');
     const editId=document.getElementById('editId').value;
     const slug=`${fn}_${ln}_${Date.now()}`.replace(/\s/g,'_');
     let photoURL=pS,sigURL=sS,logoURL=lS;
@@ -2726,10 +2728,9 @@ async function saveCard(){
     const sf=document.getElementById('sigFile').files[0];
     // Use drawn signature if no file uploaded and pad has content
     const sigPad=document.getElementById('sigPad');
-    if(!sf && CS.certAuto && CS.sigImg && sigPad){
+    if(st && !sf && CS.certAuto && CS.sigImg && sigPad){
       const padUrl=sigPad.toDataURL('image/png');
       if(padUrl&&padUrl.length>1000){
-        // Convert drawn sig data URL to blob and upload
         const sigBlob=await(await fetch(padUrl)).blob();
         const sigRef=st.ref('sigs/drawn_'+slug);
         await sigRef.put(sigBlob);
@@ -2741,8 +2742,17 @@ async function saveCard(){
     let macURL=mS||'';
     let uploadWarning='';
     async function tryUpload(file,path,label){
+      if(!st){uploadWarning='Storage not initialized';return '';}
       try{const ref=st.ref(path);await ref.put(file);return await ref.getDownloadURL();}
-      catch(e){console.error(label+' upload failed',e);uploadWarning=label+' upload failed — check Storage rules are published';return '';}
+      catch(e){
+        console.error(label+' upload failed',e);
+        // Common: Storage rules not published yet
+        const msg=e.code==='storage/unauthorized'
+          ?label+' upload blocked — publish Firebase Storage rules'
+          :label+' upload failed: '+(e.message||e.code||e);
+        uploadWarning=msg;
+        return '';
+      }
     }
     if(pf){const u=await tryUpload(pf,`photos/${slug}`,'Photo');if(u)photoURL=u;}
     if(sf&&CS.certAuto){const u=await tryUpload(sf,`sigs/${slug}`,'Signature');if(u)sigURL=u;}
@@ -2750,7 +2760,7 @@ async function saveCard(){
     if(mf){const u=await tryUpload(mf,`logos/mac_${slug}`,'Badge');if(u)macURL=u;}
     // Upload custom background if it's a new local file (data URL) not already a remote URL
     let customBgSavedURL=CS.customBgURL||null;
-    if(CS.customBgURL&&CS.customBgURL.startsWith('data:')){
+    if(st&&CS.customBgURL&&CS.customBgURL.startsWith('data:')){
       try{
         const bgBlob=await(await fetch(CS.customBgURL)).blob();
         const bgRef=st.ref(`backgrounds/bg_${slug}`);

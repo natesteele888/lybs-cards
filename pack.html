@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LYBS 2026 – Pack Opening</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0c14;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;overflow:hidden;user-select:none}
+
+  /* ── BACKGROUND SHIMMER ── */
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(212,168,0,0.18) 0%,transparent 65%);pointer-events:none}
+
+  /* ── PACK CONTAINER ── */
+  #packWrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
+  #prompt{font-size:13px;letter-spacing:3px;color:rgba(255,255,255,0.4);text-transform:uppercase;transition:opacity .4s}
+
+  /* ── THE FOIL PACK ── */
+  #pack{
+    position:relative;width:260px;height:380px;
+    cursor:pointer;
+    filter:drop-shadow(0 20px 60px rgba(0,0,0,0.8)) drop-shadow(0 0 30px rgba(212,168,0,0.3));
+    transition:transform .15s ease;
+  }
+  #pack:hover{transform:scale(1.03) translateY(-4px)}
+  #pack:hover{filter:drop-shadow(0 24px 70px rgba(0,0,0,0.9)) drop-shadow(0 0 50px rgba(212,168,0,0.55))}
+  #pack.ripping{cursor:default;pointer-events:none}
+
+  /* Pack SVG drawn via canvas */
+  #packCanvas{width:260px;height:380px;display:block}
+
+  /* ── TEAR HALVES ── */
+  #packTop, #packBottom{
+    position:absolute;left:0;top:0;width:260px;height:380px;
+    pointer-events:none;
+    transition:transform .7s cubic-bezier(.4,0,.2,1), opacity .7s ease;
+  }
+  #packTop.fly{transform:translateY(-160%) rotate(-8deg);opacity:0}
+  #packBottom.fly{transform:translateY(80%) rotate(5deg);opacity:0}
+
+  /* ── GLOW BURST ── */
+  #burst{
+    position:absolute;inset:-80px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(255,220,60,0.9) 0%,rgba(212,168,0,0.5) 30%,transparent 70%);
+    opacity:0;pointer-events:none;
+    transition:opacity .25s ease;
+    transform:scale(0.3);
+  }
+  #burst.pop{opacity:1;transform:scale(1);transition:opacity .15s ease, transform .25s cubic-bezier(.2,1.5,.4,1)}
+  #burst.fade{opacity:0;transform:scale(1.4);transition:opacity .5s ease .1s, transform .5s ease .1s}
+
+  /* ── CARD REVEAL ── */
+  #cardReveal{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0);pointer-events:none;z-index:100;
+    transition:background .4s ease;
+  }
+  #cardReveal.show{background:rgba(0,0,0,0.85);pointer-events:all}
+  #revealInner{
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    opacity:0;transform:scale(0.6) translateY(40px);
+    transition:opacity .5s ease .3s, transform .5s cubic-bezier(.2,1.4,.4,1) .3s;
+  }
+  #cardReveal.show #revealInner{opacity:1;transform:scale(1) translateY(0)}
+  #revealCard{width:280px;height:394px;border-radius:12px;object-fit:cover;
+    box-shadow:0 30px 80px rgba(0,0,0,0.8), 0 0 60px rgba(212,168,0,0.4);
+    border:2px solid rgba(255,255,255,0.1)}
+  #revealLabel{font-size:11px;letter-spacing:4px;color:rgba(255,255,255,0.5);text-transform:uppercase}
+  #revealName{font-size:28px;font-weight:700;color:#fff;letter-spacing:2px;text-align:center}
+  #revealPar{font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:4px 14px;border-radius:2px;margin-top:-8px}
+  #openAnother{
+    margin-top:8px;padding:10px 28px;background:transparent;border:1.5px solid rgba(255,255,255,0.25);
+    color:rgba(255,255,255,0.7);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:3px;
+    cursor:pointer;text-transform:uppercase;border-radius:2px;
+    transition:border-color .2s, color .2s;
+  }
+  #openAnother:hover{border-color:rgba(212,168,0,0.8);color:#d4a800}
+
+  /* ── PARTICLE EFFECTS ── */
+  .particle{position:absolute;pointer-events:none;border-radius:50%;animation:sparkle 1.2s ease-out forwards}
+  @keyframes sparkle{
+    0%{transform:translate(0,0) scale(1);opacity:1}
+    100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}
+  }
+</style>
+</head>
+<body>
+
+<!-- Firebase (read cards) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<div id="packWrap">
+  <div id="burst"></div>
+  <div id="pack">
+    <canvas id="packCanvas" width="520" height="760"></canvas>
+    <canvas id="packTop" width="520" height="760" style="position:absolute;top:0;left:0;width:260px;height:380px"></canvas>
+    <canvas id="packBottom" width="520" height="760" style="position:absolute;top:0;left:0;width:260px;height:380px"></canvas>
+  </div>
+  <div id="prompt">Click to open pack</div>
+</div>
+
+<div id="cardReveal">
+  <div id="revealInner">
+    <div id="revealLabel">You pulled</div>
+    <canvas id="revealCard" width="560" height="788" style="width:280px;height:394px;border-radius:12px"></canvas>
+    <div id="revealName"></div>
+    <div id="revealPar"></div>
+    <button id="openAnother" onclick="resetPack()">↩ Open Another</button>
+  </div>
+</div>
+
+<script>
+// ── Firebase config (same as admin) ──
+const firebaseConfig = {
+  apiKey:"AIzaSyC99OBzJoekTs-YkOvSB31XMC4SBCgxhUI",
+  authDomain:"lybs-cards.firebaseapp.com",
+  projectId:"lybs-cards",
+  storageBucket:"lybs-cards.firebasestorage.app",
+  messagingSenderId:"320701582820",
+  appId:"1:320701582820:web:0e4dfe9bd38c4b51d64cfa"
+};
+try{firebase.initializeApp(firebaseConfig);window._db=firebase.firestore();}catch(e){console.warn('Firebase init:',e);}
+
+// ── Pack draw ──
+const PW=520, PH=760;
+const GOLD_TOP  ='#f5d76e';
+const GOLD_MID  ='#d4a800';
+const GOLD_DARK ='#8a6800';
+const GOLD_SHINE='#fffbe8';
+
+function drawPackFull(canvas, clipTop, clipBottom){
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,PW,PH);
+
+  // ── Pack shape (rounded rectangle with pinch at top) ──
+  const PAD=18, R=18;
+  function packPath(c){
+    c.beginPath();
+    // Top seal — slightly pinched
+    c.moveTo(PW/2,6);
+    c.bezierCurveTo(PW/2-30,6, PAD+R,PAD, PAD+R,PAD);
+    c.quadraticCurveTo(PAD,PAD, PAD,PAD+R);
+    c.lineTo(PAD,PH-PAD-R);
+    c.quadraticCurveTo(PAD,PH-PAD, PAD+R,PH-PAD);
+    c.lineTo(PW-PAD-R,PH-PAD);
+    c.quadraticCurveTo(PW-PAD,PH-PAD, PW-PAD,PH-PAD-R);
+    c.lineTo(PW-PAD,PAD+R);
+    c.quadraticCurveTo(PW-PAD,PAD, PW-PAD-R,PAD);
+    c.bezierCurveTo(PW-PAD-R,PAD, PW/2+30,6, PW/2,6);
+    c.closePath();
+  }
+
+  if(clipTop){ctx.save();ctx.beginPath();ctx.rect(0,0,PW,PH*0.32);ctx.clip();}
+  if(clipBottom){ctx.save();ctx.beginPath();ctx.rect(0,PH*0.32,PW,PH);ctx.clip();}
+
+  // ── FOIL GRADIENT BACKGROUND ──
+  const grad=ctx.createLinearGradient(0,0,PW,PH);
+  grad.addColorStop(0,  '#f9e87a');
+  grad.addColorStop(0.15,'#e8c44a');
+  grad.addColorStop(0.3, '#d4a800');
+  grad.addColorStop(0.45,'#f5d76e');
+  grad.addColorStop(0.55,'#d4a800');
+  grad.addColorStop(0.7, '#b08800');
+  grad.addColorStop(0.85,'#d4a800');
+  grad.addColorStop(1,   '#8a6800');
+  packPath(ctx);ctx.fillStyle=grad;ctx.fill();
+
+  // ── FOIL SHEEN (diagonal bright stripe) ──
+  const sheen=ctx.createLinearGradient(0,0,PW*0.7,PH*0.5);
+  sheen.addColorStop(0,'rgba(255,255,255,0)');
+  sheen.addColorStop(0.35,'rgba(255,255,255,0)');
+  sheen.addColorStop(0.42,'rgba(255,255,255,0.22)');
+  sheen.addColorStop(0.5,'rgba(255,255,255,0.45)');
+  sheen.addColorStop(0.58,'rgba(255,255,255,0.22)');
+  sheen.addColorStop(0.65,'rgba(255,255,255,0)');
+  sheen.addColorStop(1,'rgba(255,255,255,0)');
+  packPath(ctx);ctx.fillStyle=sheen;ctx.fill();
+
+  // ── DARK VIGNETTE EDGES ──
+  const edge=ctx.createRadialGradient(PW/2,PH/2,PH*0.2,PW/2,PH/2,PH*0.75);
+  edge.addColorStop(0,'rgba(0,0,0,0)');
+  edge.addColorStop(1,'rgba(0,0,0,0.35)');
+  packPath(ctx);ctx.fillStyle=edge;ctx.fill();
+
+  // ── SEAL TEAR LINE (horizontal perforation at ~30% height) ──
+  const tearY=PH*0.28;
+  ctx.save();
+  packPath(ctx);ctx.clip();
+  // Dark crease
+  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(PAD,tearY-3,PW-PAD*2,3);
+  // Light highlight above
+  ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(PAD,tearY-5,PW-PAD*2,2);
+  // Perforation dots
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  for(let x=PAD+12;x<PW-PAD-12;x+=18){
+    ctx.beginPath();ctx.arc(x,tearY-1,2.5,0,Math.PI*2);ctx.fill();
+  }
+  // "OPEN HERE" text
+  ctx.font='bold 16px Oswald,sans-serif';ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.textAlign='right';ctx.fillText('OPEN HERE ▶',PW-PAD-16,tearY-10);
+  ctx.textAlign='left';
+  ctx.restore();
+
+  // ── TOP SEAL AREA ──
+  ctx.save();packPath(ctx);ctx.clip();
+  const sealGrad=ctx.createLinearGradient(0,0,0,tearY-20);
+  sealGrad.addColorStop(0,'rgba(0,0,0,0.45)');
+  sealGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=sealGrad;ctx.fillRect(0,0,PW,tearY-20);
+  // "LYBS 2026 SERIES 1" small text in seal
+  ctx.font='600 18px Oswald,sans-serif';ctx.fillStyle='rgba(255,255,255,0.55)';
+  ctx.textAlign='center';ctx.fillText('LYBS 2026 · SERIES 1',PW/2,54);
+  ctx.restore();
+
+  // ── OLD ENGLISH S ──
+  ctx.save();packPath(ctx);ctx.clip();
+  // Drop shadow
+  ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=20;ctx.shadowOffsetY=6;
+  // Gradient for the S (dark gold emboss)
+  const sGrad=ctx.createLinearGradient(PW/2-90,tearY+40,PW/2+90,PH*0.72);
+  sGrad.addColorStop(0,'rgba(255,255,255,0.35)');
+  sGrad.addColorStop(0.3,'rgba(180,130,0,0.95)');
+  sGrad.addColorStop(0.6,'rgba(255,220,80,0.9)');
+  sGrad.addColorStop(1,'rgba(100,70,0,0.9)');
+  ctx.font='bold 380px UnifrakturMaguntia,serif';
+  ctx.fillStyle=sGrad;
+  ctx.textAlign='center';
+  ctx.fillText('S',PW/2,PH*0.78);
+  ctx.restore();
+
+  // ── "Steele Trading Cards" text ──
+  ctx.save();packPath(ctx);ctx.clip();
+  ctx.shadowColor='rgba(0,0,0,0.7)';ctx.shadowBlur=10;ctx.shadowOffsetY=2;
+  ctx.font='bold italic 32px "Times New Roman",serif';
+  ctx.fillStyle='rgba(255,255,255,0.9)';
+  ctx.textAlign='center';
+  ctx.fillText('Steele Trading Cards',PW/2,PH*0.58);
+  // "LYBS 2026 SERIES 1" below
+  ctx.font='600 20px Oswald,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.65)';
+  ctx.fillText('LYBS 2026 · SERIES 1',PW/2,PH*0.64);
+  ctx.restore();
+
+  // ── BOTTOM HORIZONTAL RIBS (pack crimp lines) ──
+  ctx.save();packPath(ctx);ctx.clip();
+  for(let i=0;i<6;i++){
+    const ry=PH-PAD-40-i*10;
+    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.12)':'rgba(255,255,255,0.08)';
+    ctx.fillRect(PAD,ry,PW-PAD*2,4);
+  }
+  ctx.restore();
+
+  // ── PACK BORDER ──
+  packPath(ctx);
+  ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;ctx.stroke();
+  const innerBorder=ctx.createLinearGradient(0,0,PW,PH);
+  innerBorder.addColorStop(0,'rgba(255,255,255,0.3)');
+  innerBorder.addColorStop(1,'rgba(0,0,0,0.2)');
+  packPath(ctx);ctx.strokeStyle=innerBorder;ctx.lineWidth=1;ctx.stroke();
+
+  if(clipTop||clipBottom) ctx.restore();
+}
+
+// ── Initial draw ──
+const mainCanvas=document.getElementById('packCanvas');
+drawPackFull(mainCanvas,false,false);
+
+// ── PACK STATE ──
+let cards=[], opened=false;
+
+// Load cards from Firestore
+async function loadCards(){
+  if(!window._db) return;
+  try{
+    const snap=await window._db.collection('players').get();
+    cards=[];snap.forEach(d=>cards.push({id:d.id,...d.data()}));
+  }catch(e){console.warn('Cards load:',e);}
+}
+loadCards();
+
+// ── CLICK TO OPEN ──
+document.getElementById('pack').addEventListener('click',()=>{
+  if(opened) return;
+  opened=true;
+  ripPack();
+});
+
+function ripPack(){
+  const pack=document.getElementById('pack');
+  pack.classList.add('ripping');
+  document.getElementById('prompt').style.opacity='0';
+
+  // Draw top half on top canvas, bottom half on bottom canvas
+  const topCanvas=document.getElementById('packTop');
+  const botCanvas=document.getElementById('packBottom');
+  drawPackFull(topCanvas,true,false);
+  drawPackFull(botCanvas,false,true);
+  // Hide main
+  mainCanvas.style.opacity='0';
+
+  // Small delay then fly apart
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    topCanvas.classList.add('fly');
+    botCanvas.classList.add('fly');
+  }));
+
+  // Burst
+  setTimeout(()=>{
+    const burst=document.getElementById('burst');
+    burst.classList.add('pop');
+    spawnParticles();
+    setTimeout(()=>{burst.classList.add('fade');burst.classList.remove('pop');},200);
+  },200);
+
+  // Reveal card
+  setTimeout(()=>revealCard(), 600);
+}
+
+function spawnParticles(){
+  const wrap=document.getElementById('packWrap');
+  const colors=['#ffd700','#fff','#ffec6e','#ffe082','#fff9c4'];
+  for(let i=0;i<40;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    const size=4+Math.random()*8;
+    const angle=Math.random()*Math.PI*2;
+    const dist=80+Math.random()*180;
+    p.style.cssText=`
+      width:${size}px;height:${size}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      left:calc(50% + ${Math.cos(angle)*20}px);
+      top:calc(50% + ${Math.sin(angle)*20}px);
+      --tx:${Math.cos(angle)*dist}px;
+      --ty:${Math.sin(angle)*dist}px;
+      animation-delay:${Math.random()*0.2}s;
+      animation-duration:${0.8+Math.random()*0.6}s;
+    `;
+    wrap.appendChild(p);
+    setTimeout(()=>p.remove(),1600);
+  }
+}
+
+async function revealCard(){
+  if(!cards.length){
+    // Demo mode — no cards
+    showReveal(null);
+    return;
+  }
+  const card=cards[Math.floor(Math.random()*cards.length)];
+  showReveal(card);
+}
+
+function showReveal(card){
+  const reveal=document.getElementById('cardReveal');
+  const nameEl=document.getElementById('revealName');
+  const parEl=document.getElementById('revealPar');
+  const canvas=document.getElementById('revealCard');
+
+  reveal.classList.add('show');
+
+  if(!card){
+    nameEl.textContent='NO CARDS IN LIBRARY';
+    parEl.textContent='Add cards in admin';
+    parEl.style.cssText='color:#888;background:transparent';
+    return;
+  }
+
+  const fn=(card.firstName||'').toUpperCase();
+  const ln=(card.lastName||'PLAYER').toUpperCase();
+  nameEl.textContent=`${fn} ${ln}`;
+
+  // Parallel badge color
+  const PAR_COLORS={
+    base:'#888',blue:'#1a4aaa',red:'#cc1122',gold:'#c09020',
+    green:'#0a6a2a',orange:'#cc4400',purple:'#6010a8',
+    holo:'#7eb8ff',glitter:'#d4a800',glitter_holo:'#00ffcc',
+    black:'#222',ice:'#90c8f0',bubbles:'#b0d8f8',tie_dye:'#4a90d9'
+  };
+  const parKey=card.parallel||card.rarity||'base';
+  const parColor=PAR_COLORS[parKey]||'#888';
+  parEl.textContent=parKey.replace('_',' ').toUpperCase();
+  parEl.style.cssText=`color:${parColor};background:rgba(0,0,0,0.3);border:1px solid ${parColor};border-radius:2px;padding:3px 12px;letter-spacing:3px;font-size:10px`;
+
+  // Draw card placeholder (or load photo)
+  const ctx=canvas.getContext('2d');
+  const CW=560, CH=788;
+  ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,CW,CH);
+
+  if(card.photoURL){
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      ctx.drawImage(img,0,0,CW,CH);
+      // Overlay name
+      drawCardNameOverlay(ctx,fn,ln,CW,CH,parColor);
+    };
+    img.onerror=()=>drawCardNameOverlay(ctx,fn,ln,CW,CH,parColor);
+    img.src=card.photoURL;
+  } else {
+    drawCardNameOverlay(ctx,fn,ln,CW,CH,parColor);
+  }
+}
+
+function drawCardNameOverlay(ctx,fn,ln,CW,CH,color){
+  // Bottom nameplate
+  ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,CH-140,CW,140);
+  ctx.fillStyle=color;ctx.fillRect(0,CH-144,CW,4);
+  ctx.font=`bold italic 52px Anton,sans-serif`;ctx.fillStyle='#fff';
+  ctx.textAlign='center';
+  ctx.fillText(`${fn} ${ln}`,CW/2,CH-80);
+  ctx.font='500 22px Oswald,sans-serif';ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.fillText('LYBS 2026 · SERIES 1',CW/2,CH-40);
+  ctx.textAlign='left';
+}
+
+function resetPack(){
+  opened=false;
+  document.getElementById('cardReveal').classList.remove('show');
+  mainCanvas.style.opacity='1';
+  document.getElementById('packTop').classList.remove('fly');
+  document.getElementById('packBottom').classList.remove('fly');
+  document.getElementById('pack').classList.remove('ripping');
+  document.getElementById('prompt').style.opacity='1';
+  document.getElementById('revealName').textContent='';
+  // Redraw pack
+  setTimeout(()=>loadCards(),100);
+}
+</script>
+</body>
+</html>
