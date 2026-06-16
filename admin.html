@@ -1582,52 +1582,93 @@ function drawGlitter(ctx, goldTint){
 }
 
 /* ── Gold Glitter border — dense speckles clipped OUTSIDE the photo mask ── */
+/* Border-only speckle cache — generated specifically for the border zone */
+let _BORDER_SPECKLES=null;
+function _buildBorderSpeckles(){
+  let s=55441;
+  const rand=()=>{ s=(s*1664525+1013904223)>>>0; return(s>>>0)/4294967295; };
+  const speckles=[];
+  // Sample points only in the border region (outside the photo mask polygon)
+  // Border zones:
+  //  - Top strip: y=0..47, full width
+  //  - Left strip: x=0..60, full height
+  //  - Right strip: x=663..PW, full height
+  //  - Bottom strip: y=897..PH, full width
+  //  - Top-left diagonal corner: x=60..315, y=47..100
+  const zones=[
+    // top strip
+    {x:()=>rand()*PW,           y:()=>rand()*47},
+    // bottom strip
+    {x:()=>rand()*PW,           y:()=>897+rand()*(PH-897)},
+    // left strip (full height)
+    {x:()=>rand()*60,           y:()=>rand()*PH},
+    // right strip (full height)
+    {x:()=>663+rand()*(PW-663), y:()=>rand()*PH},
+    // diagonal corner (top-left)
+    {x:()=>60+rand()*255,       y:()=>47+rand()*53},
+  ];
+  // 8000 speckles packed only into border areas
+  for(let i=0;i<8000;i++){
+    const z=zones[Math.floor(rand()*zones.length)];
+    speckles.push({
+      x: z.x(), y: z.y(),
+      size:  0.8+rand()*3.5,
+      phase: rand()*360,
+      bw:    6+rand()*16,
+      peak:  0.7+rand()*0.3,
+      warmth:rand(),
+      rot:   rand()*Math.PI,
+      aspect:0.25+rand()*0.75,
+    });
+  }
+  return speckles;
+}
+
 function drawGlitterBorder(ctx){
-  if(!_GLITTER_SPECKLES) _GLITTER_SPECKLES=_buildGlitterSpeckles();
-  const sp=_GLITTER_SPECKLES;
+  if(!_BORDER_SPECKLES) _BORDER_SPECKLES=_buildBorderSpeckles();
+  const sp=_BORDER_SPECKLES;
   const mx=CS.mx, my=CS.my;
   const ry=CS.rotY||0, rx=CS.rotX||0;
   const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
   const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
 
   ctx.save();
-  // Clip to OUTSIDE the photo mask — the border/corner areas around the frame
-  ctx.beginPath();
-  ctx.rect(0,0,PW,PH);          // full card
-  // Cut out the photo area (even-odd rule punches a hole)
-  photoMaskPath(ctx);
-  ctx.clip('evenodd');
-
-  ctx.globalCompositeOperation='screen';
+  // No compositing tricks — straight source-over so they're always fully visible
+  ctx.globalCompositeOperation='source-over';
 
   sp.forEach(s=>{
     const diff=((tiltDir-s.phase+540)%360)-180;
     const tiltFlash=Math.exp(-(diff*diff)/(s.bw*s.bw))*tilt*s.peak;
-    // Full brightness always visible — outermost layer, needs to blaze
-    const baseGlow=s.peak*0.9;
-    const alpha=Math.min(baseGlow+tiltFlash, 1.0);
+    // Always highly visible at rest — they are THE feature of this parallel
+    const baseGlow=s.peak*0.82;
+    const finalA=Math.min(baseGlow+tiltFlash, 1.0);
+
+    // Mouse proximity sparkle boost
     const dist=Math.sqrt(((s.x/PW)-mx)**2+((s.y/PH)-my)**2);
-    const mouseBoost=(1-Math.min(dist*2.2,1))*0.4*s.peak;
-    const finalA=Math.min(alpha+mouseBoost, 1.0);
-    if(finalA<0.1) return;
+    const mboost=(1-Math.min(dist*2.5,1))*0.5;
+    const a=Math.min(finalA+mboost,1.0);
 
-    const warmFactor=s.warmth*0.6+finalA*0.4;
+    // Gold color range: deep gold → bright white-gold
+    const warmFactor=s.warmth;
     const r2=255;
-    const g2=Math.round(185+warmFactor*70);
-    const b2=Math.round(10+s.warmth*50);
+    const g2=Math.round(160+warmFactor*95);  // 160–255
+    const b2=Math.round(warmFactor*90);       // 0–90
 
-    ctx.globalAlpha=finalA;
-    const w=s.size*1.6, h=s.size*1.6*s.aspect;
+    ctx.globalAlpha=a;
+    const w=s.size, h=s.size*s.aspect;
     ctx.save();
-    ctx.translate(s.x,s.y);
+    ctx.translate(s.x, s.y);
     ctx.rotate(s.rot);
+
+    // Main speckle body
     ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
     ctx.fillRect(-w/2,-h/2,w,h);
-    if(s.size>1.2){
-      ctx.globalAlpha=Math.min(finalA*1.8,1);
-      ctx.fillStyle=`rgb(255,255,${Math.min(b2+120,255)})`;
-      ctx.fillRect(-w*0.2,-h*0.2,w*0.4,h*0.4);
-    }
+
+    // Bright white-gold center glint — makes it sparkle
+    ctx.globalAlpha=Math.min(a*2,1);
+    ctx.fillStyle=`rgb(255,255,${Math.min(b2+180,255)})`;
+    ctx.fillRect(-w*0.15,-h*0.15,w*0.3,h*0.3);
+
     ctx.restore();
   });
 
