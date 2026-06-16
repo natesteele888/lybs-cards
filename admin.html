@@ -1067,7 +1067,7 @@ function drawCard(){
       console.error('drawBack error:',e);
     }
   } else {
-    try{ drawFront(ctx); }
+    try{ drawFront(ctx); if((PAR[CS.parallel]||PAR.base).name==='GOLD GLITTER') drawGlitterBorder(ctx); }
     catch(e){
       // Fallback: paint texture so it's never black, and show the error
       ctx.fillStyle='#e8e6e0'; ctx.fillRect(0,0,PW,PH);
@@ -1447,8 +1447,6 @@ function drawFront(ctx){
   if(par.name==='BUBBLE PRIZM') drawBubbleOverlay(ctx);
   // ── GLITTER HOLO second pass — sparkle pop over gloss ──
   if(par.name==='GLITTER HOLO'){ ctx.save(); ctx.globalAlpha=0.45; drawSparkleHolo(ctx); ctx.restore(); }
-  // ── GOLD GLITTER border pass — dense speckles in the area outside the photo mask ──
-  if(par.name==='GOLD GLITTER') drawGlitterBorder(ctx);
 }
 
 /* ── Rainbow ── */
@@ -1605,31 +1603,29 @@ function drawGlitterBorder(ctx){
   sp.forEach(s=>{
     const diff=((tiltDir-s.phase+540)%360)-180;
     const tiltFlash=Math.exp(-(diff*diff)/(s.bw*s.bw))*tilt*s.peak;
-    // Much higher base visibility in border — this is where they should POP
-    const baseGlow=s.peak*0.35;
-    const alpha=Math.min(baseGlow+tiltFlash, s.peak);
+    // Full brightness always visible — outermost layer, needs to blaze
+    const baseGlow=s.peak*0.9;
+    const alpha=Math.min(baseGlow+tiltFlash, 1.0);
     const dist=Math.sqrt(((s.x/PW)-mx)**2+((s.y/PH)-my)**2);
-    const mouseBoost=(1-Math.min(dist*2.2,1))*0.25*s.peak;
-    const finalA=Math.min(alpha+mouseBoost, 0.98);
-    if(finalA<0.05) return;
+    const mouseBoost=(1-Math.min(dist*2.2,1))*0.4*s.peak;
+    const finalA=Math.min(alpha+mouseBoost, 1.0);
+    if(finalA<0.1) return;
 
-    // Warm gold colors — brighter and more saturated in border
     const warmFactor=s.warmth*0.6+finalA*0.4;
     const r2=255;
     const g2=Math.round(185+warmFactor*70);
     const b2=Math.round(10+s.warmth*50);
 
     ctx.globalAlpha=finalA;
-    const w=s.size*1.2, h=s.size*1.2*s.aspect;
+    const w=s.size*1.6, h=s.size*1.6*s.aspect;
     ctx.save();
     ctx.translate(s.x,s.y);
     ctx.rotate(s.rot);
     ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
     ctx.fillRect(-w/2,-h/2,w,h);
-    // Bright glint on larger border speckles
-    if(s.size>1.8&&finalA>0.25){
-      ctx.globalAlpha=Math.min(finalA*1.6,1);
-      ctx.fillStyle=`rgb(255,255,${b2+100})`;
+    if(s.size>1.2){
+      ctx.globalAlpha=Math.min(finalA*1.8,1);
+      ctx.fillStyle=`rgb(255,255,${Math.min(b2+120,255)})`;
       ctx.fillRect(-w*0.2,-h*0.2,w*0.4,h*0.4);
     }
     ctx.restore();
