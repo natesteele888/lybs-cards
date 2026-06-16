@@ -72,7 +72,7 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 
 /* ── FORM ── */
 .form-col{background:var(--paper);border-right:1px solid var(--border);overflow-y:auto;height:calc(100vh - 52px);position:sticky;top:52px}
-.fp-head{padding:14px 20px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--paper);z-index:5}
+.fp-head{padding:14px 20px 10px;border-bottom:1px solid var(--border);background:var(--paper)}
 .fp-head h2{font-family:"Oswald",sans-serif;font-size:17px;font-weight:700;letter-spacing:3px;color:var(--navy)}
 .fp-head p{font-size:10px;color:var(--muted);font-family:"Oswald",sans-serif;letter-spacing:1px;margin-top:1px}
 .fp-body{padding:14px 20px 28px}
@@ -274,6 +274,21 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .bp-noimg{width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:#2a3a5a;color:rgba(255,255,255,.3);font-size:20px}
 .bp-name{font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;color:var(--ink);padding:3px 5px 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bp-meta{font-family:"Oswald",sans-serif;font-size:8px;color:var(--muted);padding:0 5px 4px}
+
+/* ── FORM TABS ── */
+.tab-bar{display:flex;border-bottom:2px solid var(--border);background:var(--paper);position:sticky;top:102px;z-index:4;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex:1;min-width:52px;padding:9px 4px 7px;border:none;background:transparent;font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s}
+.tab-btn:hover{color:var(--navy)}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--red)}
+.tab-pane{display:none;padding:14px 20px 28px}
+.tab-pane.active{display:block}
+
+/* ── AUTO-ROTATE BUTTON ── */
+.rotate-btn{position:absolute;bottom:10px;right:10px;z-index:10;background:rgba(0,39,94,0.7);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.75);font-family:"Michroma",sans-serif;font-size:8px;letter-spacing:1.5px;padding:6px 10px;border-radius:3px;cursor:pointer;backdrop-filter:blur(4px);transition:.2s;text-transform:uppercase}
+.rotate-btn:hover{background:rgba(0,39,94,0.95);color:#fff}
+.rotate-btn.active{background:rgba(197,151,58,0.3);border-color:rgba(197,151,58,0.7);color:#C5973A}
+
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:3px;font-family:"Oswald",sans-serif;font-size:13px;letter-spacing:1px;opacity:0;transform:translateY(8px);transition:.3s;z-index:9999;border-left:3px solid var(--gold)}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.err{border-left-color:var(--red);background:#3a0a0a}
@@ -331,10 +346,18 @@ window.addEventListener('unhandledrejection',function(e){
         <h2 id="fmH">ADD PLAYER CARD</h2>
         <p id="fmS">Preview updates live</p>
       </div>
-      <div class="fp-body">
-        <input type="hidden" id="editId">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('player')">&#x26BE; PLAYER</button>
+        <button class="tab-btn" onclick="switchTab('card')">&#x1F3A8; CARD</button>
+        <button class="tab-btn" onclick="switchTab('photo')">&#x1F4F7; PHOTO</button>
+        <button class="tab-btn" onclick="switchTab('extras')">&#x2605; EXTRAS</button>
+        <button class="tab-btn" onclick="switchTab('stats')">&#x1F4CA; STATS</button>
+      </div>
+      <input type="hidden" id="editId">
 
-        <div class="fsec">
+      <!-- TAB: PLAYER -->
+      <div class="tab-pane active" id="tab-player">
+        <div class="fsec" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
           <div class="slabel">Player Identity</div>
           <div class="frow">
             <div class="field"><label>First Name</label><input type="text" id="fFirst" placeholder="Alex" oninput="qR()"></div>
@@ -356,22 +379,41 @@ window.addEventListener('unhandledrejection',function(e){
           </div>
           <div class="frow">
             <div class="field"><label>Team Name</label><input type="text" id="fTeam" placeholder="Lunenburg Blue" oninput="qR()"></div>
-            <div class="field"><label>Abbr (3 ltr)</label><input type="text" id="fTeamAbbr" placeholder="LUN" maxlength="4" oninput="qR()" style="text-transform:uppercase"></div>
             <div class="field"><label>Card #</label><input type="text" id="fCardNum" placeholder="001" oninput="qR()"></div>
           </div>
           <div class="field"><label>Division</label>
-            <select id="fDiv" onchange="qR()">
+            <select id="fDiv" onchange="document.getElementById('fDivCustomWrap').style.display=this.value==='OTHER'?'block':'none';qR()">
               <option>T-BALL</option><option>ROOKIES</option><option>MINORS BASEBALL</option><option>MAJORS BASEBALL</option>
               <option>FARM/8U SOFTBALL</option><option>MINORS/10U SOFTBALL</option><option>MAJORS/12U SOFTBALL</option><option>SENIORS/16U SOFTBALL</option>
+              <option>TRAVEL 8U</option><option>TRAVEL 10U</option><option>TRAVEL 12U</option><option>TRAVEL 14U</option><option>TRAVEL 16U</option>
+              <option value="OTHER">OTHER (write in)</option>
             </select>
+            <div id="fDivCustomWrap" style="display:none;margin-top:4px">
+              <input type="text" id="fDivCustom" placeholder="Write in division..." oninput="qR()" style="width:100%;box-sizing:border-box">
+            </div>
+          </div>
+          <div class="slabel" style="margin-top:14px">Bio</div>
+          <div class="frow">
+            <div class="field"><label>Bats</label><select id="fBats" onchange="qR()"><option>Right</option><option>Left</option><option>Switch</option></select></div>
+            <div class="field"><label>Throws</label><select id="fThrows" onchange="qR()"><option>Right</option><option>Left</option></select></div>
+          </div>
+          <div class="frow">
+            <div class="field"><label>Height</label><input type="text" id="fHeight" placeholder="5'8&quot;" oninput="qR()"></div>
+            <div class="field"><label>Weight (lbs)</label><input type="text" id="fWeight" placeholder="145" oninput="qR()"></div>
+          </div>
+          <div class="field"><label>Hometown</label><input type="text" id="fHometown" placeholder="Beverly, MA" oninput="qR()"></div>
+          <div class="field" style="margin-top:6px"><label>Bio / Quote <span style="font-weight:400;opacity:.6">(shows on back)</span></label>
+            <textarea id="fBio" rows="3" placeholder="A sentence or quote that appears on the card back..." oninput="qR()" style="width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;font-size:12px;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--surface)"></textarea>
           </div>
         </div>
+      </div>
 
-        <div class="fsec">
+      <!-- TAB: CARD -->
+      <div class="tab-pane" id="tab-card">
+        <div class="fsec" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
           <div class="slabel">Card Type</div>
           <div id="cardTypeGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:12px"></div>
           <input type="hidden" id="fPar" value="base">
-
           <div id="colorOverlaySection" style="margin-top:4px">
             <div class="slabel" style="margin-bottom:6px">Outer Card Color</div>
             <div id="colorSwatchGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px"></div>
@@ -398,9 +440,38 @@ window.addEventListener('unhandledrejection',function(e){
               <span class="val" id="accentSatVal">100%</span>
             </div>
           </div>
+          <div class="slabel" style="margin-top:12px">Special</div>
+          <label style="display:flex;align-items:center;gap:8px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--navy);cursor:pointer;margin-bottom:8px">
+            <input type="checkbox" id="certAutoOn" onchange="CS.certAuto=this.checked;qR()">
+            &#x270D; CERTIFIED AUTO
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--navy);cursor:pointer;margin-bottom:4px">
+            <input type="checkbox" id="numberedOn" onchange="CS.numbered=this.checked;document.getElementById('numberedFields').style.display=this.checked?'block':'none';qR()">
+            SERIAL NUMBERED
+          </label>
+          <div id="numberedFields" style="display:none;margin-top:6px">
+            <div class="slabel">Serial Number</div>
+            <div class="frow">
+              <div class="field"><label>Print Run</label><input type="text" id="fPrintRun" placeholder="50" oninput="qR()"></div>
+              <div class="field"><label>Card # in Run</label><input type="text" id="fSerialNum" placeholder="1" oninput="qR()"></div>
+            </div>
+            <div class="field"><label>Orientation</label>
+              <select id="fSerialPos" onchange="qR()">
+                <option value="h">Horizontal ↔</option>
+                <option value="v">Vertical ↕</option>
+              </select>
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--red);cursor:pointer;margin-top:8px">
+            <input type="checkbox" id="allStarOn" onchange="CS.allStar=this.checked;qR()">
+            &#x2B50; ALL-STAR STAMP
+          </label>
         </div>
+      </div>
 
-        <div class="fsec">
+      <!-- TAB: PHOTO -->
+      <div class="tab-pane" id="tab-photo">
+        <div class="fsec" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
           <div class="slabel">Player Photo</div>
           <div class="ub">
             <input type="file" id="photoFile" accept="image/*" onchange="hPhoto(this)">
@@ -408,8 +479,6 @@ window.addEventListener('unhandledrejection',function(e){
             <div class="ui" id="photoIcon">&#x1F4F7;</div>
             <div class="un"><p id="photoName">Click to upload photo</p><span>Portrait orientation ideal</span></div>
           </div>
-
-          <!-- IMAGE TRANSFORM CONTROLS -->
           <div class="img-transform" id="imgTransform" style="display:none">
             <div class="slabel">Image Position &amp; Scale</div>
             <div class="transform-row">
@@ -434,12 +503,7 @@ window.addEventListener('unhandledrejection',function(e){
             </div>
             <div class="drag-hint">&#x2725; DRAG ON CARD PREVIEW TO REPOSITION</div>
           </div>
-
-          
-        </div>
-
-        <div class="fsec">
-          <div class="slabel">Team Logo <span style="font-size:8px;color:#bbb;font-weight:400;letter-spacing:0">(optional)</span></div>
+          <div class="slabel" style="margin-top:12px">Team Logo <span style="font-size:8px;color:#bbb;font-weight:400;letter-spacing:0">(optional)</span></div>
           <div class="ub">
             <input type="file" id="logoFile" accept="image/*" onchange="hLogo(this)">
             <img class="ut" id="logoThumb">
@@ -463,25 +527,16 @@ window.addEventListener('unhandledrejection',function(e){
               <input type="range" id="logoOffsetY" min="-80" max="80" value="0" step="1" oninput="onLogoTransform()">
               <span class="val" id="logoOffsetYVal">0</span>
             </div>
-            <div class="transform-btns">
-              <button class="t-btn" onclick="resetLogoTransform()">RESET</button>
-            </div>
+            <div class="transform-btns"><button class="t-btn" onclick="resetLogoTransform()">RESET</button></div>
           </div>
           <div style="margin-top:10px">
-          <div class="slabel" style="margin-bottom:6px">Corner Badge <span style="font-size:8px;color:#bbb;font-weight:400;letter-spacing:0">(replaces MAC logo)</span></div>
-          <div class="ub">
-            <input type="file" id="macFile" accept="image/*" onchange="hMac(this)">
-            <img class="ut" id="macThumb"><div class="ui" id="macIcon">&#x1F3F7;</div>
-            <div class="un"><p id="macName">Click to upload badge</p><span>Shows top-right corner</span></div>
-          </div></div>
-          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">
-            <input type="checkbox" id="showBanner" checked onchange="CS.showBanner=this.checked;qR()">
-            SHOW LYBS BANNER
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">
-            <input type="checkbox" id="showLybsOn" checked onchange="CS.showLybs=this.checked;qR()">
-            SHOW LYBS LOGO
-          </label>
+            <div class="slabel" style="margin-bottom:6px">Corner Badge <span style="font-size:8px;color:#bbb;font-weight:400;letter-spacing:0">(replaces MAC logo)</span></div>
+            <div class="ub">
+              <input type="file" id="macFile" accept="image/*" onchange="hMac(this)">
+              <img class="ut" id="macThumb"><div class="ui" id="macIcon">&#x1F3F7;</div>
+              <div class="un"><p id="macName">Click to upload badge</p><span>Shows top-right corner</span></div>
+            </div>
+          </div>
           <div style="margin-top:10px">
             <div class="slabel" style="margin-bottom:5px">CUSTOM BACKGROUND</div>
             <div class="upload-row" onclick="document.getElementById('bgUpload').click()" style="cursor:pointer">
@@ -492,15 +547,30 @@ window.addEventListener('unhandledrejection',function(e){
             <button class="t-btn" style="margin-top:5px;width:100%;font-size:9px" onclick="CS.customBgImg=null;CS.customBgURL=null;document.getElementById('bgName').textContent='Click to upload background image';document.getElementById('bgIcon').textContent='&#x1F5BC;';qR()">&#x2715; REMOVE BACKGROUND</button>
           </div>
         </div>
+      </div>
 
-        <div class="fsec" id="sigSec">
-          <div class="slabel">Signature</div>
-          <!-- Tab switcher -->
+      <!-- TAB: EXTRAS -->
+      <div class="tab-pane" id="tab-extras">
+        <div class="fsec" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
+          <div class="slabel">Banner &amp; Branding</div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:4px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="showBanner" checked onchange="CS.showBanner=this.checked;qR()">
+            SHOW LYBS BANNER
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="showLybsOn" checked onchange="CS.showLybs=this.checked;qR()">
+            SHOW LYBS LOGO
+          </label>
+          <div class="slabel" style="margin-top:12px">Steele S Position</div>
+          <div style="display:flex;gap:5px;margin-top:4px">
+            <button class="t-btn" id="sPosBR" onclick="setSPos('br')" style="flex:1">&#x2198; Bottom-Right</button>
+            <button class="t-btn" id="sPosBL" onclick="setSPos('bl')" style="flex:1">&#x2199; Bottom-Left</button>
+          </div>
+          <div class="slabel" style="margin-top:14px">Signature</div>
           <div class="sig-tabs">
             <button class="sig-tab active" id="sigTabDraw" onclick="showSigTab('draw')">&#x270D; DRAW</button>
             <button class="sig-tab" id="sigTabUpload" onclick="showSigTab('upload')">&#x2B06; UPLOAD FILE</button>
           </div>
-          <!-- Draw pad -->
           <div id="sigDrawPanel">
             <div class="sig-pad-wrap">
               <canvas id="sigPad" width="560" height="200"></canvas>
@@ -521,7 +591,6 @@ window.addEventListener('unhandledrejection',function(e){
               </div>
             </div>
           </div>
-          <!-- Upload panel -->
           <div id="sigUploadPanel" style="display:none">
             <div class="ub">
               <input type="file" id="sigFile" accept="image/*" onchange="hSig(this)">
@@ -531,62 +600,14 @@ window.addEventListener('unhandledrejection',function(e){
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="fsec">
-          <label style="display:flex;align-items:center;gap:8px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--navy);cursor:pointer;margin-bottom:8px">
-            <input type="checkbox" id="certAutoOn" onchange="CS.certAuto=this.checked;qR()">
-            &#x270D; CERTIFIED AUTO (any card type)
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--navy);cursor:pointer;margin-bottom:4px">
-            <input type="checkbox" id="numberedOn" onchange="CS.numbered=this.checked;document.getElementById('numberedFields').style.display=this.checked?'block':'none';qR()">
-            SERIAL NUMBERED (any card type)
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--red);cursor:pointer;margin-top:8px">
-            <input type="checkbox" id="allStarOn" onchange="CS.allStar=this.checked;qR()">
-            &#x2B50; ALL-STAR (red/white/blue stamp)
-          </label>
-          <div style="margin-top:8px">
-            <div class="slabel" style="margin-bottom:5px;font-size:10px">Steele S Position</div>
-            <div style="display:flex;gap:5px">
-              <button class="t-btn" id="sPosBR" onclick="setSPos('br')" style="flex:1">&#x2198; Bottom-Right</button>
-              <button class="t-btn" id="sPosBL" onclick="setSPos('bl')" style="flex:1">&#x2199; Bottom-Left</button>
-            </div>
-          </div>
-          <div id="numberedFields" style="display:none">
-          <div class="slabel">Serial Number</div>
-          <div class="frow">
-            <div class="field"><label>Print Run</label><input type="text" id="fPrintRun" placeholder="50" oninput="qR()"></div>
-            <div class="field"><label>Card # in Run</label><input type="text" id="fSerialNum" placeholder="1" oninput="qR()"></div>
-          </div>
-          <div class="field"><label>Orientation</label>
-            <select id="fSerialPos" onchange="qR()">
-              <option value="h">Horizontal ↔</option>
-              <option value="v">Vertical ↕</option>
-            </select>
-          </div>
-          </div>
-        </div>
-
-        <div class="fsec">
-          <div class="slabel">Bio</div>
-          <div class="frow">
-            <div class="field"><label>Bats</label><select id="fBats" onchange="qR()"><option>Right</option><option>Left</option><option>Switch</option></select></div>
-            <div class="field"><label>Throws</label><select id="fThrows" onchange="qR()"><option>Right</option><option>Left</option></select></div>
-          </div>
-          <div class="frow">
-            <div class="field"><label>Height</label><input type="text" id="fHeight" placeholder="5'8&quot;" oninput="qR()"></div>
-            <div class="field"><label>Weight (lbs)</label><input type="text" id="fWeight" placeholder="145" oninput="qR()"></div>
-          </div>
-          <div class="field"><label>Hometown</label><input type="text" id="fHometown" placeholder="Beverly, MA" oninput="qR()"></div>
-          <div class="field" style="margin-top:6px"><label>Bio / Quote <span style="font-weight:400;opacity:.6">(optional, shows on back)</span></label>
-            <textarea id="fBio" rows="3" placeholder="A sentence or quote that appears on the card back..." oninput="qR()" style="width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;font-size:12px;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--surface)"></textarea>
-          </div>
-        </div>
-
-        <div class="fsec">
-          <div class="slabel">Stats</div>
+      <!-- TAB: STATS -->
+      <div class="tab-pane" id="tab-stats">
+        <div class="fsec" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
+          <div id="sigSec"><!-- sig sec anchor --></div>
           <div id="statsStatus" style="font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1px;padding:8px 10px;border-radius:5px;background:rgba(0,39,94,.05);color:var(--muted);margin-bottom:8px">
-            Enter a player name above — stats auto-fill if found in the reference.
+            Enter a player name — stats auto-fill if found in the reference.
           </div>
           <button class="bulk-btn-ghost" style="width:100%;margin-bottom:8px" onclick="openStatsImport()">&#x2B06; Manage Stats Reference</button>
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
@@ -606,7 +627,9 @@ window.addEventListener('unhandledrejection',function(e){
             <button class="asr" onclick="addPR()">+ Add Pitching Year</button>
           </details>
         </div>
+      </div>
 
+      <div style="padding:0 20px 20px">
         <button class="save-btn" id="saveBtn" onclick="saveCard()">SAVE CARD</button>
         <button class="cancel-btn" id="cancelBtn" onclick="cancelEdit()">&#x2715; CANCEL EDIT</button>
       </div>
@@ -618,7 +641,7 @@ window.addEventListener('unhandledrejection',function(e){
         <div class="pv-label">LIVE PREVIEW</div>
         <div class="pv-par" id="pvPar">BASE</div>
       </div>
-      <div class="card-stage" id="cardStage">
+      <div class="card-stage" id="cardStage" style="position:relative">
         <div class="card-3d-wrap" id="card3dWrap">
           <canvas id="cardCanvas" width="712" height="1000"></canvas>
           <div class="card-hit" id="cardHit" onclick="handleCardClick(event)"></div>
@@ -627,6 +650,7 @@ window.addEventListener('unhandledrejection',function(e){
           <div class="card-edge card-edge-b"></div>
           <div class="card-edge card-edge-t"></div>
         </div>
+        <button class="rotate-btn" id="rotateBtn" onclick="toggleAutoRotate()" title="Auto-rotate card">&#x21BB; ROTATE</button>
       </div>
       <div class="pv-hint">DRAG PHOTO TO REPOSITION &nbsp;&#x2022;&nbsp; CLICK TO FLIP</div>
       <div style="display:flex;gap:10px;margin-top:12px">
@@ -2425,39 +2449,44 @@ function drawIceOverlay(ctx){
   const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
   const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
 
-  // ── Always-on crystalline structure (very faint) ──
-  ctx.globalCompositeOperation='source-over';
-  ctx.strokeStyle='rgba(160,165,200,0.05)';
-  ctx.lineWidth=0.5;
-  _ICE_FACETS.forEach(f=>{
-    ctx.beginPath();
-    ctx.moveTo(f.verts[0].x,f.verts[0].y);
-    f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
-    ctx.closePath(); ctx.stroke();
-  });
-
-  if(tilt<0.03){ctx.restore();return;}
-
-  // ── Prismatic facets — light up when tilt aligns with phase ──
+  // ── Always-on rest state: every facet gets a faint base color ──
+  // This gives the card visible ice fragment appearance even at rest / on export
   ctx.globalCompositeOperation='screen';
   _ICE_FACETS.forEach(f=>{
-    const diff=((tiltDir-f.phase+540)%360)-180;  // -180..180
-    const cf=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
-    if(cf<0.015) return;
-    // Hue shifts with tilt direction so colors change as card rotates
-    const hue=(f.hue+tiltDir*1.2+360)%360;
-    ctx.globalAlpha=cf;
-    ctx.fillStyle=`hsl(${hue},${f.sat}%,68%)`;
+    // Each facet has its own hue from _buildIceFacets; use it at low fixed alpha
+    const restAlpha=0.055 + (f.peak-0.45)*0.04; // 0.055–0.09 range
+    ctx.globalAlpha=restAlpha;
+    ctx.fillStyle=`hsl(${f.hue},${f.sat}%,65%)`;
     ctx.beginPath();
     ctx.moveTo(f.verts[0].x,f.verts[0].y);
     f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
     ctx.closePath(); ctx.fill();
-    // Bright edge on each lit facet
-    ctx.globalAlpha=cf*0.4;
-    ctx.strokeStyle=`hsl(${hue},100%,88%)`;
-    ctx.lineWidth=0.6;
+    // Subtle edge line to define facet boundaries
+    ctx.globalAlpha=0.06;
+    ctx.strokeStyle=`hsl(${f.hue},80%,80%)`;
+    ctx.lineWidth=0.5;
     ctx.stroke();
   });
+
+  // ── Tilt-reactive: facets light up brighter when tilt aligns with phase ──
+  if(tilt>0.03){
+    _ICE_FACETS.forEach(f=>{
+      const diff=((tiltDir-f.phase+540)%360)-180;
+      const cf=Math.exp(-(diff*diff)/(f.bw*f.bw))*tilt*f.peak;
+      if(cf<0.015) return;
+      const hue=(f.hue+tiltDir*1.2+360)%360;
+      ctx.globalAlpha=cf;
+      ctx.fillStyle=`hsl(${hue},${f.sat}%,68%)`;
+      ctx.beginPath();
+      ctx.moveTo(f.verts[0].x,f.verts[0].y);
+      f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha=cf*0.4;
+      ctx.strokeStyle=`hsl(${hue},100%,88%)`;
+      ctx.lineWidth=0.6;
+      ctx.stroke();
+    });
+  }
 
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   ctx.restore();
@@ -3260,6 +3289,50 @@ function clearLoadedStats(){
   CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;
   document.getElementById('statsStatus').textContent='Stats cleared. Enter a name and Look Up to pull again.';
   qR();
+}
+
+
+/* ── Tab switching ── */
+function switchTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const pane=document.getElementById('tab-'+name);
+  if(pane) pane.classList.add('active');
+  // Find matching button by onclick attribute
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+name+"'")) b.classList.add('active');
+  });
+  // Init sig pad when switching to extras
+  if(name==='extras') setTimeout(initSigPad,30);
+}
+
+/* ── Auto-rotate (for mobile / touchscreen) ── */
+let _autoRotateRAF=null;
+let _autoRotating=false;
+let _autoRotateAngle=0;
+function toggleAutoRotate(){
+  _autoRotating=!_autoRotating;
+  const btn=document.getElementById('rotateBtn');
+  if(btn) btn.classList.toggle('active',_autoRotating);
+  if(_autoRotating){
+    _autoRotateAngle=0;
+    _runAutoRotate();
+  } else {
+    if(_autoRotateRAF) cancelAnimationFrame(_autoRotateRAF);
+    _autoRotateRAF=null;
+    animateTiltReturn(0,0);
+  }
+}
+function _runAutoRotate(){
+  if(!_autoRotating) return;
+  _autoRotateAngle+=0.8; // degrees per frame
+  const rad=_autoRotateAngle*Math.PI/180;
+  CS.rotY=Math.sin(rad)*14;
+  CS.rotX=Math.sin(rad*0.7)*8;
+  CS.mx=0.5+CS.rotY/28*0.5;
+  CS.my=0.5-CS.rotX/20*0.5;
+  updateCardTilt(); qR();
+  _autoRotateRAF=requestAnimationFrame(_runAutoRotate);
 }
 
 function showToast(msg,isErr=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(isErr?' err':'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',3200);}
