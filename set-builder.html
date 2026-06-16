@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LYBS 2026 – Set Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#00275E;--red:#D81E2C;--gold:#C9A84C;
+  --paper:#f5f3ee;--surface:#fff;--border:#ddd;--muted:#888;
+  --green:#1a7a3a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);font-family:'Oswald',sans-serif;color:#222;min-height:100vh}
+
+.topbar{background:var(--navy);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--red)}
+.topbar h1{color:#fff;font-size:15px;letter-spacing:2px;font-weight:700}
+.topbar span{color:rgba(255,255,255,0.45);font-size:10px;letter-spacing:2px}
+
+.main{max-width:960px;margin:0 auto;padding:28px 20px;display:flex;flex-direction:column;gap:24px}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:22px}
+.card-title{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--navy);margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--navy);display:flex;align-items:center;gap:8px}
+.card-title span{background:var(--navy);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.step-grid{grid-template-columns:1fr}}
+
+label.field-label{font-size:10px;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:4px}
+
+.upload-zone{
+  border:2px dashed var(--border);border-radius:4px;padding:28px;text-align:center;
+  cursor:pointer;transition:border-color .2s,background .2s;position:relative;
+}
+.upload-zone:hover,.upload-zone.over{border-color:var(--navy);background:rgba(0,39,94,.03)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone .icon{font-size:28px;margin-bottom:8px}
+.upload-zone p{font-size:11px;letter-spacing:1px;color:var(--muted)}
+.upload-zone strong{color:var(--navy);font-size:12px;display:block;margin-bottom:4px}
+
+.roster-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.roster-table th{background:var(--navy);color:#fff;padding:6px 8px;text-align:left;letter-spacing:1px;font-size:9px}
+.roster-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.roster-table tr:hover td{background:#f8f6f0}
+.roster-table td input{width:100%;border:none;background:transparent;font-family:inherit;font-size:11px;outline:none}
+.roster-table td input:focus{background:rgba(0,39,94,.05);border-radius:2px}
+.badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:9px;letter-spacing:1px;font-weight:700}
+.badge-ok{background:#e6f4ea;color:var(--green)}
+.badge-miss{background:#fdecea;color:var(--red)}
+
+.photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.photo-thumb{width:72px;height:72px;object-fit:cover;border-radius:3px;border:1px solid var(--border)}
+.photo-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px}
+.photo-item p{font-size:8px;letter-spacing:.5px;color:var(--muted);text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo-matched{border-color:var(--green)!important}
+.photo-unmatched{border-color:var(--red)!important;opacity:.6}
+
+.parallel-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.par-opt{display:flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border);border-radius:3px;cursor:pointer;font-size:10px;letter-spacing:1px;transition:all .15s}
+.par-opt input{cursor:pointer}
+.par-opt.selected{border-color:var(--navy);background:rgba(0,39,94,.06);color:var(--navy);font-weight:600}
+
+.par-swatch{width:14px;height:14px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.1)}
+
+.btn{padding:10px 22px;font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2px;font-weight:700;border:none;border-radius:3px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:#003580}
+.btn-primary:disabled{opacity:.4;cursor:default}
+.btn-red{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:#444}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy)}
+.btn-sm{padding:6px 14px;font-size:9px}
+
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:var(--navy);border-radius:3px;transition:width .3s ease;width:0%}
+
+.result-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px}
+.result-row:hover{border-color:var(--navy)}
+.result-name{font-size:12px;font-weight:600;letter-spacing:1px}
+.result-meta{font-size:9px;letter-spacing:1px;color:var(--muted)}
+.result-actions{display:flex;gap:6px}
+
+.link-box{font-family:monospace;font-size:10px;background:#f0ede6;padding:4px 8px;border-radius:3px;color:var(--navy);word-break:break-all}
+
+.stat-num{font-size:28px;font-weight:700;color:var(--navy)}
+.stat-label{font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:2px}
+
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;background:#f8f6f0;border-radius:4px;margin-bottom:16px}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:3px;font-size:11px;letter-spacing:1px;opacity:0;transform:translateY(8px);transition:.3s;z-index:9999;border-left:3px solid var(--gold)}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* Template download */
+.template-link{color:var(--navy);font-size:10px;letter-spacing:1px;text-decoration:underline;cursor:pointer;background:none;border:none;font-family:inherit}
+</style>
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<div class="topbar">
+  <h1>⚾ LYBS 2026 — BULK SET BUILDER</h1>
+  <span id="fbStatus">CONNECTING...</span>
+</div>
+
+<div class="main">
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div><div class="stat-num" id="statPlayers">0</div><div class="stat-label">PLAYERS</div></div>
+    <div><div class="stat-num" id="statPhotos">0</div><div class="stat-label">PHOTOS MATCHED</div></div>
+    <div><div class="stat-num" id="statCards">0</div><div class="stat-label">CARDS TO GENERATE</div></div>
+    <div><div class="stat-num" id="statLinks">0</div><div class="stat-label">PACK LINKS READY</div></div>
+  </div>
+
+  <!-- STEP 1: ROSTER CSV -->
+  <div class="card">
+    <div class="card-title"><span>1</span> IMPORT ROSTER CSV</div>
+    <div class="step-grid">
+      <div>
+        <div class="upload-zone" id="csvZone">
+          <input type="file" id="csvFile" accept=".csv" onchange="handleCSV(this)">
+          <div class="icon">📋</div>
+          <strong>UPLOAD ROSTER CSV</strong>
+          <p>First name, Last name, Jersey#, Position,<br>Team, Division, HT, WT, Bats, Throws, Hometown</p>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <button class="template-link" onclick="downloadTemplate()">⬇ Download CSV Template</button>
+          <span style="color:var(--muted);font-size:9px">or</span>
+          <button class="template-link" onclick="loadSampleRoster()">Load sample roster</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">EXPECTED COLUMNS:</div>
+        <table style="font-size:10px;border-collapse:collapse;width:100%">
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">first_name</td><td style="padding:3px 6px;color:var(--muted)">John</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">last_name</td><td style="padding:3px 6px;color:var(--muted)">Smith</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">jersey</td><td style="padding:3px 6px;color:var(--muted)">07</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">position</td><td style="padding:3px 6px;color:var(--muted)">PITCHER</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">team</td><td style="padding:3px 6px;color:var(--muted)">Blue Knights</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">division</td><td style="padding:3px 6px;color:var(--muted)">Majors A</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">height, weight</td><td style="padding:3px 6px;color:var(--muted)">5'4", 110</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">bats, throws</td><td style="padding:3px 6px;color:var(--muted)">Right, Right</td></tr>
+          <tr><td style="padding:3px 6px;color:var(--navy);font-weight:600">hometown</td><td style="padding:3px 6px;color:var(--muted)">Lunenburg, MA</td></tr>
+        </table>
+      </div>
+    </div>
+    <div id="rosterPreview" style="margin-top:16px;display:none">
+      <div style="font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:6px">ROSTER PREVIEW — click any cell to edit</div>
+      <div style="overflow-x:auto">
+        <table class="roster-table" id="rosterTable">
+          <thead><tr>
+            <th>FIRST</th><th>LAST</th><th>#</th><th>POSITION</th>
+            <th>TEAM</th><th>DIV</th><th>HT</th><th>WT</th><th>BATS</th><th>THROWS</th><th>PHOTO</th>
+          </tr></thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: PHOTOS -->
+  <div class="card">
+    <div class="card-title"><span>2</span> BATCH UPLOAD PHOTOS</div>
+    <div style="font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:12px">
+      Name files as <strong style="color:var(--navy)">firstname_lastname.jpg</strong> or <strong style="color:var(--navy)">john_smith_bat.jpg</strong> / <strong style="color:var(--navy)">john_smith_field.jpg</strong><br>
+      Multiple photos per player are supported — you'll choose which to use per card.
+    </div>
+    <div class="upload-zone" id="photoZone" style="padding:20px">
+      <input type="file" id="photoFiles" accept="image/*" multiple onchange="handlePhotos(this)">
+      <div class="icon">📸</div>
+      <strong>UPLOAD ALL PLAYER PHOTOS AT ONCE</strong>
+      <p>Select multiple files — they'll be auto-matched to your roster by filename</p>
+    </div>
+    <div id="photoPreview" class="photo-grid" style="margin-top:12px"></div>
+  </div>
+
+  <!-- STEP 3: STATS CSVs -->
+  <div class="card">
+    <div class="card-title"><span>3</span> IMPORT STATS (OPTIONAL)</div>
+    <div class="step-grid">
+      <div>
+        <div class="field-label">BATTING STATS CSV</div>
+        <div class="upload-zone" style="padding:16px">
+          <input type="file" id="batFile" accept=".csv" onchange="handleStatCSV(this,'bat')">
+          <div class="icon" style="font-size:20px">⚾</div>
+          <strong style="font-size:11px">BATTING STATS</strong>
+          <p>Same format as the stats CSV you already use</p>
+        </div>
+        <div id="batStatus" style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:4px"></div>
+      </div>
+      <div>
+        <div class="field-label">PITCHING STATS CSV</div>
+        <div class="upload-zone" style="padding:16px">
+          <input type="file" id="pitchFile" accept=".csv" onchange="handleStatCSV(this,'pitch')">
+          <div class="icon" style="font-size:20px">🥎</div>
+          <strong style="font-size:11px">PITCHING STATS</strong>
+          <p>Same format as the stats CSV you already use</p>
+        </div>
+        <div id="pitchStatus" style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: SET CONFIG -->
+  <div class="card">
+    <div class="card-title"><span>4</span> CONFIGURE THE SET</div>
+    <div class="step-grid">
+      <div>
+        <div class="field-label" style="margin-bottom:8px">PARALLELS TO INCLUDE IN EACH PACK</div>
+        <div class="parallel-grid" id="parallelPicker"></div>
+        <div style="margin-top:12px;font-size:9px;letter-spacing:1px;color:var(--muted)">
+          ★ Each player always gets their own <strong style="color:#111">BLACK 1/1</strong> card in their personal pack.<br>
+          The base team set is included in every pack.
+        </div>
+      </div>
+      <div>
+        <div class="field-label" style="margin-bottom:8px">PACK CONTENTS PER PLAYER</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:1px;cursor:pointer">
+            <input type="checkbox" id="inclBase" checked> Include BASE card of every teammate
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:1px;cursor:pointer">
+            <input type="checkbox" id="inclOwn1of1" checked> Include player's own BLACK 1/1
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:1px;cursor:pointer">
+            <input type="checkbox" id="inclRandom"> Include 1 random parallel from set
+          </label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-label">SET NAME</div>
+          <input type="text" id="setName" value="LYBS 2026 Series 1" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:3px;font-family:inherit;font-size:12px">
+        </div>
+        <div style="margin-top:10px">
+          <div class="field-label">BASE URL FOR PACK LINKS<br><span style="font-weight:400">(GitHub Pages or your hosting)</span></div>
+          <input type="text" id="baseURL" value="https://yourusername.github.io/lybs-cards" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:3px;font-family:inherit;font-size:11px">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: GENERATE -->
+  <div class="card">
+    <div class="card-title"><span>5</span> GENERATE SET & PACK LINKS</div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" id="generateBtn" onclick="generateSet()" disabled>
+        ⚡ GENERATE FULL SET
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="previewCard()">👁 PREVIEW ONE CARD</button>
+      <span id="generateStatus" style="font-size:10px;letter-spacing:1px;color:var(--muted)"></span>
+    </div>
+    <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" id="genProgress"></div></div>
+    <div id="genLog" style="font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:6px;min-height:16px"></div>
+
+    <!-- RESULTS -->
+    <div id="results" style="margin-top:20px;display:none">
+      <div style="font-size:10px;letter-spacing:2px;color:var(--navy);font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--navy)">
+        GENERATED PACK LINKS
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-green btn-sm" onclick="downloadAllLinks()">⬇ DOWNLOAD ALL LINKS (CSV)</button>
+        <button class="btn btn-outline btn-sm" onclick="copyAllLinks()">📋 COPY ALL LINKS</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadGitHubFiles()">⬇ DOWNLOAD GITHUB DEPLOY PACKAGE</button>
+      </div>
+      <div id="resultsList"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Firebase ──
+const FB={apiKey:"AIzaSyC99OBzJoekTs-YkOvSB31XMC4SBCgxhUI",authDomain:"lybs-cards.firebaseapp.com",
+  projectId:"lybs-cards",storageBucket:"lybs-cards.firebasestorage.app",
+  messagingSenderId:"320701582820",appId:"1:320701582820:web:0e4dfe9bd38c4b51d64cfa"};
+try{
+  firebase.initializeApp(FB);
+  window._db=firebase.firestore();
+  window._storage=firebase.storage();
+  document.getElementById('fbStatus').textContent='FIREBASE CONNECTED';
+  document.getElementById('fbStatus').style.color='#6efa6e';
+}catch(e){
+  document.getElementById('fbStatus').textContent='OFFLINE MODE';
+  document.getElementById('fbStatus').style.color='#ffa06e';
+}
+
+// ── STATE ──
+let roster=[];        // array of player objects
+let photoMap={};      // normalized_name → {file, url, dataURL}
+let batStats={};      // normalized_name → [stat rows]
+let pitchStats={};    // normalized_name → [stat rows]
+let generatedPacks=[]; // [{player, packId, packURL, cards:[]}]
+
+// ── PARALLELS ──
+const PARALLELS=[
+  {key:'base',        label:'Base',        color:'#aaaaaa'},
+  {key:'blue',        label:'Blue',        color:'#1a4aaa'},
+  {key:'red',         label:'Red',         color:'#cc1122'},
+  {key:'gold',        label:'Gold',        color:'#c09020'},
+  {key:'green',       label:'Green',       color:'#0a6a2a'},
+  {key:'orange',      label:'Orange',      color:'#cc4400'},
+  {key:'purple',      label:'Purple',      color:'#6010a8'},
+  {key:'holo',        label:'Holo Foil',   color:'linear-gradient(135deg,#7eb8ff,#cc00ff,#00ffcc)'},
+  {key:'glitter',     label:'Gold Glitter',color:'#d4a800'},
+  {key:'glitter_holo',label:'Glitter Holo',color:'linear-gradient(135deg,#00ffcc,#7eb8ff,#ffcc00)'},
+  {key:'ice',         label:'Cracked Ice', color:'linear-gradient(135deg,#c8e8ff,#e0f0ff)'},
+  {key:'black',       label:'Black 1/1',   color:'#222222'},
+];
+
+function buildParallelPicker(){
+  const el=document.getElementById('parallelPicker');
+  PARALLELS.forEach(p=>{
+    const d=document.createElement('label');
+    d.className='par-opt';
+    d.innerHTML=`<input type="checkbox" value="${p.key}" ${p.key==='base'?'checked disabled':p.key==='black'?'checked disabled':''}>
+      <div class="par-swatch" style="background:${p.color}"></div>
+      ${p.label}${p.key==='black'?' (always)':''}`;
+    d.querySelector('input').addEventListener('change',()=>{d.classList.toggle('selected',d.querySelector('input').checked);updateStats();});
+    if(p.key==='base'||p.key==='black') d.classList.add('selected');
+    el.appendChild(d);
+  });
+}
+buildParallelPicker();
+
+// ── NORMALIZE NAME ──
+function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function slug(p){ return normName(p.firstName+''+p.lastName); }
+
+// ── CSV TEMPLATE ──
+function downloadTemplate(){
+  const csv=`first_name,last_name,jersey,position,team,division,height,weight,bats,throws,hometown
+John,Smith,07,PITCHER,Blue Knights,Majors A,5'4",110,Right,Right,Lunenburg MA
+Jane,Doe,12,CATCHER,Blue Knights,Majors A,5'2",105,Right,Right,Fitchburg MA`;
+  downloadText('roster_template.csv',csv);
+}
+function loadSampleRoster(){
+  roster=[
+    {firstName:'John',lastName:'Smith',jersey:'07',position:'PITCHER',team:'Blue Knights',division:'Majors A',height:"5'4\"",weight:'110',bats:'Right',throws:'Right',hometown:'Lunenburg MA'},
+    {firstName:'Jane',lastName:'Doe',jersey:'12',position:'CATCHER',team:'Blue Knights',division:'Majors A',height:"5'2\"",weight:'105',bats:'Right',throws:'Right',hometown:'Fitchburg MA'},
+  ];
+  renderRoster();
+  showToast('Sample roster loaded');
+}
+
+// ── CSV PARSE ──
+function parseCSV(text){
+  const lines=text.trim().split(/\r?\n/);
+  if(lines.length<2) return [];
+  const headers=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/\s+/g,'_'));
+  return lines.slice(1).map(line=>{
+    const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=vals[i]||'');
+    return obj;
+  }).filter(r=>r.first_name||r.last_name);
+}
+
+function handleCSV(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rows=parseCSV(e.target.result);
+    roster=rows.map(r=>({
+      firstName: r.first_name||r.firstname||r.first||'',
+      lastName:  r.last_name||r.lastname||r.last||'',
+      jersey:    r.jersey||r.jersey_num||r.number||'',
+      position:  (r.position||r.pos||'').toUpperCase(),
+      team:      r.team||r.team_name||'',
+      division:  r.division||r.div||'',
+      height:    r.height||r.ht||'',
+      weight:    r.weight||r.wt||'',
+      bats:      r.bats||'Right',
+      throws:    r.throws||'Right',
+      hometown:  r.hometown||r.home||'',
+    }));
+    renderRoster();
+    matchPhotos();
+    showToast(`✓ ${roster.length} players imported`);
+  };
+  reader.readAsText(file);
+}
+
+function renderRoster(){
+  document.getElementById('rosterPreview').style.display='block';
+  const tbody=document.getElementById('rosterBody');
+  tbody.innerHTML=roster.map((p,i)=>{
+    const nm=slug(p);
+    const hasPhoto=!!photoMap[nm];
+    return `<tr>
+      <td><input value="${p.firstName}" oninput="roster[${i}].firstName=this.value;matchPhotos()"></td>
+      <td><input value="${p.lastName}" oninput="roster[${i}].lastName=this.value;matchPhotos()"></td>
+      <td><input value="${p.jersey}" oninput="roster[${i}].jersey=this.value" style="width:40px"></td>
+      <td><input value="${p.position}" oninput="roster[${i}].position=this.value"></td>
+      <td><input value="${p.team}" oninput="roster[${i}].team=this.value"></td>
+      <td><input value="${p.division}" oninput="roster[${i}].division=this.value"></td>
+      <td><input value="${p.height}" oninput="roster[${i}].height=this.value" style="width:52px"></td>
+      <td><input value="${p.weight}" oninput="roster[${i}].weight=this.value" style="width:42px"></td>
+      <td><input value="${p.bats}" oninput="roster[${i}].bats=this.value" style="width:52px"></td>
+      <td><input value="${p.throws}" oninput="roster[${i}].throws=this.value" style="width:52px"></td>
+      <td><span class="badge ${hasPhoto?'badge-ok':'badge-miss'}">${hasPhoto?'✓ PHOTO':'NO PHOTO'}</span></td>
+    </tr>`;
+  }).join('');
+  updateStats();
+}
+
+// ── PHOTOS ──
+function handlePhotos(input){
+  const files=Array.from(input.files);
+  files.forEach(f=>{
+    const base=f.name.replace(/\.[^.]+$/,'').toLowerCase();
+    // Try various name formats: john_smith, john_smith_bat, johnsmith, smith_john
+    const keys=[
+      normName(base),
+      normName(base.replace(/_(bat|field|action|plate|1|2|a|b)$/,'')),
+    ];
+    // Also try reversed (last_first)
+    const parts=base.split('_');
+    if(parts.length>=2){
+      keys.push(normName(parts.slice(1).join('')+parts[0]));
+      keys.push(normName(parts[0]+parts[1]));
+    }
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      keys.forEach(k=>{
+        if(k) {
+          if(!photoMap[k]) photoMap[k]={files:[],dataURLs:[]};
+          photoMap[k].files.push(f);
+          photoMap[k].dataURLs.push(ev.target.result);
+        }
+      });
+      renderPhotos();
+      renderRoster();
+    };
+    reader.readAsDataURL(f);
+  });
+  document.getElementById('statPhotos').textContent=files.length;
+}
+
+function renderPhotos(){
+  const div=document.getElementById('photoPreview');
+  div.innerHTML='';
+  Object.entries(photoMap).forEach(([name,data])=>{
+    const matched=roster.some(p=>slug(p)===name);
+    data.dataURLs.forEach((url,i)=>{
+      const item=document.createElement('div');
+      item.className='photo-item';
+      item.innerHTML=`<img class="photo-thumb ${matched?'photo-matched':'photo-unmatched'}" src="${url}">
+        <p>${name}${data.files.length>1?` (${i+1})`:''}${matched?'':'?'}</p>`;
+      div.appendChild(item);
+    });
+  });
+}
+
+function matchPhotos(){
+  roster.forEach(p=>{
+    const key=slug(p);
+    // mark matched
+  });
+  renderPhotos();
+  const matchCount=roster.filter(p=>photoMap[slug(p)]).length;
+  document.getElementById('statPhotos').textContent=matchCount+'/'+roster.length;
+  updateStats();
+}
+
+// ── STAT CSVs ──
+function handleStatCSV(input,type){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rows=parseCSV(e.target.result);
+    const map={};
+    rows.forEach(r=>{
+      const name=normName((r.first_name||r.first||'')+(r.last_name||r.last||''))
+                ||normName(r.name||r.player||'');
+      if(!name) return;
+      if(!map[name]) map[name]=[];
+      map[name].push(r);
+    });
+    if(type==='bat'){
+      batStats=map;
+      document.getElementById('batStatus').textContent=`✓ ${Object.keys(map).length} players with batting stats`;
+    } else {
+      pitchStats=map;
+      document.getElementById('pitchStatus').textContent=`✓ ${Object.keys(map).length} players with pitching stats`;
+    }
+    showToast(`✓ ${type==='bat'?'Batting':'Pitching'} stats imported`);
+  };
+  reader.readAsText(file);
+}
+
+// ── STATS BAR ──
+function updateStats(){
+  document.getElementById('statPlayers').textContent=roster.length;
+  const selected=Array.from(document.querySelectorAll('#parallelPicker input:checked')).map(i=>i.value);
+  const cardCount=roster.length*(selected.length+(document.getElementById('inclOwn1of1').checked?1:0));
+  document.getElementById('statCards').textContent=cardCount;
+  document.getElementById('generateBtn').disabled=roster.length===0;
+}
+document.getElementById('inclOwn1of1').addEventListener('change',updateStats);
+document.getElementById('inclRandom').addEventListener('change',updateStats);
+
+// ── GENERATE SET ──
+async function generateSet(){
+  if(roster.length===0){showToast('Import a roster first',true);return;}
+  const btn=document.getElementById('generateBtn');
+  btn.disabled=true;
+  generatedPacks=[];
+  const setName=document.getElementById('setName').value||'LYBS 2026 Series 1';
+  const baseURL=(document.getElementById('baseURL').value||'').replace(/\/$/,'');
+  const selected=Array.from(document.querySelectorAll('#parallelPicker input:checked')).map(i=>i.value);
+  const inclBase=document.getElementById('inclBase').checked;
+  const incl1of1=document.getElementById('inclOwn1of1').checked;
+  const inclRandom=document.getElementById('inclRandom').checked;
+  const total=roster.length;
+  let done=0;
+
+  setProgress(0,'Starting...');
+
+  for(const player of roster){
+    const nm=slug(player);
+    const packId=nm+'_'+Math.random().toString(36).substr(2,6);
+
+    // Upload photo to Firebase if available
+    let photoURL='';
+    if(photoMap[nm]&&photoMap[nm].dataURLs.length){
+      setProgress(done/total*80,`Uploading photo: ${player.firstName} ${player.lastName}`);
+      if(window._storage){
+        try{
+          const blob=await(await fetch(photoMap[nm].dataURLs[0])).blob();
+          const ref=window._storage.ref(`set_photos/${packId}_main`);
+          await ref.put(blob);
+          photoURL=await ref.getDownloadURL();
+        }catch(e){console.warn('Photo upload failed',e);}
+      } else {
+        photoURL=photoMap[nm].dataURLs[0]; // local fallback
+      }
+    }
+
+    // Build player Firestore doc
+    const playerData={
+      firstName:player.firstName, lastName:player.lastName,
+      position:player.position, team:player.team,
+      division:player.division, jerseyNum:player.jersey,
+      height:player.height, weight:player.weight,
+      bats:player.bats, throws:player.throws, hometown:player.hometown,
+      photoURL, parallel:'base', cardType:'base',
+      accentColor:'#1546a0', accentSat:100,
+      showBanner:true, showLybs:true, certAuto:false, numbered:false,
+      stats:batStats[nm]||[], pitchStats:pitchStats[nm]||[],
+      statsPulled:!!(batStats[nm]&&batStats[nm].length),
+      setName, packId,
+      createdAt:new Date().toISOString(),
+    };
+
+    // Save to Firestore
+    let docId='';
+    if(window._db){
+      try{
+        const ref=await window._db.collection('players').add(playerData);
+        docId=ref.id;
+        // Also save the 1/1 black card
+        if(incl1of1){
+          await window._db.collection('players').add({
+            ...playerData,
+            parallel:'black', cardType:'black',
+            numbered:true, printRun:'1', serialNum:'1', serialPos:'h',
+            packId, isPersonal1of1:true,
+          });
+        }
+      }catch(e){console.warn('Firestore save failed',e);}
+    }
+
+    const packURL=`${baseURL}/pack/?id=${packId}`;
+    generatedPacks.push({player, packId, packURL, docId, photoURL});
+    done++;
+    setProgress(done/total*100,`Generated: ${player.firstName} ${player.lastName} (${done}/${total})`);
+  }
+
+  setProgress(100,'Complete!');
+  document.getElementById('statLinks').textContent=generatedPacks.length;
+  renderResults();
+  document.getElementById('results').style.display='block';
+  btn.disabled=false;
+  showToast(`✓ ${generatedPacks.length} packs generated!`);
+}
+
+function setProgress(pct,msg){
+  document.getElementById('genProgress').style.width=pct+'%';
+  document.getElementById('genLog').textContent=msg;
+}
+
+// ── RESULTS ──
+function renderResults(){
+  const list=document.getElementById('resultsList');
+  list.innerHTML=generatedPacks.map((p,i)=>`
+    <div class="result-row">
+      <div>
+        <div class="result-name">${p.player.firstName.toUpperCase()} ${p.player.lastName.toUpperCase()} <span style="color:var(--muted);font-size:9px">#${p.player.jersey||'—'}</span></div>
+        <div class="result-meta">${p.player.team} · ${p.player.division} · ${p.player.position}</div>
+        <div class="link-box" style="margin-top:4px">${p.packURL}</div>
+      </div>
+      <div class="result-actions">
+        <button class="btn btn-outline btn-sm" onclick="copyLink(${i})">📋</button>
+        <button class="btn btn-primary btn-sm" onclick="openPack(${i})">OPEN ↗</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyLink(i){
+  navigator.clipboard.writeText(generatedPacks[i].packURL);
+  showToast('Link copied!');
+}
+function openPack(i){ window.open(generatedPacks[i].packURL,'_blank'); }
+
+function downloadAllLinks(){
+  const csv='First Name,Last Name,Jersey,Position,Pack URL,Pack ID\n'+
+    generatedPacks.map(p=>`${p.player.firstName},${p.player.lastName},${p.player.jersey||''},${p.player.position},${p.packURL},${p.packId}`).join('\n');
+  downloadText('lybs_pack_links.csv',csv);
+}
+function copyAllLinks(){
+  const text=generatedPacks.map(p=>`${p.player.firstName} ${p.player.lastName}: ${p.packURL}`).join('\n');
+  navigator.clipboard.writeText(text);
+  showToast(`${generatedPacks.length} links copied!`);
+}
+
+// ── GITHUB DEPLOY PACKAGE ──
+async function downloadGitHubFiles(){
+  // Build a JSON data file with all pack data
+  const packData={};
+  generatedPacks.forEach(p=>{
+    packData[p.packId]={
+      player:p.player,
+      photoURL:p.photoURL,
+      docId:p.docId,
+    };
+  });
+  const json=JSON.stringify(packData,null,2);
+  // Download as pack-data.json that pack.html reads
+  downloadText('pack-data.json',json);
+  showToast('pack-data.json downloaded — upload to GitHub alongside pack.html');
+}
+
+// ── PREVIEW ──
+function previewCard(){
+  if(roster.length===0){showToast('Import a roster first',true);return;}
+  const p=roster[0];
+  const params=new URLSearchParams({
+    fn:p.firstName,ln:p.lastName,pos:p.position,
+    team:p.team,jersey:p.jersey,parallel:'base'
+  });
+  window.open('admin.html?preview=1&'+params.toString(),'_blank');
+}
+
+// ── UTILS ──
+function downloadText(filename,text){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download=filename;a.click();
+}
+function showToast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderLeftColor=err?'#D81E2C':'var(--gold)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
+<!-- This file is complete. Social share is built into admin.html below -->
