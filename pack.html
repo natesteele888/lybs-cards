@@ -253,180 +253,212 @@ function _drawPackBody(ctx){
 
   packPath(); ctx.clip();
 
-  // ── 1. DARK BASE — near-black with slight blue tint ──
-  const base=ctx.createLinearGradient(0,0,PW,PH);
-  base.addColorStop(0,'#0d0d14');
-  base.addColorStop(0.4,'#151520');
-  base.addColorStop(0.6,'#111118');
-  base.addColorStop(1,'#080810');
-  ctx.fillStyle=base; ctx.fillRect(0,0,PW,PH);
+  // ── 1. NEAR-BLACK BASE ──
+  ctx.fillStyle='#080810'; ctx.fillRect(0,0,PW,PH);
 
-  // ── 2. DIAGONAL STRIPE TEXTURE (film reel / reference style) ──
+  // ── 2. FOIL MYLAR BODY — multi-layer prismatic film ──
+  // Deep reflective base: dark navy-to-charcoal diagonal
+  const baseG=ctx.createLinearGradient(0,0,PW,PH);
+  baseG.addColorStop(0,'#0c0c18');
+  baseG.addColorStop(0.25,'#14141f');
+  baseG.addColorStop(0.5,'#0a0a14');
+  baseG.addColorStop(0.75,'#181824');
+  baseG.addColorStop(1,'#0c0c18');
+  ctx.fillStyle=baseG; ctx.fillRect(0,0,PW,PH);
+
+  // Prismatic spectrum wash — the "rainbow on foil" effect
+  const now=Date.now()/1000;
+  const shift=((now*0.18)%1)*PW*2;
+  const prism=ctx.createLinearGradient(shift,0,shift+PW*1.6,PH*0.7);
+  prism.addColorStop(0.00,'rgba(255, 60,120,0.22)');
+  prism.addColorStop(0.14,'rgba(255,120, 40,0.18)');
+  prism.addColorStop(0.28,'rgba(220,210, 20,0.20)');
+  prism.addColorStop(0.42,'rgba( 40,210, 80,0.18)');
+  prism.addColorStop(0.57,'rgba( 40,140,255,0.22)');
+  prism.addColorStop(0.71,'rgba(160, 40,255,0.20)');
+  prism.addColorStop(0.85,'rgba(255, 40,180,0.18)');
+  prism.addColorStop(1.00,'rgba(255, 60,120,0.22)');
+  ctx.fillStyle=prism; ctx.fillRect(0,0,PW,PH);
+
+  // Second prismatic layer offset for depth
+  const prism2=ctx.createLinearGradient(PW-shift*0.6,PH,PW-shift*0.6+PW,0);
+  prism2.addColorStop(0.00,'rgba(180, 40,255,0.12)');
+  prism2.addColorStop(0.33,'rgba( 40,200,255,0.10)');
+  prism2.addColorStop(0.66,'rgba(255,200, 40,0.12)');
+  prism2.addColorStop(1.00,'rgba(180, 40,255,0.12)');
+  ctx.fillStyle=prism2; ctx.fillRect(0,0,PW,PH);
+
+  // Fine holographic micro-lines (horizontal, very subtle)
   ctx.save();
-  for(let i=-PH;i<PW+PH;i+=52){
-    // Dark stripe
-    ctx.fillStyle='rgba(0,0,0,0.55)';
-    ctx.save();ctx.translate(i,0);ctx.rotate(-Math.PI*0.35);
-    ctx.fillRect(-4,0,14,PH*2.5);ctx.restore();
-  }
-  // Bright metallic stripe highlights on top
-  for(let i=-PH+26;i<PW+PH;i+=52){
-    const sg=ctx.createLinearGradient(i,0,i+8,0);
-    sg.addColorStop(0,'rgba(255,255,255,0)');
-    sg.addColorStop(0.3,'rgba(180,210,255,0.12)');
-    sg.addColorStop(0.5,'rgba(220,240,255,0.22)');
-    sg.addColorStop(0.7,'rgba(180,210,255,0.12)');
-    sg.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.save();ctx.translate(i,0);ctx.rotate(-Math.PI*0.35);
-    ctx.fillStyle=sg;ctx.fillRect(-2,0,18,PH*2.5);ctx.restore();
+  for(let y=0;y<PH;y+=3){
+    const hue=((y*1.2)+shift*60)%360;
+    ctx.fillStyle=`hsla(${hue},100%,70%,0.025)`;
+    ctx.fillRect(20,y,PW-40,2);
   }
   ctx.restore();
 
-  // ── 3. EDGE REFLECTIONS — left and right chrome edges ──
-  const lRef=ctx.createLinearGradient(20,0,90,0);
-  lRef.addColorStop(0,'rgba(100,150,200,0.4)');
-  lRef.addColorStop(0.4,'rgba(60,100,160,0.15)');
+  // ── 3. DIAGONAL FILM GRAIN / STRIPES ──
+  ctx.save();
+  ctx.globalAlpha=0.06;
+  for(let i=-PH;i<PW+PH;i+=40){
+    ctx.fillStyle='rgba(255,255,255,1)';
+    ctx.save();ctx.translate(i,0);ctx.rotate(-Math.PI*0.35);
+    ctx.fillRect(0,0,4,PH*2.5);ctx.restore();
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  // ── 4. MOVING SHEEN SWEEP ──
+  const sheenX=((now*0.22)%1.8)*PW - PW*0.3;
+  const sheen=ctx.createLinearGradient(sheenX,0,sheenX+PW*0.45,PH);
+  sheen.addColorStop(0,'rgba(255,255,255,0)');
+  sheen.addColorStop(0.35,'rgba(255,255,255,0)');
+  sheen.addColorStop(0.48,'rgba(255,255,255,0.14)');
+  sheen.addColorStop(0.50,'rgba(255,255,255,0.28)');
+  sheen.addColorStop(0.52,'rgba(255,255,255,0.14)');
+  sheen.addColorStop(0.65,'rgba(255,255,255,0)');
+  sheen.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sheen; ctx.fillRect(0,0,PW,PH);
+
+  // ── 5. CHROME SIDE EDGES ──
+  const lRef=ctx.createLinearGradient(20,0,85,0);
+  lRef.addColorStop(0,'rgba(180,210,255,0.35)');
+  lRef.addColorStop(0.5,'rgba(80,130,200,0.12)');
   lRef.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=lRef;ctx.fillRect(0,0,PW,PH);
-
-  const rRef=ctx.createLinearGradient(PW-90,0,PW-20,0);
+  ctx.fillStyle=lRef; ctx.fillRect(0,0,PW,PH);
+  const rRef=ctx.createLinearGradient(PW-85,0,PW-20,0);
   rRef.addColorStop(0,'rgba(0,0,0,0)');
-  rRef.addColorStop(0.6,'rgba(60,100,160,0.15)');
-  rRef.addColorStop(1,'rgba(100,150,200,0.4)');
-  ctx.fillStyle=rRef;ctx.fillRect(0,0,PW,PH);
+  rRef.addColorStop(0.5,'rgba(80,130,200,0.12)');
+  rRef.addColorStop(1,'rgba(180,210,255,0.35)');
+  ctx.fillStyle=rRef; ctx.fillRect(0,0,PW,PH);
 
-  // ── 4. CENTER BODY HIGHLIGHT (inflated pillow sheen) ──
-  const bodySheen=ctx.createRadialGradient(PW*0.42,PH*0.38,20,PW*0.42,PH*0.38,PW*0.55);
-  bodySheen.addColorStop(0,'rgba(100,160,220,0.18)');
-  bodySheen.addColorStop(0.5,'rgba(60,100,160,0.08)');
-  bodySheen.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=bodySheen;ctx.fillRect(0,0,PW,PH);
+  // Pillow center highlight
+  const pillow=ctx.createRadialGradient(PW*0.42,PH*0.4,10,PW*0.42,PH*0.4,PW*0.52);
+  pillow.addColorStop(0,'rgba(120,170,240,0.14)');
+  pillow.addColorStop(0.6,'rgba(60,100,180,0.06)');
+  pillow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=pillow; ctx.fillRect(0,0,PW,PH);
 
-  // ── 5. TOP CRIMP ──
+  // ── 6. TOP & BOTTOM CRIMPS ──
   drawTopCrimp(ctx);
-
-  // ── 6. BOTTOM CRIMP ──
   drawBotCrimp(ctx);
 
-  // ── 7. EDGE DARKENING ──
-  const edgeDark=ctx.createRadialGradient(PW/2,PH/2,PH*0.18,PW/2,PH/2,PH*0.75);
-  edgeDark.addColorStop(0,'rgba(0,0,0,0)');
-  edgeDark.addColorStop(1,'rgba(0,0,0,0.6)');
-  ctx.fillStyle=edgeDark;ctx.fillRect(0,0,PW,PH);
+  // ── 7. VIGNETTE ──
+  const vign=ctx.createRadialGradient(PW/2,PH/2,PH*0.15,PW/2,PH/2,PH*0.75);
+  vign.addColorStop(0,'rgba(0,0,0,0)');
+  vign.addColorStop(1,'rgba(0,0,0,0.65)');
+  ctx.fillStyle=vign; ctx.fillRect(0,0,PW,PH);
 
   // ── 8. BRANDING ──
   const cx=PW/2;
 
   // "LYBS 2026" top label
   ctx.save();
-  ctx.font='600 26px Oswald,sans-serif';
-  ctx.fillStyle='rgba(200,230,255,0.7)';
+  ctx.font='600 24px Oswald,sans-serif';
+  ctx.fillStyle='rgba(220,235,255,0.80)';
   ctx.textAlign='center';
-  ctx.letterSpacing='6px';
-  ctx.fillText('LYBS  2026',cx,82);
+  ctx.shadowColor='rgba(0,180,255,0.5)';ctx.shadowBlur=10;
+  ctx.fillText('LYBS  2026',cx,78);
   ctx.restore();
 
-  // Old English S — drawn as canvas path
+  // Large S — shrunk so top serif clears the crimp, lower bezier clear of crimp band
+  // Scale 1.65, center at PH*0.44 keeps full S (~280px tall) in body area
   ctx.save();
-  ctx.translate(cx, PH*0.46);
-  drawBoldS(ctx, 2.2, 'rgba(180,210,255,0.75)');
+  ctx.translate(cx, PH*0.44);
+  drawBoldS(ctx, 1.65, 'rgba(210,228,255,0.80)');
   ctx.restore();
 
   // "Steele Trading Cards"
   ctx.save();
-  ctx.shadowColor='rgba(0,180,255,0.4)';ctx.shadowBlur=16;
-  ctx.font='italic bold 36px "Times New Roman",Georgia,serif';
-  ctx.fillStyle='rgba(200,230,255,0.82)';
+  ctx.shadowColor='rgba(80,160,255,0.5)';ctx.shadowBlur=18;
+  ctx.font='italic bold 33px "Times New Roman",Georgia,serif';
+  ctx.fillStyle='rgba(210,230,255,0.88)';
   ctx.textAlign='center';
-  ctx.fillText('Steele Trading Cards',cx,PH*0.66);
+  ctx.fillText('Steele Trading Cards',cx,PH*0.67);
   ctx.restore();
 
   // "SERIES 1"
   ctx.save();
-  ctx.font='600 19px Oswald,sans-serif';
-  ctx.fillStyle='rgba(100,180,255,0.55)';
+  ctx.font='600 17px Oswald,sans-serif';
+  ctx.fillStyle='rgba(120,190,255,0.65)';
   ctx.textAlign='center';
   ctx.fillText('SERIES  1',cx,PH*0.73);
   ctx.restore();
 
   // Thin rules
   ctx.save();
-  ctx.strokeStyle='rgba(100,180,255,0.25)';ctx.lineWidth=1;
-  const rw=160;
-  ctx.beginPath();ctx.moveTo(cx-rw,PH*0.58);ctx.lineTo(cx+rw,PH*0.58);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-rw,PH*0.76);ctx.lineTo(cx+rw,PH*0.76);ctx.stroke();
+  ctx.strokeStyle='rgba(120,190,255,0.28)';ctx.lineWidth=1;
+  const rw=155;
+  ctx.beginPath();ctx.moveTo(cx-rw,PH*0.585);ctx.lineTo(cx+rw,PH*0.585);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-rw,PH*0.755);ctx.lineTo(cx+rw,PH*0.755);ctx.stroke();
   ctx.restore();
 
   // Barcode strip bottom
   ctx.save();
   ctx.font='500 11px Oswald,sans-serif';
-  ctx.fillStyle='rgba(150,190,230,0.4)';
+  ctx.fillStyle='rgba(160,200,240,0.45)';
   ctx.textAlign='left';
   ctx.fillText('LYBS-2026-S1',38,PH-32);
-  // Mini barcode lines
   for(let i=0;i<28;i++){
-    ctx.fillStyle=i%3===0?'rgba(150,190,230,0.5)':'rgba(150,190,230,0.2)';
+    ctx.fillStyle=i%3===0?'rgba(160,200,240,0.55)':'rgba(160,200,240,0.22)';
     ctx.fillRect(38+i*5,PH-26,i%3===0?3:2,14);
   }
   ctx.restore();
 
-  // ── 9. CYAN GLOW LINE at tear seam ──
+  // ── 9. TEAR SEAM GLOW ──
   const glowLine=ctx.createLinearGradient(30,TEAR_Y,PW-30,TEAR_Y);
   glowLine.addColorStop(0,'rgba(0,200,255,0)');
   glowLine.addColorStop(0.2,'rgba(0,200,255,0.6)');
   glowLine.addColorStop(0.5,'rgba(0,220,255,1.0)');
   glowLine.addColorStop(0.8,'rgba(0,200,255,0.6)');
   glowLine.addColorStop(1,'rgba(0,200,255,0)');
-  ctx.fillStyle=glowLine;ctx.fillRect(30,TEAR_Y-2,PW-60,3);
-  // Soft glow halo above/below the line
-  const haloG=ctx.createLinearGradient(0,TEAR_Y-20,0,TEAR_Y+20);
+  ctx.fillStyle=glowLine; ctx.fillRect(30,TEAR_Y-2,PW-60,3);
+  const haloG=ctx.createLinearGradient(0,TEAR_Y-22,0,TEAR_Y+22);
   haloG.addColorStop(0,'rgba(0,200,255,0)');
-  haloG.addColorStop(0.5,'rgba(0,200,255,0.12)');
+  haloG.addColorStop(0.5,'rgba(0,200,255,0.13)');
   haloG.addColorStop(1,'rgba(0,200,255,0)');
-  ctx.fillStyle=haloG;ctx.fillRect(30,TEAR_Y-20,PW-60,40);
+  ctx.fillStyle=haloG; ctx.fillRect(30,TEAR_Y-22,PW-60,44);
 
   // ── OUTLINE ──
   packPath();
-  ctx.strokeStyle='rgba(80,160,220,0.25)';ctx.lineWidth=2;ctx.stroke();
+  ctx.strokeStyle='rgba(100,180,255,0.22)';ctx.lineWidth=2;ctx.stroke();
   packPath();
-  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;ctx.stroke();
 }
 
 function drawTopCrimp(ctx){
   const y=10,x=20,w=PW-40,h=TEAR_Y-10;
   const g=ctx.createLinearGradient(0,y,0,y+h);
-  g.addColorStop(0,'rgba(20,30,50,0.9)');g.addColorStop(1,'rgba(10,15,30,0.5)');
+  g.addColorStop(0,'rgba(15,20,40,0.92)');g.addColorStop(1,'rgba(8,12,28,0.55)');
   ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
   // Horizontal ridges
   for(let i=0;i<10;i++){
     const ry=y+6+i*(h-12)/10;
-    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.4)':'rgba(80,140,200,0.08)';
+    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.45)':'rgba(80,140,200,0.09)';
     ctx.fillRect(x,ry,w,(h-12)/10);
   }
-  // Subtle cyan tint on top crimp
   const tint=ctx.createLinearGradient(0,y,0,y+h);
-  tint.addColorStop(0,'rgba(0,150,220,0.12)');tint.addColorStop(1,'rgba(0,0,0,0)');
+  tint.addColorStop(0,'rgba(0,140,220,0.14)');tint.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=tint;ctx.fillRect(x,y,w,h);
 }
 
 function drawBotCrimp(ctx){
   const x=20,w=PW-40,h=50,y=PH-10-h;
   const g=ctx.createLinearGradient(0,y,0,y+h);
-  g.addColorStop(0,'rgba(10,15,30,0.5)');g.addColorStop(1,'rgba(20,30,50,0.85)');
+  g.addColorStop(0,'rgba(8,12,28,0.55)');g.addColorStop(1,'rgba(15,20,40,0.88)');
   ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
   for(let i=0;i<7;i++){
     const ry=y+4+i*(h-8)/7;
-    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.35)':'rgba(80,140,200,0.07)';
+    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.38)':'rgba(80,140,200,0.08)';
     ctx.fillRect(x,ry,w,(h-8)/7);
   }
-  ctx.fillStyle='rgba(80,160,220,0.15)';ctx.fillRect(x,y,w,1);
+  ctx.fillStyle='rgba(80,160,220,0.18)';ctx.fillRect(x,y,w,1);
 }
 
 function drawBoldS(ctx, sc, color){
   ctx.save();ctx.scale(sc,sc);
-  // Two-pass: shadow then fill
   [{off:3,c:'rgba(0,0,0,0.7)'},{off:0,c:color}].forEach(({off,c})=>{
-    ctx.fillStyle=c;ctx.strokeStyle=off===0?'rgba(0,150,220,0.3)':'transparent';ctx.lineWidth=2;
+    ctx.fillStyle=c;ctx.strokeStyle=off===0?'rgba(0,150,220,0.35)':'transparent';ctx.lineWidth=2;
     ctx.beginPath();
     ctx.moveTo(off+32,off-54);
     ctx.bezierCurveTo(off+32,off-54,off+52,off-68,off+20,off-68);
@@ -453,11 +485,19 @@ function drawBoldS(ctx, sc, color){
   ctx.restore();
 }
 
-// ── Initial render ──
+// ── Initial render + foil animation loop ──
 const mainC=document.getElementById('packCanvas');
 const topC =document.getElementById('tearTop');
 const botC =document.getElementById('tearBot');
-drawPack(mainC,'full');
+
+let _packRaf=null;
+let _packAnimating=true;
+function _packLoop(){
+  if(!_packAnimating) return;
+  drawPack(mainC,'full');
+  _packRaf=requestAnimationFrame(_packLoop);
+}
+_packLoop();
 
 // ── Firebase ──
 let cards=[];
@@ -491,7 +531,9 @@ function startTear(){
   scene.classList.add('tearing');
   scene.style.transform='rotateY(540deg) rotateX(0deg)';
 
-  // Draw the two halves
+  // Stop foil animation loop, draw static halves for tear
+  _packAnimating=false;
+  if(_packRaf){cancelAnimationFrame(_packRaf);_packRaf=null;}
   drawPack(topC,'top'); drawPack(botC,'bot');
   topC.style.display='block'; botC.style.display='block';
   mainC.style.opacity='0';
@@ -711,6 +753,9 @@ function drawNameplate(ctx,fn,ln,W,H,color){
 function resetPack(){
   _stopIceAnimation();
   state='idle';
+  // Restart foil animation
+  _packAnimating=true;
+  if(!_packRaf) _packLoop();
   document.getElementById('reveal').classList.remove('on');
   document.getElementById('packScene').classList.remove('spinning','tearing');
   document.getElementById('packScene').style.transform='';

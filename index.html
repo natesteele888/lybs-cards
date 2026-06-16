@@ -393,7 +393,7 @@ const PAR = {
   purple:      {name:'PURPLE',        sw:'#6010a8', tint:[125,15,205,0.38],  glow:[135,25,215]},
   rainbow:     {name:'RAINBOW FOIL',  sw:'rainbow', tint:null,               glow:[255,180,0]},
   holo:        {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
-  sandglitter: {name:'SANDGLITTER',   sw:'#ffd700', tint:[215,165,0,0.32],   glow:[255,200,0]},
+
   diamante:    {name:'DIAMANTE',      sw:'#b0d8f8', tint:[115,175,235,0.28], glow:[155,205,255]},
   black:       {name:'BLACK 1/1',     sw:'#222222', tint:[0,0,0,0.52],       glow:null},
   auto:        {name:'CERTIFIED AUTO',sw:'#cc0018', tint:[195,8,28,0.38],   glow:[200,15,45]},
@@ -634,7 +634,7 @@ function setBgGlow(par){
   const bg=document.getElementById('bgGlow');
   const ring=document.getElementById('glowRing');
   const g=par.glow||[60,90,160];
-  const premium=['RAINBOW FOIL','HOLO FOIL','CRACKED ICE','GOLD NUMBERED','BLACK 1/1','SANDGLITTER','DIAMANTE'];
+  const premium=['RAINBOW FOIL','HOLO FOIL','CRACKED ICE','GOLD NUMBERED','BLACK 1/1','DIAMANTE'];
   if(premium.includes(par.name)){
     bg.style.background=`radial-gradient(ellipse at 50% 42%,rgba(${g[0]},${g[1]},${g[2]},.55),transparent 65%),
       radial-gradient(ellipse at 30% 70%,rgba(${g[0]},${g[1]},${g[2]},.3),transparent 55%),#05070d`;
