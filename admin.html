@@ -1690,28 +1690,50 @@ function drawEmboss(ctx){
     ctx.fillStyle=reg; ctx.fillRect(PW-22,0,22,PH);
   }
 
-  // ── Banner strip — inset from frame border so it never touches white edges ──
-  // Frame border is ~40px; banner panel sits inside that
+  // ── Banner / pos bar — full card rect, gradient fades to 0 well before edges ──
   ctx.globalCompositeOperation='overlay';
-  const FR=42; // frame inset
   const bannerAlpha=Math.min(tilt*0.7, 0.55);
-  const bx0=lx>0?FR:PW-FR, bx1=lx>0?PW*0.62:PW*0.38;
-  const bannerSheen=ctx.createLinearGradient(bx0,50,bx1,50);
-  bannerSheen.addColorStop(0,`rgba(255,255,255,${bannerAlpha})`);
-  bannerSheen.addColorStop(0.55,`rgba(255,255,255,${bannerAlpha*0.15})`);
+  // Horizontal gradient across full width: peak at leading edge, zero by 65% across
+  const bx0=lx>0?0:PW, bx1=lx>0?PW*0.65:PW*0.35;
+  const bannerSheen=ctx.createLinearGradient(bx0,0,bx1,0);
+  bannerSheen.addColorStop(0,'rgba(255,255,255,0)');
+  bannerSheen.addColorStop(0.08,`rgba(255,255,255,${bannerAlpha})`);
+  bannerSheen.addColorStop(0.5,`rgba(255,255,255,${bannerAlpha*0.18})`);
   bannerSheen.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=bannerSheen;
-  ctx.fillRect(FR, FR, PW-FR*2, 100);   // inset rect — never touches the white border
+  // Vertical fade: top 30% of card, fades out vertically so bottom half untouched
+  const bannerV=ctx.createLinearGradient(0,0,0,PH*0.32);
+  bannerV.addColorStop(0,'rgba(255,255,255,0)');
+  bannerV.addColorStop(0.12,`rgba(255,255,255,1)`);
+  bannerV.addColorStop(0.7,'rgba(255,255,255,0.4)');
+  bannerV.addColorStop(1,'rgba(255,255,255,0)');
+  // Composite: draw horizontal sweep full card, masked by vertical alpha via globalAlpha trick
+  // Use a temp canvas to multiply the two gradients
+  const bt=document.createElement('canvas'); bt.width=PW; bt.height=PH;
+  const bc=bt.getContext('2d');
+  bc.fillStyle=bannerSheen; bc.fillRect(0,0,PW,PH);
+  bc.globalCompositeOperation='destination-in';
+  bc.fillStyle=bannerV; bc.fillRect(0,0,PW,PH);
+  ctx.drawImage(bt,0,0);
 
-  // ── Position bar — inset from frame border ──
+  // ── Position bar — mirror: bottom 30%, opposite horizontal direction ──
   const posBarAlpha=Math.min(tilt*0.65, 0.52);
-  const px0=lx<0?FR:PW-FR, px1=lx<0?PW*0.57:PW*0.43;
-  const posSheen=ctx.createLinearGradient(px0,PH-70,px1,PH-70);
-  posSheen.addColorStop(0,`rgba(255,255,255,${posBarAlpha})`);
+  const px0=lx<0?0:PW, px1=lx<0?PW*0.62:PW*0.38;
+  const posSheen=ctx.createLinearGradient(px0,0,px1,0);
+  posSheen.addColorStop(0,'rgba(255,255,255,0)');
+  posSheen.addColorStop(0.08,`rgba(255,255,255,${posBarAlpha})`);
   posSheen.addColorStop(0.5,`rgba(255,255,255,${posBarAlpha*0.2})`);
   posSheen.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=posSheen;
-  ctx.fillRect(FR, PH-FR-120, PW-FR*2, 120);  // inset rect
+  const posV=ctx.createLinearGradient(0,PH,0,PH*0.68);
+  posV.addColorStop(0,'rgba(255,255,255,0)');
+  posV.addColorStop(0.12,`rgba(255,255,255,1)`);
+  posV.addColorStop(0.7,'rgba(255,255,255,0.4)');
+  posV.addColorStop(1,'rgba(255,255,255,0)');
+  const pt=document.createElement('canvas'); pt.width=PW; pt.height=PH;
+  const pc=pt.getContext('2d');
+  pc.fillStyle=posSheen; pc.fillRect(0,0,PW,PH);
+  pc.globalCompositeOperation='destination-in';
+  pc.fillStyle=posV; pc.fillRect(0,0,PW,PH);
+  ctx.drawImage(pt,0,0);
 
   // ── Logo circle — screen, punchy highlight ──
   ctx.globalCompositeOperation='screen';
