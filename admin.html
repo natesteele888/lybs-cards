@@ -2740,6 +2740,17 @@ async function saveCard(){
     if(sf&&CS.certAuto){const u=await tryUpload(sf,`sigs/${slug}`,'Signature');if(u)sigURL=u;}
     if(lf){const u=await tryUpload(lf,`logos/${slug}`,'Logo');if(u)logoURL=u;}
     if(mf){const u=await tryUpload(mf,`logos/mac_${slug}`,'Badge');if(u)macURL=u;}
+    // Upload custom background if it's a new local file (data URL) not already a remote URL
+    let customBgSavedURL=CS.customBgURL||null;
+    if(CS.customBgURL&&CS.customBgURL.startsWith('data:')){
+      try{
+        const bgBlob=await(await fetch(CS.customBgURL)).blob();
+        const bgRef=st.ref(`backgrounds/bg_${slug}`);
+        await bgRef.put(bgBlob);
+        customBgSavedURL=await bgRef.getDownloadURL();
+        CS.customBgURL=customBgSavedURL; // update in-memory too
+      }catch(e){console.error('BG upload failed',e);uploadWarning='Background upload failed';customBgSavedURL=null;}
+    }
     // Build data, coercing any undefined to safe defaults (Firestore rejects undefined)
     const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n;};
     const str=id=>{const el=document.getElementById(id);return el?(el.value||''):'';};
@@ -2747,14 +2758,14 @@ async function saveCard(){
       firstName:fn,lastName:ln,position:str('fPos'),
       team:str('fTeam'),teamAbbr:str('fTeamAbbr'),division:str('fDiv'),
       jerseyNum:str('fJersey'),cardNum:str('fCardNum'),
-      parallel:CS.parallel||'base',rarity:CS.parallel||'base',
+      parallel:CS.parallel||'base',cardType:CS.cardType||CS.parallel||'base',rarity:CS.parallel||'base',
       photoURL:photoURL||'',sigURL:sigURL||'',logoURL:logoURL||'',macURL:macURL||'',
       stats:((CS.loadedBatting&&CS.loadedBatting.length)?CS.loadedBatting:getStats())||[],pitchStats:((CS.loadedPitching&&CS.loadedPitching.length)?CS.loadedPitching:getPitch())||[],statsPulled:!!CS.statsPulled,pitchPulled:!!(CS.statsPulled&&CS.loadedPitching&&CS.loadedPitching.length),
       bats:str('fBats'),throws:str('fThrows'),
       height:str('fHeight'),weight:str('fWeight'),hometown:str('fHometown'),
       serialNum:str('fSerialNum'),printRun:str('fPrintRun'),serialPos:str('fSerialPos')||'h',
       showBanner:CS.showBanner!==false,
-      accentColor:CS.accentColor||'#1546a0',accentSat:CS.accentSat==null?100:CS.accentSat,breakout:!!CS.breakout,breakoutPoly:CS.breakoutPoly||null,numbered:!!CS.numbered,allStar:!!CS.allStar,sPos:CS.sPos||'br',sigColor:CS.sigColor||'black',certAuto:!!CS.certAuto,showLybs:!!CS.showLybs,customBgURL:CS.customBgURL||null,
+      accentColor:CS.accentColor||'#1546a0',accentSat:CS.accentSat==null?100:CS.accentSat,breakout:!!CS.breakout,breakoutPoly:CS.breakoutPoly||null,numbered:!!CS.numbered,allStar:!!CS.allStar,sPos:CS.sPos||'br',sigColor:CS.sigColor||'black',certAuto:!!CS.certAuto,showLybs:!!CS.showLybs,customBgURL:customBgSavedURL||null,
       imgScale:num(CS.imgScale)||1,imgOffsetX:num(CS.imgOffsetX),imgOffsetY:num(CS.imgOffsetY),
       logoScale:num(CS.logoScale)||1,logoOffsetX:num(CS.logoOffsetX),logoOffsetY:num(CS.logoOffsetY),
       updatedAt:new Date().toISOString()
@@ -2795,7 +2806,7 @@ function editCard(id){
   document.querySelectorAll('.pp').forEach(el=>{if(el.querySelector('span')&&el.querySelector('span').textContent===(PAR[parKey]||PAR.base).name)el.classList.add('active');});
   CS.parallel=parKey;CS.flipped=false;CS.flipT=0;
   CS.imgScale=p.imgScale||1.0;CS.imgOffsetX=p.imgOffsetX||0;CS.imgOffsetY=p.imgOffsetY||0;
-  document.getElementById('sigSec').style.display='block'; setSigColor(CS.sigColor||'black'); buildCardTypeUI(); const caEl2=document.getElementById('certAutoOn'); if(caEl2) caEl2.checked=!!CS.certAuto; const lyEl=document.getElementById('showLybsOn'); if(lyEl) lyEl.checked=CS.showLybs!==false;
+  document.getElementById('sigSec').style.display='block'; setSigColor(CS.sigColor||'black');
   pS=p.photoURL||'';sS=p.sigURL||'';lS=p.logoURL||'';
   pD='';sD='';lD='';CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;
   if(p.photoURL){
@@ -2811,7 +2822,12 @@ function editCard(id){
   // Restore pulled-stats state
   CS.statsPulled=!!p.statsPulled;
   CS.breakout=!!p.breakout;CS.breakoutPoly=p.breakoutPoly||null;CS.numbered=!!p.numbered;CS.allStar=!!p.allStar;CS.sPos=p.sPos||'br';CS.sigColor=p.sigColor||'black';CS.certAuto=!!p.certAuto;CS.showLybs=p.showLybs!==false;CS.customBgURL=p.customBgURL||null;
-  if(p.customBgURL){const bgi=new Image();bgi.onload=()=>{CS.customBgImg=bgi;qR();};bgi.src=p.customBgURL;document.getElementById('bgName').textContent='Saved background';document.getElementById('bgIcon').textContent='✓';}else{CS.customBgImg=null;}CS.cardType=parKey;
+  if(p.customBgURL){const bgi=new Image();bgi.onload=()=>{CS.customBgImg=bgi;qR();};bgi.src=p.customBgURL;document.getElementById('bgName').textContent='Saved background';document.getElementById('bgIcon').textContent='✓';}else{CS.customBgImg=null;}
+  CS.cardType=p.cardType||parKey;
+  buildCardTypeUI();
+  const certEl=document.getElementById('certAutoOn'); if(certEl) certEl.checked=!!CS.certAuto;
+  const lybsEl=document.getElementById('showLybsOn'); if(lybsEl) lybsEl.checked=CS.showLybs!==false;
+  const shBnr=document.getElementById('showBanner'); if(shBnr) shBnr.checked=CS.showBanner!==false;
   if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.toggle('active',CS.sPos==='br');document.getElementById('sPosBL').classList.toggle('active',CS.sPos==='bl');}
   if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=CS.allStar;
   if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=CS.numbered;document.getElementById('numberedFields').style.display=CS.numbered?'block':'none';}
@@ -2837,7 +2853,15 @@ function resetForm(){
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
   document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}
   pD='';sD='';lD='';pS='';sS='';lS='';
-  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;CS.certAuto=false;CS.showLybs=true;CS.customBgURL=null;CS.cardType='base';buildCardTypeUI(); const caEl=document.getElementById('certAutoOn'); if(caEl) caEl.checked=false;
+  CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.customBgImg=null;CS.customBgURL=null;
+  CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
+  CS.certAuto=false;CS.showLybs=true;CS.cardType='base';
+  buildCardTypeUI();
+  const caEl=document.getElementById('certAutoOn'); if(caEl) caEl.checked=false;
+  const lybsREl=document.getElementById('showLybsOn'); if(lybsREl) lybsREl.checked=true;
+  const bgNEl=document.getElementById('bgName'); if(bgNEl) bgNEl.textContent='Click to upload background image';
+  const bgIEl=document.getElementById('bgIcon'); if(bgIEl) bgIEl.innerHTML='&#x1F5BC;';
+  const bgUEl=document.getElementById('bgUpload'); if(bgUEl) bgUEl.value='';
   CS.imgScale=1.0;CS.imgOffsetX=0;CS.imgOffsetY=0;
   ['photoThumb','sigThumb','logoThumb'].forEach(id=>{document.getElementById(id).style.display='none';document.getElementById(id).src='';});
   ['photoIcon','sigIcon','logoIcon'].forEach(id=>document.getElementById(id).style.display='');
