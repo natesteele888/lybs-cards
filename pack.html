@@ -7,75 +7,180 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{
-  background:radial-gradient(ellipse at 50% 40%,#1c1c2e 0%,#08080f 100%);
-  min-height:100vh;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  font-family:'Oswald',sans-serif;overflow:hidden;user-select:none;
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Oswald',sans-serif}
+
+#stage{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  perspective:1200px;
 }
 
-#scene{position:relative;display:flex;flex-direction:column;align-items:center;gap:20px}
-#hint{font-size:10px;letter-spacing:4px;color:rgba(255,255,255,0.3);text-transform:uppercase;transition:opacity .5s}
-
-/* The pack wrapper */
-#packWrap{
+/* ── PACK 3D WRAPPER ── */
+#packScene{
   position:relative;
-  width:240px;height:370px;
+  width:280px;height:400px;
+  transform-style:preserve-3d;
   cursor:pointer;
-  filter:drop-shadow(0 24px 60px rgba(0,0,0,0.95)) drop-shadow(0 0 20px rgba(80,80,120,0.2));
-  transition:transform .2s ease,filter .2s ease;
+  /* idle float + gentle spin */
+  animation:idle-float 4s ease-in-out infinite;
 }
-#packWrap:hover:not(.tearing){transform:translateY(-6px) rotate(-0.8deg);filter:drop-shadow(0 32px 80px rgba(0,0,0,0.95)) drop-shadow(0 0 30px rgba(100,100,180,0.25))}
-#packWrap.tearing{cursor:default;pointer-events:none}
+#packScene.spinning{
+  animation:spin-up 1.8s cubic-bezier(.4,0,.2,1) forwards;
+}
+#packScene.tearing{
+  animation:none;
+}
 
-#packMain,#packTop,#packBot{
-  position:absolute;top:0;left:0;width:240px;height:370px;display:block;
+@keyframes idle-float{
+  0%,100%{transform:rotateY(-8deg) rotateX(4deg) translateY(0px)}
+  50%{transform:rotateY(8deg) rotateX(-4deg) translateY(-12px)}
 }
-#packTop,#packBot{
+@keyframes spin-up{
+  0%  {transform:rotateY(-8deg) rotateX(4deg)}
+  30% {transform:rotateY(200deg) rotateX(12deg) scale(1.05)}
+  60% {transform:rotateY(380deg) rotateX(-8deg) scale(1.08)}
+  100%{transform:rotateY(540deg) rotateX(0deg) scale(1.0)}
+}
+
+/* pack canvas */
+#packCanvas{
+  width:280px;height:400px;display:block;
+  border-radius:16px;
+  box-shadow:0 0 60px rgba(0,200,255,0.15), 0 40px 80px rgba(0,0,0,0.9);
+}
+
+/* ── TOP TEAR HALF ── */
+#tearTop{
+  position:absolute;top:0;left:0;
+  width:280px;height:400px;
+  display:none;
+  transform-origin:center top;
+}
+#tearBot{
+  position:absolute;top:0;left:0;
+  width:280px;height:400px;
+  display:none;
+}
+#tearTop.fly{
+  display:block;
+  animation:tear-top .9s cubic-bezier(.3,0,.1,1) forwards;
+}
+#tearBot.fly{
+  display:block;
+  animation:tear-bot .9s cubic-bezier(.3,0,.1,1) forwards;
+}
+@keyframes tear-top{
+  0%  {transform:translateY(0) rotate(0deg);opacity:1}
+  100%{transform:translateY(-320px) rotate(-18deg) translateX(-30px);opacity:0}
+}
+@keyframes tear-bot{
+  0%  {transform:translateY(0) rotate(0deg);opacity:1}
+  100%{transform:translateY(140px) rotate(8deg) translateX(20px);opacity:0}
+}
+
+/* ── LIGHT BEAM ── */
+#beam{
+  position:absolute;
+  left:50%;top:0;
+  transform:translateX(-50%);
+  width:120px;
+  height:0;
+  background:linear-gradient(to top,
+    rgba(0,220,255,0.95) 0%,
+    rgba(120,240,255,0.7) 30%,
+    rgba(200,255,255,0.3) 70%,
+    transparent 100%);
+  border-radius:50% 50% 0 0/20px 20px 0 0;
+  filter:blur(8px);
+  opacity:0;
   pointer-events:none;
-  transition:transform .8s cubic-bezier(.25,0,.15,1),opacity .7s ease;
+  transform-origin:bottom center;
 }
-#packTop.fly{transform:translateY(-62%) rotate(-14deg) translateX(-8px);opacity:0}
-#packBot.fly{transform:translateY(60%) rotate(10deg) translateX(6px);opacity:0}
-
-/* Flash burst */
-#burst{
-  position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%) scale(0);
-  width:320px;height:320px;margin:-160px 0 0 -160px;
-  border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(255,255,255,0.9)0%,rgba(200,200,255,0.4)40%,transparent 70%);
-  opacity:0;transition:none;
+#beam.shoot{
+  animation:beam-shoot 1.2s ease-out forwards;
 }
-#burst.pop{transform:translate(-50%,-50%) scale(1);opacity:1;transition:transform .25s cubic-bezier(.2,1.5,.4,1),opacity .2s ease}
-#burst.fade{opacity:0;transform:translate(-50%,-50%) scale(1.5);transition:opacity .4s ease .05s,transform .4s ease .05s}
+@keyframes beam-shoot{
+  0%  {height:0;opacity:0;width:80px}
+  15% {height:200px;opacity:1;width:120px}
+  50% {height:500px;opacity:0.9;width:160px;filter:blur(6px)}
+  100%{height:700px;opacity:0;width:200px;filter:blur(20px)}
+}
 
-.spark{position:absolute;border-radius:50%;pointer-events:none;animation:sp .9s ease-out forwards}
-@keyframes sp{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}}
+/* ── GLOW PULSE on pack before tear ── */
+#glowRing{
+  position:absolute;inset:-20px;border-radius:24px;
+  background:transparent;
+  box-shadow:0 0 0 0 rgba(0,200,255,0);
+  pointer-events:none;opacity:0;
+}
+#glowRing.pulse{
+  opacity:1;
+  animation:glow-pulse 0.6s ease-out forwards;
+}
+@keyframes glow-pulse{
+  0%  {box-shadow:0 0 20px 4px rgba(0,200,255,0.4)}
+  50% {box-shadow:0 0 80px 30px rgba(0,200,255,0.7)}
+  100%{box-shadow:0 0 120px 60px rgba(0,220,255,0)}
+}
 
-/* Card reveal */
+/* ── WHITE FLASH OVERLAY ── */
+#flash{
+  position:fixed;inset:0;
+  background:#fff;opacity:0;pointer-events:none;z-index:500;
+}
+#flash.on{animation:flash-in 1.4s ease-out forwards}
+@keyframes flash-in{
+  0%  {opacity:0}
+  20% {opacity:1}
+  100%{opacity:0}
+}
+
+/* ── CARD REVEAL ── */
 #reveal{
-  position:fixed;inset:0;z-index:200;
+  position:fixed;inset:0;z-index:600;
   display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,0);pointer-events:none;
-  transition:background .5s;
+  transition:background .6s ease;
 }
-#reveal.on{background:rgba(0,0,0,0.9);pointer-events:all}
+#reveal.on{background:rgba(0,0,0,0.85);pointer-events:all}
 #revealBox{
-  display:flex;flex-direction:column;align-items:center;gap:14px;
-  opacity:0;transform:scale(0.4) translateY(80px);
-  transition:opacity .5s ease .4s,transform .5s cubic-bezier(.2,1.5,.4,1) .4s;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  opacity:0;transform:scale(0.3) translateY(60px);
+  transition:opacity .7s ease .5s, transform .7s cubic-bezier(.2,1.4,.4,1) .5s;
 }
 #reveal.on #revealBox{opacity:1;transform:scale(1) translateY(0)}
-#revealCanvas{border-radius:10px;width:260px;height:366px;display:block;
-  box-shadow:0 30px 100px rgba(0,0,0,0.9),0 0 50px rgba(120,120,255,0.25)}
-#revealName{font-size:24px;font-weight:700;color:#fff;letter-spacing:2px;text-align:center}
-#revealPar{font-size:10px;letter-spacing:3px;padding:3px 14px;border-radius:2px}
-#btnMore{margin-top:6px;padding:10px 32px;background:transparent;
-  border:1.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.55);
-  font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:3px;
-  cursor:pointer;text-transform:uppercase;transition:border-color .2s,color .2s}
-#btnMore:hover{border-color:rgba(180,180,255,0.7);color:#c0c0ff}
+#revealCanvas{
+  border-radius:12px;width:260px;height:366px;display:block;
+  box-shadow:0 0 80px rgba(0,200,255,0.35),0 40px 100px rgba(0,0,0,0.9);
+  animation:card-shimmer 3s ease-in-out infinite .8s;
+}
+@keyframes card-shimmer{
+  0%,100%{box-shadow:0 0 80px rgba(0,200,255,0.35),0 40px 100px rgba(0,0,0,0.9)}
+  50%{box-shadow:0 0 120px rgba(0,220,255,0.6),0 40px 100px rgba(0,0,0,0.9)}
+}
+#revealName{font-size:22px;font-weight:700;color:#fff;letter-spacing:2px;text-align:center;text-shadow:0 0 20px rgba(0,200,255,0.8)}
+#revealPar{font-size:10px;letter-spacing:3px;padding:4px 16px;border-radius:2px;text-transform:uppercase}
+#btnMore{
+  margin-top:8px;padding:10px 32px;
+  background:transparent;border:1.5px solid rgba(0,200,255,0.4);
+  color:rgba(0,200,255,0.8);font-family:'Oswald',sans-serif;
+  font-size:11px;letter-spacing:3px;cursor:pointer;
+  transition:border-color .2s,color .2s,box-shadow .2s;
+}
+#btnMore:hover{border-color:rgba(0,220,255,0.9);color:#00ddff;box-shadow:0 0 20px rgba(0,200,255,0.3)}
+
+#hint{
+  position:absolute;bottom:-36px;left:50%;transform:translateX(-50%);
+  font-size:10px;letter-spacing:4px;color:rgba(255,255,255,0.3);
+  white-space:nowrap;transition:opacity .5s;
+}
+
+/* Ambient background glow */
+#bgGlow{
+  position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,rgba(0,80,120,0.35) 0%,transparent 70%);
+  opacity:1;transition:opacity .4s;
+}
 </style>
 </head>
 <body>
@@ -83,15 +188,20 @@ body{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<div id="scene">
-  <div id="packWrap">
-    <canvas id="packMain" width="480" height="740"></canvas>
-    <canvas id="packTop"  width="480" height="740"></canvas>
-    <canvas id="packBot"  width="480" height="740"></canvas>
-    <div id="burst"></div>
+<div id="bgGlow"></div>
+
+<div id="stage">
+  <div id="packScene">
+    <canvas id="packCanvas" width="560" height="800"></canvas>
+    <canvas id="tearTop"    width="560" height="800" style="width:280px;height:400px"></canvas>
+    <canvas id="tearBot"    width="560" height="800" style="width:280px;height:400px"></canvas>
+    <div id="beam"></div>
+    <div id="glowRing"></div>
+    <div id="hint">CLICK TO OPEN</div>
   </div>
-  <div id="hint">Tap to open</div>
 </div>
+
+<div id="flash"></div>
 
 <div id="reveal">
   <div id="revealBox">
@@ -109,406 +219,397 @@ const FB={apiKey:"AIzaSyC99OBzJoekTs-YkOvSB31XMC4SBCgxhUI",authDomain:"lybs-card
   messagingSenderId:"320701582820",appId:"1:320701582820:web:0e4dfe9bd38c4b51d64cfa"};
 try{firebase.initializeApp(FB);window._db=firebase.firestore();}catch(e){}
 
-// ═══════════════════════════════════════
-//  PACK CANVAS RENDERER  (480 × 740 px)
-// ═══════════════════════════════════════
-const PW=480, PH=740;
+// ════════════════════════════════════════
+//  PACK RENDERER  560 × 800 internal
+// ════════════════════════════════════════
+const PW=560, PH=800;
+const TEAR_Y = 148; // where the top tears off
 
-// Key Y positions
-const CRIMP_TOP_H  = 62;   // top serrated crimp height
-const CRIMP_BOT_H  = 48;   // bottom crimp height
-const TEAR_Y       = CRIMP_TOP_H; // tear line = bottom of top crimp
-
-/* Draw the full pack or just top/bottom half */
-function renderPack(canvas, mode){
+function drawPack(canvas, mode){
   const ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,PW,PH);
   ctx.save();
-  if(mode==='top'){
-    ctx.beginPath();ctx.rect(0,0,PW,TEAR_Y+2);ctx.clip();
-  } else if(mode==='bot'){
-    ctx.beginPath();ctx.rect(0,TEAR_Y-2,PW,PH);ctx.clip();
-  }
-  drawPackBody(ctx);
+  if(mode==='top') { ctx.beginPath();ctx.rect(0,0,PW,TEAR_Y+2);ctx.clip(); }
+  if(mode==='bot') { ctx.beginPath();ctx.rect(0,TEAR_Y-2,PW,PH);ctx.clip(); }
+  _drawPackBody(ctx);
   ctx.restore();
 }
 
-function drawPackBody(ctx){
-  const L=32, R=PW-32; // left/right edges of pack
-  const W=R-L;
-
-  // ─── 1. PACK OUTLINE PATH ───
-  // Straight sides, slightly tapered at very top
-  function packClip(){
+function _drawPackBody(ctx){
+  // ── SHAPE ──
+  function packPath(){
+    const r=28, x=20, y=10, w=PW-40, h=PH-20;
     ctx.beginPath();
-    ctx.moveTo(L+8, 0);                    // top-left of crimp
-    ctx.lineTo(R-8, 0);                    // top-right
-    ctx.lineTo(R,   CRIMP_TOP_H);          // right side starts
-    ctx.lineTo(R,   PH-CRIMP_BOT_H);      // down to bottom crimp
-    ctx.lineTo(R,   PH);                   // bottom-right
-    ctx.lineTo(L,   PH);                   // bottom-left
-    ctx.lineTo(L,   PH-CRIMP_BOT_H);
-    ctx.lineTo(L,   CRIMP_TOP_H);
+    ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y);
     ctx.closePath();
   }
 
-  ctx.save(); packClip(); ctx.clip();
+  packPath(); ctx.clip();
 
-  // ─── 2. BASE: dark metallic gradient ───
-  const base=ctx.createLinearGradient(L,0,R,0);
-  base.addColorStop(0,   '#111114');
-  base.addColorStop(0.18,'#2a2a32');
-  base.addColorStop(0.32,'#1a1a22');
-  base.addColorStop(0.45,'#3a3a48');
-  base.addColorStop(0.55,'#3a3a48');
-  base.addColorStop(0.68,'#1a1a22');
-  base.addColorStop(0.82,'#2a2a32');
-  base.addColorStop(1,   '#111114');
-  ctx.fillStyle=base;ctx.fillRect(0,0,PW,PH);
+  // ── 1. DARK BASE — near-black with slight blue tint ──
+  const base=ctx.createLinearGradient(0,0,PW,PH);
+  base.addColorStop(0,'#0d0d14');
+  base.addColorStop(0.4,'#151520');
+  base.addColorStop(0.6,'#111118');
+  base.addColorStop(1,'#080810');
+  ctx.fillStyle=base; ctx.fillRect(0,0,PW,PH);
 
-  // ─── 3. VERTICAL LIGHT STREAKS (the key foil look) ───
-  // 3 main streaks: left, center-left, center, center-right, right
-  const streaks=[
-    {cx:L+W*0.12, w:18, a:0.13},
-    {cx:L+W*0.32, w:28, a:0.20},
-    {cx:L+W*0.50, w:22, a:0.16},
-    {cx:L+W*0.68, w:28, a:0.20},
-    {cx:L+W*0.88, w:18, a:0.13},
-  ];
-  streaks.forEach(s=>{
-    const g=ctx.createLinearGradient(s.cx-s.w,0,s.cx+s.w,0);
-    g.addColorStop(0,'rgba(255,255,255,0)');
-    g.addColorStop(0.3,`rgba(255,255,255,${s.a*0.5})`);
-    g.addColorStop(0.5,`rgba(255,255,255,${s.a})`);
-    g.addColorStop(0.7,`rgba(255,255,255,${s.a*0.5})`);
-    g.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=g;ctx.fillRect(0,0,PW,PH);
-  });
-
-  // ─── 4. VERY SUBTLE DIAGONAL SHEEN ───
-  const sheen=ctx.createLinearGradient(L,PH*0.1,R,PH*0.9);
-  sheen.addColorStop(0,'rgba(255,255,255,0)');
-  sheen.addColorStop(0.42,'rgba(255,255,255,0)');
-  sheen.addColorStop(0.47,'rgba(255,255,255,0.07)');
-  sheen.addColorStop(0.50,'rgba(255,255,255,0.12)');
-  sheen.addColorStop(0.53,'rgba(255,255,255,0.07)');
-  sheen.addColorStop(0.58,'rgba(255,255,255,0)');
-  sheen.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=sheen;ctx.fillRect(0,0,PW,PH);
-
-  // ─── 5. EDGE SHADOWS (left + right deep shadow) ───
-  const lsh=ctx.createLinearGradient(L,0,L+50,0);
-  lsh.addColorStop(0,'rgba(0,0,0,0.55)');lsh.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=lsh;ctx.fillRect(0,0,PW,PH);
-  const rsh=ctx.createLinearGradient(R-50,0,R,0);
-  rsh.addColorStop(0,'rgba(0,0,0,0)');rsh.addColorStop(1,'rgba(0,0,0,0.55)');
-  ctx.fillStyle=rsh;ctx.fillRect(0,0,PW,PH);
-
-  // ─── 6. TOP CRIMP ───
-  drawCrimpTop(ctx,L,0,W,CRIMP_TOP_H);
-
-  // ─── 7. BOTTOM CRIMP ───
-  drawCrimpBot(ctx,L,PH-CRIMP_BOT_H,W,CRIMP_BOT_H);
-
-  ctx.restore(); // end pack clip
-
-  // ─── 8. SERRATED TOP EDGE ───
-  drawSerrated(ctx,L+8,R-8);
-
-  // ─── 9. PACK SIDE OUTLINES ───
+  // ── 2. DIAGONAL STRIPE TEXTURE (film reel / reference style) ──
   ctx.save();
-  ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(L,CRIMP_TOP_H);ctx.lineTo(L,PH-CRIMP_BOT_H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(R,CRIMP_TOP_H);ctx.lineTo(R,PH-CRIMP_BOT_H);ctx.stroke();
-  ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(L-1,CRIMP_TOP_H);ctx.lineTo(L-1,PH-CRIMP_BOT_H);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(R+1,CRIMP_TOP_H);ctx.lineTo(R+1,PH-CRIMP_BOT_H);ctx.stroke();
-  ctx.restore();
-
-  // ─── 10. BRANDING ───
-  drawBranding(ctx,L,W);
-}
-
-/* TOP CRIMP — horizontal ridges + serrated silhouette */
-function drawCrimpTop(ctx,x,y,w,h){
-  // Dark metallic base
-  const g=ctx.createLinearGradient(0,y,0,y+h);
-  g.addColorStop(0,'#1a1a20');g.addColorStop(0.5,'#2e2e38');g.addColorStop(1,'#1a1a22');
-  ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
-  // Horizontal ridge lines
-  const ridges=9;
-  for(let i=0;i<ridges;i++){
-    const ry=y+4+i*(h-8)/ridges;
-    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.35)':'rgba(255,255,255,0.1)';
-    ctx.fillRect(x,ry,w,Math.max(2,(h-8)/ridges-1));
+  for(let i=-PH;i<PW+PH;i+=52){
+    // Dark stripe
+    ctx.fillStyle='rgba(0,0,0,0.55)';
+    ctx.save();ctx.translate(i,0);ctx.rotate(-Math.PI*0.35);
+    ctx.fillRect(-4,0,14,PH*2.5);ctx.restore();
   }
-  // Subtle vertical streaks in crimp
-  [0.25,0.5,0.75].forEach(p=>{
-    const sg=ctx.createLinearGradient(x+w*p-10,0,x+w*p+10,0);
+  // Bright metallic stripe highlights on top
+  for(let i=-PH+26;i<PW+PH;i+=52){
+    const sg=ctx.createLinearGradient(i,0,i+8,0);
     sg.addColorStop(0,'rgba(255,255,255,0)');
-    sg.addColorStop(0.5,'rgba(255,255,255,0.1)');
+    sg.addColorStop(0.3,'rgba(180,210,255,0.12)');
+    sg.addColorStop(0.5,'rgba(220,240,255,0.22)');
+    sg.addColorStop(0.7,'rgba(180,210,255,0.12)');
     sg.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=sg;ctx.fillRect(x,y,w,h);
-  });
-  // Bottom edge of crimp (bright divider line)
-  ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillRect(x,y+h-2,w,1);
-  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(x,y+h-1,w,1);
-}
-
-/* BOTTOM CRIMP */
-function drawCrimpBot(ctx,x,y,w,h){
-  const g=ctx.createLinearGradient(0,y,0,y+h);
-  g.addColorStop(0,'#1a1a22');g.addColorStop(0.5,'#2a2a34');g.addColorStop(1,'#111116');
-  ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
-  const ridges=7;
-  for(let i=0;i<ridges;i++){
-    const ry=y+3+i*(h-6)/ridges;
-    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.35)':'rgba(255,255,255,0.08)';
-    ctx.fillRect(x,ry,w,Math.max(2,(h-6)/ridges-1));
+    ctx.save();ctx.translate(i,0);ctx.rotate(-Math.PI*0.35);
+    ctx.fillStyle=sg;ctx.fillRect(-2,0,18,PH*2.5);ctx.restore();
   }
-  ctx.fillStyle='rgba(255,255,255,0.14)';ctx.fillRect(x,y,w,1);
-  ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(x,y+1,w,1);
-}
-
-/* SERRATED TOP EDGE — zigzag cut */
-function drawSerrated(ctx,x1,x2){
-  const toothW=8, toothH=10;
-  ctx.save();
-  ctx.fillStyle='#08080f'; // match background color
-  ctx.beginPath();
-  ctx.moveTo(x1,0);
-  let px=x1;
-  let up=true;
-  while(px<x2){
-    const nx=Math.min(px+toothW,x2);
-    ctx.lineTo(nx, up?toothH:0);
-    up=!up;
-    px=nx;
-  }
-  ctx.lineTo(x2,0);
-  ctx.closePath();
-  ctx.fill();
-  // Light highlight on the cut edge
-  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(x1,0);
-  px=x1;up=true;
-  while(px<x2){
-    const nx=Math.min(px+toothW,x2);
-    ctx.lineTo(nx,up?toothH:0);
-    up=!up;px=nx;
-  }
-  ctx.stroke();
-  ctx.restore();
-}
-
-/* BRANDING — Old English style S + text */
-function drawBranding(ctx,L,W){
-  const cx=L+W/2;
-  const mainY=PH*0.38;
-
-  // ── Draw the Old English S on canvas (no font needed) ──
-  // We'll use a scalable path approximation of that bold blackletter S
-  ctx.save();
-  ctx.translate(cx, mainY);
-  const sc=1.8; // scale
-  drawOldEnglishS(ctx, sc);
   ctx.restore();
 
-  // ── "Steele Trading Cards" ──
+  // ── 3. EDGE REFLECTIONS — left and right chrome edges ──
+  const lRef=ctx.createLinearGradient(20,0,90,0);
+  lRef.addColorStop(0,'rgba(100,150,200,0.4)');
+  lRef.addColorStop(0.4,'rgba(60,100,160,0.15)');
+  lRef.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=lRef;ctx.fillRect(0,0,PW,PH);
+
+  const rRef=ctx.createLinearGradient(PW-90,0,PW-20,0);
+  rRef.addColorStop(0,'rgba(0,0,0,0)');
+  rRef.addColorStop(0.6,'rgba(60,100,160,0.15)');
+  rRef.addColorStop(1,'rgba(100,150,200,0.4)');
+  ctx.fillStyle=rRef;ctx.fillRect(0,0,PW,PH);
+
+  // ── 4. CENTER BODY HIGHLIGHT (inflated pillow sheen) ──
+  const bodySheen=ctx.createRadialGradient(PW*0.42,PH*0.38,20,PW*0.42,PH*0.38,PW*0.55);
+  bodySheen.addColorStop(0,'rgba(100,160,220,0.18)');
+  bodySheen.addColorStop(0.5,'rgba(60,100,160,0.08)');
+  bodySheen.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=bodySheen;ctx.fillRect(0,0,PW,PH);
+
+  // ── 5. TOP CRIMP ──
+  drawTopCrimp(ctx);
+
+  // ── 6. BOTTOM CRIMP ──
+  drawBotCrimp(ctx);
+
+  // ── 7. EDGE DARKENING ──
+  const edgeDark=ctx.createRadialGradient(PW/2,PH/2,PH*0.18,PW/2,PH/2,PH*0.75);
+  edgeDark.addColorStop(0,'rgba(0,0,0,0)');
+  edgeDark.addColorStop(1,'rgba(0,0,0,0.6)');
+  ctx.fillStyle=edgeDark;ctx.fillRect(0,0,PW,PH);
+
+  // ── 8. BRANDING ──
+  const cx=PW/2;
+
+  // "LYBS 2026" top label
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=8;ctx.shadowOffsetY=2;
-  ctx.font='italic bold 34px "Times New Roman",Georgia,serif';
-  ctx.fillStyle='rgba(255,255,255,0.82)';
+  ctx.font='600 26px Oswald,sans-serif';
+  ctx.fillStyle='rgba(200,230,255,0.7)';
   ctx.textAlign='center';
-  ctx.fillText('Steele Trading Cards', cx, mainY+130);
-
-  // ── "LYBS 2026 · SERIES 1" ──
-  ctx.font='600 18px Oswald,sans-serif';
-  ctx.fillStyle='rgba(255,255,255,0.45)';
-  ctx.letterSpacing='3px';
-  ctx.fillText('LYBS 2026  ·  SERIES 1', cx, mainY+158);
+  ctx.letterSpacing='6px';
+  ctx.fillText('LYBS  2026',cx,82);
   ctx.restore();
 
-  // ── Thin ruled lines ──
+  // Old English S — drawn as canvas path
   ctx.save();
-  ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1;
-  const rw=140;
-  ctx.beginPath();ctx.moveTo(cx-rw,mainY-78);ctx.lineTo(cx+rw,mainY-78);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-rw,mainY+172);ctx.lineTo(cx+rw,mainY+172);ctx.stroke();
+  ctx.translate(cx, PH*0.46);
+  drawBoldS(ctx, 2.2, 'rgba(180,210,255,0.75)');
   ctx.restore();
+
+  // "Steele Trading Cards"
+  ctx.save();
+  ctx.shadowColor='rgba(0,180,255,0.4)';ctx.shadowBlur=16;
+  ctx.font='italic bold 36px "Times New Roman",Georgia,serif';
+  ctx.fillStyle='rgba(200,230,255,0.82)';
+  ctx.textAlign='center';
+  ctx.fillText('Steele Trading Cards',cx,PH*0.66);
+  ctx.restore();
+
+  // "SERIES 1"
+  ctx.save();
+  ctx.font='600 19px Oswald,sans-serif';
+  ctx.fillStyle='rgba(100,180,255,0.55)';
+  ctx.textAlign='center';
+  ctx.fillText('SERIES  1',cx,PH*0.73);
+  ctx.restore();
+
+  // Thin rules
+  ctx.save();
+  ctx.strokeStyle='rgba(100,180,255,0.25)';ctx.lineWidth=1;
+  const rw=160;
+  ctx.beginPath();ctx.moveTo(cx-rw,PH*0.58);ctx.lineTo(cx+rw,PH*0.58);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-rw,PH*0.76);ctx.lineTo(cx+rw,PH*0.76);ctx.stroke();
+  ctx.restore();
+
+  // Barcode strip bottom
+  ctx.save();
+  ctx.font='500 11px Oswald,sans-serif';
+  ctx.fillStyle='rgba(150,190,230,0.4)';
+  ctx.textAlign='left';
+  ctx.fillText('LYBS-2026-S1',38,PH-32);
+  // Mini barcode lines
+  for(let i=0;i<28;i++){
+    ctx.fillStyle=i%3===0?'rgba(150,190,230,0.5)':'rgba(150,190,230,0.2)';
+    ctx.fillRect(38+i*5,PH-26,i%3===0?3:2,14);
+  }
+  ctx.restore();
+
+  // ── 9. CYAN GLOW LINE at tear seam ──
+  const glowLine=ctx.createLinearGradient(30,TEAR_Y,PW-30,TEAR_Y);
+  glowLine.addColorStop(0,'rgba(0,200,255,0)');
+  glowLine.addColorStop(0.2,'rgba(0,200,255,0.6)');
+  glowLine.addColorStop(0.5,'rgba(0,220,255,1.0)');
+  glowLine.addColorStop(0.8,'rgba(0,200,255,0.6)');
+  glowLine.addColorStop(1,'rgba(0,200,255,0)');
+  ctx.fillStyle=glowLine;ctx.fillRect(30,TEAR_Y-2,PW-60,3);
+  // Soft glow halo above/below the line
+  const haloG=ctx.createLinearGradient(0,TEAR_Y-20,0,TEAR_Y+20);
+  haloG.addColorStop(0,'rgba(0,200,255,0)');
+  haloG.addColorStop(0.5,'rgba(0,200,255,0.12)');
+  haloG.addColorStop(1,'rgba(0,200,255,0)');
+  ctx.fillStyle=haloG;ctx.fillRect(30,TEAR_Y-20,PW-60,40);
+
+  // ── OUTLINE ──
+  packPath();
+  ctx.strokeStyle='rgba(80,160,220,0.25)';ctx.lineWidth=2;ctx.stroke();
+  packPath();
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.stroke();
 }
 
-/* Draw a bold blackletter S — paths drawn from reference shape */
-function drawOldEnglishS(ctx, sc){
-  // Approximate the thick-stroke Old English S using bezier curves
-  // The S has: top serif curve, thick diagonal, bottom curl
-  ctx.save();
-  ctx.scale(sc,sc);
+function drawTopCrimp(ctx){
+  const y=10,x=20,w=PW-40,h=TEAR_Y-10;
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'rgba(20,30,50,0.9)');g.addColorStop(1,'rgba(10,15,30,0.5)');
+  ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
+  // Horizontal ridges
+  for(let i=0;i<10;i++){
+    const ry=y+6+i*(h-12)/10;
+    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.4)':'rgba(80,140,200,0.08)';
+    ctx.fillRect(x,ry,w,(h-12)/10);
+  }
+  // Subtle cyan tint on top crimp
+  const tint=ctx.createLinearGradient(0,y,0,y+h);
+  tint.addColorStop(0,'rgba(0,150,220,0.12)');tint.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=tint;ctx.fillRect(x,y,w,h);
+}
 
-  const fill='rgba(255,255,255,0.88)';
-  const shadow='rgba(0,0,0,0.6)';
+function drawBotCrimp(ctx){
+  const x=20,w=PW-40,h=50,y=PH-10-h;
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'rgba(10,15,30,0.5)');g.addColorStop(1,'rgba(20,30,50,0.85)');
+  ctx.fillStyle=g;ctx.fillRect(x,y,w,h);
+  for(let i=0;i<7;i++){
+    const ry=y+4+i*(h-8)/7;
+    ctx.fillStyle=i%2===0?'rgba(0,0,0,0.35)':'rgba(80,140,200,0.07)';
+    ctx.fillRect(x,ry,w,(h-8)/7);
+  }
+  ctx.fillStyle='rgba(80,160,220,0.15)';ctx.fillRect(x,y,w,1);
+}
 
-  // Drop shadow offset
-  [3,0].forEach((off,pass)=>{
-    ctx.fillStyle = pass===0 ? shadow : fill;
-    ctx.strokeStyle = pass===0 ? 'transparent' : 'rgba(0,0,0,0.5)';
-    ctx.lineWidth = pass===0 ? 0 : 1.5;
-
+function drawBoldS(ctx, sc, color){
+  ctx.save();ctx.scale(sc,sc);
+  // Two-pass: shadow then fill
+  [{off:3,c:'rgba(0,0,0,0.7)'},{off:0,c:color}].forEach(({off,c})=>{
+    ctx.fillStyle=c;ctx.strokeStyle=off===0?'rgba(0,150,220,0.3)':'transparent';ctx.lineWidth=2;
     ctx.beginPath();
-    // OUTER shape of bold blackletter S
-    // Top loop
-    ctx.moveTo(off+32, off-54);
-    ctx.bezierCurveTo(off+32,off-54, off+52,off-68, off+20,off-68);
-    ctx.bezierCurveTo(off-14,off-68, off-36,off-48, off-30,off-24);
-    ctx.bezierCurveTo(off-26,off-8,  off-4, off+2,  off+14,off+10);
-    ctx.bezierCurveTo(off+32,off+18, off+44,off+26, off+36,off+44);
-    ctx.bezierCurveTo(off+28,off+62, off+4, off+68, off-18,off+60);
-    ctx.bezierCurveTo(off-40,off+52, off-44,off+34, off-36,off+20);
+    ctx.moveTo(off+32,off-54);
+    ctx.bezierCurveTo(off+32,off-54,off+52,off-68,off+20,off-68);
+    ctx.bezierCurveTo(off-14,off-68,off-36,off-48,off-30,off-24);
+    ctx.bezierCurveTo(off-26,off-8,off-4,off+2,off+14,off+10);
+    ctx.bezierCurveTo(off+32,off+18,off+44,off+26,off+36,off+44);
+    ctx.bezierCurveTo(off+28,off+62,off+4,off+68,off-18,off+60);
+    ctx.bezierCurveTo(off-40,off+52,off-44,off+34,off-36,off+20);
     ctx.lineTo(off-22,off+28);
-    ctx.bezierCurveTo(off-28,off+38, off-24,off+52, off-8, off+56);
-    ctx.bezierCurveTo(off+8, off+60, off+22,off+52, off+24,off+38);
-    ctx.bezierCurveTo(off+26,off+26, off+14,off+16, off-4, off+8);
-    ctx.bezierCurveTo(off-22,off+0,  off-40,off-10, off-42,off-28);
-    ctx.bezierCurveTo(off-46,off-52, off-18,off-76, off+20,off-76);
-    ctx.bezierCurveTo(off+52,off-76, off+62,off-58, off+54,off-44);
+    ctx.bezierCurveTo(off-28,off+38,off-24,off+52,off-8,off+56);
+    ctx.bezierCurveTo(off+8,off+60,off+22,off+52,off+24,off+38);
+    ctx.bezierCurveTo(off+26,off+26,off+14,off+16,off-4,off+8);
+    ctx.bezierCurveTo(off-22,off,off-40,off-10,off-42,off-28);
+    ctx.bezierCurveTo(off-46,off-52,off-18,off-76,off+20,off-76);
+    ctx.bezierCurveTo(off+52,off-76,off+62,off-58,off+54,off-44);
     ctx.closePath();
-    ctx.fill();
-    if(pass>0){ctx.stroke();}
-
-    // Top serif tab
+    ctx.fill();if(off===0)ctx.stroke();
+    // top serif tab
     ctx.beginPath();
     ctx.moveTo(off+18,off-68);ctx.lineTo(off+48,off-80);
     ctx.lineTo(off+50,off-72);ctx.lineTo(off+20,off-60);ctx.closePath();
     ctx.fill();
   });
-
   ctx.restore();
 }
 
-// ── Render initial pack ──
-const mainC=document.getElementById('packMain');
-const topC =document.getElementById('packTop');
-const botC =document.getElementById('packBot');
-renderPack(mainC,'full');
+// ── Initial render ──
+const mainC=document.getElementById('packCanvas');
+const topC =document.getElementById('tearTop');
+const botC =document.getElementById('tearBot');
+drawPack(mainC,'full');
 
-function renderPack(canvas,mode){
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,PW,PH);
-  ctx.save();
-  if(mode==='top'){ctx.beginPath();ctx.rect(0,0,PW,TEAR_Y+3);ctx.clip();}
-  else if(mode==='bot'){ctx.beginPath();ctx.rect(0,TEAR_Y-3,PW,PH-TEAR_Y+3);ctx.clip();}
-  drawPackBody(ctx);
-  ctx.restore();
-}
-
-// ── Firebase cards ──
+// ── Firebase ──
 let cards=[];
 async function loadCards(){
-  if(!window._db) return;
+  if(!window._db)return;
   try{const s=await window._db.collection('players').get();cards=[];s.forEach(d=>cards.push({id:d.id,...d.data()}));}catch(e){}
 }
 loadCards();
 
-// ── Click to open ──
-let torn=false;
-document.getElementById('packWrap').addEventListener('click',()=>{
-  if(torn)return;
-  torn=true;
-  tearOpen();
+// ── STATE MACHINE ──
+let state='idle'; // idle → spinning → tearing → revealing
+
+document.getElementById('packScene').addEventListener('click',()=>{
+  if(state!=='idle')return;
+  state='spinning';
+  startSpin();
 });
 
-function tearOpen(){
-  document.getElementById('packWrap').classList.add('tearing');
+function startSpin(){
   document.getElementById('hint').style.opacity='0';
+  const scene=document.getElementById('packScene');
+  scene.classList.add('spinning');
+  // After spin completes, trigger tear
+  setTimeout(startTear, 1850);
+}
 
-  // Draw halves
-  renderPack(topC,'top');
-  renderPack(botC,'bot');
+function startTear(){
+  state='tearing';
+  const scene=document.getElementById('packScene');
+  scene.classList.remove('spinning');
+  scene.classList.add('tearing');
+  scene.style.transform='rotateY(540deg) rotateX(0deg)';
+
+  // Draw the two halves
+  drawPack(topC,'top'); drawPack(botC,'bot');
+  topC.style.display='block'; botC.style.display='block';
   mainC.style.opacity='0';
 
+  // Kick off CSS animations
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     topC.classList.add('fly');
     botC.classList.add('fly');
   }));
 
-  // Burst
+  // Glow pulse on pack
+  const ring=document.getElementById('glowRing');
+  ring.classList.add('pulse');
+
+  // Light beam shoots up
   setTimeout(()=>{
-    const b=document.getElementById('burst');
-    b.classList.add('pop');
-    spawnSparks();
-    setTimeout(()=>{b.classList.add('fade');b.classList.remove('pop');},200);
-  },160);
+    const beam=document.getElementById('beam');
+    beam.classList.add('shoot');
+    // Also pulse the bg
+    document.getElementById('bgGlow').style.background=
+      'radial-gradient(ellipse at 50% 45%,rgba(0,180,255,0.6) 0%,rgba(0,60,120,0.3) 40%,transparent 70%)';
+  },250);
 
-  setTimeout(revealCard,640);
+  // White flash
+  setTimeout(()=>{
+    document.getElementById('flash').classList.add('on');
+  },700);
+
+  // Card reveal
+  setTimeout(startReveal, 1400);
 }
 
-function spawnSparks(){
-  const wrap=document.getElementById('packWrap');
-  const cols=['#fff','#dde','#ccf','#eef','#c8c8ff','#fff'];
-  for(let i=0;i<32;i++){
-    const el=document.createElement('div');
-    el.className='spark';
-    const sz=2+Math.random()*6;
-    const a=Math.random()*Math.PI*2;
-    const d=50+Math.random()*140;
-    el.style.cssText=`width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};
-      position:absolute;left:calc(50% + ${Math.cos(a)*8}px);top:calc(40% + ${Math.sin(a)*8}px);
-      --tx:${Math.cos(a)*d}px;--ty:${Math.sin(a)*d}px;
-      animation-delay:${Math.random()*0.12}s;animation-duration:${0.6+Math.random()*0.5}s`;
-    wrap.appendChild(el);setTimeout(()=>el.remove(),1400);
-  }
-}
-
-async function revealCard(){
+async function startReveal(){
+  state='revealing';
   document.getElementById('reveal').classList.add('on');
+
   const canvas=document.getElementById('revealCanvas');
   const nameEl=document.getElementById('revealName');
   const parEl=document.getElementById('revealPar');
+  const ctx=canvas.getContext('2d');
+  const CW=520,CH=732;
 
-  if(!cards.length){nameEl.textContent='NO CARDS YET';parEl.textContent='';return;}
+  if(!cards.length){
+    ctx.fillStyle='#111';ctx.fillRect(0,0,CW,CH);
+    nameEl.textContent='NO CARDS IN LIBRARY';
+    parEl.textContent='Add cards in admin';
+    return;
+  }
+
   const card=cards[Math.floor(Math.random()*cards.length)];
   const fn=(card.firstName||'').toUpperCase();
   const ln=(card.lastName||'').toUpperCase();
   nameEl.textContent=`${fn} ${ln}`;
 
   const PC={base:'#888',blue:'#4488ff',red:'#ff4444',gold:'#d4a800',
-    green:'#22aa55',orange:'#ff7722',purple:'#9944ff',holo:'#88ccff',
-    glitter:'#d4a800',glitter_holo:'#88ffdd',black:'#555',ice:'#aaddff',
-    bubbles:'#bbddff',tie_dye:'#4a90d9'};
+    green:'#22aa55',orange:'#ff7722',purple:'#9944ff',holo:'#00ccff',
+    glitter:'#d4a800',glitter_holo:'#00ffcc',black:'#aaa',
+    ice:'#aaddff',bubbles:'#bbddff',tie_dye:'#4a90d9'};
   const pk=card.parallel||card.rarity||'base';
   const pc=PC[pk]||'#888';
   parEl.textContent=pk.replace(/_/g,' ').toUpperCase();
-  parEl.style.cssText=`color:${pc};border:1px solid ${pc};border-radius:2px;padding:3px 14px;letter-spacing:3px;font-size:10px;font-family:'Oswald',sans-serif`;
+  parEl.style.cssText=`color:${pc};border:1px solid ${pc};border-radius:2px;padding:3px 16px;letter-spacing:3px;font-size:10px;font-family:'Oswald',sans-serif;text-shadow:0 0 10px ${pc}`;
 
-  const ctx=canvas.getContext('2d');
-  const CW=520,CH=732;
-  ctx.fillStyle='#111';ctx.fillRect(0,0,CW,CH);
+  ctx.fillStyle='#0a0a12';ctx.fillRect(0,0,CW,CH);
+
   if(card.photoURL){
     const img=new Image();img.crossOrigin='anonymous';
-    img.onload=()=>{ctx.drawImage(img,0,0,CW,CH);drawNameplate(ctx,fn,ln,CW,CH,pc);};
+    img.onload=()=>{
+      ctx.drawImage(img,0,0,CW,CH);
+      drawNameplate(ctx,fn,ln,CW,CH,pc);
+    };
     img.onerror=()=>drawNameplate(ctx,fn,ln,CW,CH,pc);
     img.src=card.photoURL;
-  } else drawNameplate(ctx,fn,ln,CW,CH,pc);
+  } else {
+    drawNameplate(ctx,fn,ln,CW,CH,pc);
+  }
 }
 
 function drawNameplate(ctx,fn,ln,W,H,color){
-  ctx.fillStyle='rgba(0,0,0,0.72)';ctx.fillRect(0,H-144,W,144);
-  ctx.fillStyle=color;ctx.fillRect(0,H-148,W,5);
-  ctx.font=`bold italic 54px Anton,sans-serif`;ctx.fillStyle='#fff';
-  ctx.textAlign='center';ctx.fillText(`${fn} ${ln}`,W/2,H-80);
-  ctx.font=`500 22px Oswald,sans-serif`;ctx.fillStyle='rgba(255,255,255,0.5)';
-  ctx.fillText('LYBS 2026 · SERIES 1',W/2,H-42);ctx.textAlign='left';
+  // Gradient overlay
+  const g=ctx.createLinearGradient(0,H-200,0,H);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,20,0.9)');
+  ctx.fillStyle=g;ctx.fillRect(0,H-200,W,200);
+  // Accent line
+  ctx.fillStyle=color;ctx.fillRect(0,H-130,W,3);
+  ctx.shadowColor=color;ctx.shadowBlur=12;
+  ctx.fillRect(0,H-130,W,3);ctx.shadowBlur=0;
+  // Name
+  ctx.font=`bold italic 56px Anton,sans-serif`;ctx.fillStyle='#fff';
+  ctx.textAlign='center';ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=8;
+  ctx.fillText(`${fn} ${ln}`,W/2,H-68);
+  ctx.shadowBlur=0;
+  // Series
+  ctx.font=`500 20px Oswald,sans-serif`;ctx.fillStyle='rgba(100,180,255,0.6)';
+  ctx.fillText('LYBS 2026 · SERIES 1',W/2,H-30);
+  ctx.textAlign='left';
 }
 
 function resetPack(){
-  torn=false;
+  state='idle';
   document.getElementById('reveal').classList.remove('on');
-  topC.classList.remove('fly');botC.classList.remove('fly');
+  document.getElementById('packScene').classList.remove('spinning','tearing');
+  document.getElementById('packScene').style.transform='';
+  document.getElementById('packScene').style.animation='';
   mainC.style.opacity='1';
-  document.getElementById('packWrap').classList.remove('tearing');
+  topC.classList.remove('fly');botC.classList.remove('fly');
+  topC.style.display='none';botC.style.display='none';
+  document.getElementById('beam').classList.remove('shoot');
+  document.getElementById('glowRing').classList.remove('pulse');
+  document.getElementById('flash').classList.remove('on');
+  document.getElementById('bgGlow').style.background='radial-gradient(ellipse at 50% 55%,rgba(0,80,120,0.35) 0%,transparent 70%)';
   document.getElementById('hint').style.opacity='1';
-  document.getElementById('burst').className='';
-  document.getElementById('revealName').textContent='';
+  // Re-enable idle animation next frame
+  requestAnimationFrame(()=>{
+    document.getElementById('packScene').style.animation='';
+    void document.getElementById('packScene').offsetWidth;
+    document.getElementById('packScene').classList.remove('tearing');
+  });
   loadCards();
 }
 </script>
