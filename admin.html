@@ -2294,17 +2294,6 @@ function drawIceOverlay(ctx){
   const tilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
   const tiltDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
 
-  // ── Always-on crystalline structure (very faint) ──
-  ctx.globalCompositeOperation='source-over';
-  ctx.strokeStyle='rgba(160,165,200,0.05)';
-  ctx.lineWidth=0.5;
-  _ICE_FACETS.forEach(f=>{
-    ctx.beginPath();
-    ctx.moveTo(f.verts[0].x,f.verts[0].y);
-    f.verts.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));
-    ctx.closePath(); ctx.stroke();
-  });
-
   if(tilt<0.03){ctx.restore();return;}
 
   // ── Prismatic facets — light up when tilt aligns with phase ──
@@ -2589,6 +2578,7 @@ function doLogout(){if(window._auth)window._auth.signOut();document.getElementBy
 async function saveCard(){
   const fn=document.getElementById('fFirst').value.trim();
   const ln=document.getElementById('fLast').value.trim();
+  if(!fn||!ln){showToast('Name is required',true);return;}
   if(!window._db){showToast('Firebase not connected — check console',true);return;}
   document.getElementById('saveBtn').disabled=true;
   document.getElementById('spinner').style.display='flex';
@@ -2596,7 +2586,7 @@ async function saveCard(){
     const db=window._db, st=window._storage||null;
     if(!st) console.warn('Firebase Storage not initialized — file uploads will be skipped');
     const editId=document.getElementById('editId').value;
-    const slug=`${fn||'unnamed'}_${ln||'player'}_${Date.now()}`.replace(/\s/g,'_');
+    const slug=`${fn}_${ln}_${Date.now()}`.replace(/\s/g,'_');
     let photoURL=pS,sigURL=sS,logoURL=lS;
     const pf=document.getElementById('photoFile').files[0];
     const sf=document.getElementById('sigFile').files[0];
@@ -2685,7 +2675,7 @@ function editCard(id){
   const p=pCache.find(x=>x.id===id);if(!p)return;
   document.getElementById('editId').value=id;
   document.getElementById('fmH').textContent='EDIT PLAYER CARD';
-  document.getElementById('fmS').textContent=`Editing: ${[p.firstName,p.lastName].filter(Boolean).join(' ')||'(unnamed)'}`;
+  document.getElementById('fmS').textContent=`Editing: ${p.firstName} ${p.lastName}`;
   document.getElementById('fFirst').value=p.firstName||'';document.getElementById('fLast').value=p.lastName||'';
   const stdPositions=['PITCHER','CATCHER','FIRST BASE','SECOND BASE','THIRD BASE','SHORTSTOP','LEFT FIELD','CENTER FIELD','RIGHT FIELD','OUTFIELD','INFIELD','UTILITY','COACH','MANAGER','OTHER'];
   const savedPos=p.position||'PITCHER';
