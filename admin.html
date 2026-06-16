@@ -877,7 +877,7 @@ const PAR = {
   orange:       {name:'ORANGE',        sw:'#cc4400', tint:[200,75,10,0.38],   glow:[205,80,15]},
   purple:       {name:'PURPLE',        sw:'#6010a8', tint:[125,15,205,0.38],  glow:[135,25,215]},
   holo:         {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
-  black:        {name:'BLACK',         sw:'#111111', tint:[0,0,0,0.72],       glow:null},
+  black:        {name:'BLACK',         sw:'#111111', tint:null,               glow:[212,175,55]},
   auto:         {name:'CERTIFIED AUTO',sw:'#1546a0', tint:null,               glow:[100,130,200]},
   ice:          {name:'CRACKED ICE',   sw:'ice',     tint:null,               glow:[180,220,255]},
   bubbles:      {name:'SPARKLE FOIL',  sw:'sparkle', tint:null,               glow:[200,180,120]},
@@ -1418,6 +1418,12 @@ function drawFront(ctx){
   }
 
 
+  // ── BLACK EDITION: paint jet black over bg texture before any layers ──
+  if(CS.parallel==='black'){
+    ctx.fillStyle='#000000';
+    ctx.fillRect(0,0,PW,PH);
+  }
+
   // ── Outer card color overlay (separate from position bar) ──
   // For tie_dye the background is already controlled by its own color sliders, so skip overlay there.
   const _skipTint=(CS.cardType==='tie_dye'||CS.cardType==='black');
@@ -1467,8 +1473,8 @@ function drawFront(ctx){
   // ── SIGNATURE — ON TOP of auto overlay, available on any parallel ──
   drawAutoSig(ctx);
 
-  // ── LAYER 04: Player frame (now colorless bottom bar) ──
-  if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
+  // ── LAYER 04: Player frame — skipped for BLACK (drawn gold by drawBlackEdition) ──
+  if(LAYERS.frame && CS.parallel!=='black') ctx.drawImage(LAYERS.frame,0,0,PW,PH);
 
   // ── Recolor the accent bar (behind position) to chosen color ──
 
@@ -1487,8 +1493,8 @@ function drawFront(ctx){
   // ── LYBS badge overlay (toggle) ──
   if(CS.showLybs && LAYERS.lybs_logo) ctx.drawImage(LAYERS.lybs_logo,0,0,PW,PH);
 
-  // ── LAYER 06: Logo circle chrome ──
-  if(LAYERS.logo) ctx.drawImage(LAYERS.logo,0,0,PW,PH);
+  // ── LAYER 06: Logo circle chrome — skipped for BLACK (drawn gold by drawBlackEdition) ──
+  if(LAYERS.logo && CS.parallel!=='black') ctx.drawImage(LAYERS.logo,0,0,PW,PH);
   if(CS.logoImg){
     const lcx=163, lcy=891, lr=72;
     ctx.save();
@@ -1571,13 +1577,104 @@ function drawFront(ctx){
   // ── EMBOSS — tilt-reactive region highlights ──
   drawEmboss(ctx);
 
+  // ── BLACK EDITION — gold frame treatment over all layers ──
+  if(par.name==='BLACK') drawBlackEdition(ctx);
+
   // ── HOLO FOIL full-card skin (after everything) ──
   if(par.name==='HOLO FOIL') drawHolo(ctx);
   // ── CRACKED ICE full-card prismatic overlay (after everything) ──
   if(par.name==='CRACKED ICE') drawIceOverlay(ctx);
 }
 
-/* ── Rainbow ── */
+
+/* ── BLACK EDITION — jet black bg + gold frame treatment ── */
+function drawBlackEdition(ctx){
+  if(!LAYERS.frame) return;
+  const ry=CS.rotY||0, rx=CS.rotX||0;
+  const realTilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
+  const realDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+  const REST_TILT=0.55, REST_DIR=38;
+  const blend=realTilt;
+  const effTilt=REST_TILT*(1-blend)+realTilt*blend;
+  const effDir=REST_DIR*(1-blend)+realDir*blend;
+  const lx=Math.cos(effDir*Math.PI/180)*effTilt;
+  const ly=-Math.sin(effDir*Math.PI/180)*effTilt;
+  const goldHue=46;
+
+  // Build gold sheen gradient (used to paint the frame in gold)
+  const sx0=lx>0?0:PW, sx1=lx>0?PW*0.68:PW*0.32;
+  const sheen=ctx.createLinearGradient(sx0,0,sx1,PH);
+  sheen.addColorStop(0,  `hsl(${goldHue},80%,28%)`);
+  sheen.addColorStop(0.25,`hsl(${goldHue},100%,62%)`);
+  sheen.addColorStop(0.45,`hsl(52,100%,80%)`);       // bright highlight
+  sheen.addColorStop(0.65,`hsl(${goldHue},100%,55%)`);
+  sheen.addColorStop(1,  `hsl(${goldHue},70%,22%)`);
+
+  // ── Step 1: Render the frame as gold onto an offscreen canvas ──
+  // Draw the white frame, then 'color' blend gold over it, preserving frame shape.
+  const ft=document.createElement('canvas'); ft.width=PW; ft.height=PH;
+  const fc=ft.getContext('2d');
+  fc.drawImage(LAYERS.frame,0,0,PW,PH);           // white frame shape
+  fc.globalCompositeOperation='source-atop';       // only paint where frame pixels exist
+  fc.fillStyle=sheen; fc.fillRect(0,0,PW,PH);     // paint gold sheen
+  // Add a tilt-reactive bright sweep on top of gold
+  const sweep=fc.createLinearGradient(sx0,0,sx1,PH);
+  sweep.addColorStop(0,'rgba(255,240,120,0)');
+  sweep.addColorStop(0.4,`rgba(255,240,120,${0.25+effTilt*0.35})`);
+  sweep.addColorStop(0.6,'rgba(255,240,120,0)');
+  fc.fillStyle=sweep; fc.fillRect(0,0,PW,PH);
+
+  // ── Step 2: Draw gold frame over the card (replaces white frame already drawn) ──
+  // Use 'source-over' — the frame sits on top, its transparent areas show the card below
+  ctx.save();
+  ctx.globalCompositeOperation='source-over';
+  ctx.drawImage(ft,0,0,PW,PH);
+  ctx.restore();
+
+  // ── Step 3: Do the same for the logo circle chrome (white ring → gold ring) ──
+  if(LAYERS.logo){
+    const lt=document.createElement('canvas'); lt.width=PW; lt.height=PH;
+    const lc=lt.getContext('2d');
+    lc.drawImage(LAYERS.logo,0,0,PW,PH);
+    lc.globalCompositeOperation='source-atop';
+    lc.fillStyle=sheen; lc.fillRect(0,0,PW,PH);
+    const lsweep=lc.createLinearGradient(sx0,0,sx1,PH);
+    lsweep.addColorStop(0,'rgba(255,240,120,0)');
+    lsweep.addColorStop(0.4,`rgba(255,240,120,${0.22+effTilt*0.30})`);
+    lsweep.addColorStop(0.6,'rgba(255,240,120,0)');
+    lc.fillStyle=lsweep; lc.fillRect(0,0,PW,PH);
+    ctx.save(); ctx.globalCompositeOperation='source-over'; ctx.drawImage(lt,0,0,PW,PH); ctx.restore();
+  }
+
+  // ── Step 4: Tilt-reactive gold specular flash over the entire card (subtle) ──
+  if(effTilt>0.04){
+    ctx.save();
+    ctx.globalCompositeOperation='screen';
+    const fx=PW/2+lx*PW*0.4, fy=PH/2+ly*PH*0.3;
+    const flash=ctx.createRadialGradient(fx,fy,0,fx,fy,PW*0.5);
+    flash.addColorStop(0,`hsla(52,100%,92%,${effTilt*0.22})`);
+    flash.addColorStop(0.35,`hsla(${goldHue},100%,72%,${effTilt*0.10})`);
+    flash.addColorStop(1,'hsla(0,0%,0%,0)');
+    ctx.fillStyle=flash; ctx.fillRect(0,0,PW,PH);
+    ctx.restore();
+  }
+
+  // ── Step 5: Frame edge catch lights (screen, just on the border) ──
+  ctx.save();
+  ctx.globalCompositeOperation='screen';
+  const edgeA=Math.min(effTilt*0.55+0.06,0.45);
+  if(lx<-0.03){
+    const eg=ctx.createLinearGradient(0,0,18,0);
+    eg.addColorStop(0,`rgba(255,218,60,${edgeA})`); eg.addColorStop(1,'rgba(255,218,60,0)');
+    ctx.fillStyle=eg; ctx.fillRect(0,0,18,PH);
+  }
+  if(lx>0.03){
+    const eg=ctx.createLinearGradient(PW-18,0,PW,0);
+    eg.addColorStop(0,'rgba(255,218,60,0)'); eg.addColorStop(1,`rgba(255,218,60,${edgeA})`);
+    ctx.fillStyle=eg; ctx.fillRect(PW-18,0,18,PH);
+  }
+  ctx.restore();
+}
 /* ── Holo — strong full-card prismatic tiles ── */
 function drawHolo(ctx){
   const mx=CS.mx||0.5, my=CS.my||0.5;
