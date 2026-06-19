@@ -1473,8 +1473,9 @@ function drawFront(ctx){
   // ── SIGNATURE — ON TOP of auto overlay, available on any parallel ──
   drawAutoSig(ctx);
 
-  // ── LAYER 04: Player frame — skipped for BLACK (drawn gold by drawBlackEdition) ──
-  if(LAYERS.frame && CS.parallel!=='black') ctx.drawImage(LAYERS.frame,0,0,PW,PH);
+  // ── LAYER 04: Player frame — BLACK gets a gold frame drawn here instead of white ──
+  if(CS.parallel==='black'){ drawBlackEditionChrome(ctx); }
+  else if(LAYERS.frame) ctx.drawImage(LAYERS.frame,0,0,PW,PH);
 
   // ── Recolor the accent bar (behind position) to chosen color ──
 
@@ -1493,7 +1494,7 @@ function drawFront(ctx){
   // ── LYBS badge overlay (toggle) ──
   if(CS.showLybs && LAYERS.lybs_logo) ctx.drawImage(LAYERS.lybs_logo,0,0,PW,PH);
 
-  // ── LAYER 06: Logo circle chrome — skipped for BLACK (drawn gold by drawBlackEdition) ──
+  // ── LAYER 06: Logo circle chrome — BLACK gold ring already drawn above by drawBlackEditionChrome ──
   if(LAYERS.logo && CS.parallel!=='black') ctx.drawImage(LAYERS.logo,0,0,PW,PH);
   if(CS.logoImg){
     const lcx=163, lcy=891, lr=72;
@@ -1577,8 +1578,8 @@ function drawFront(ctx){
   // ── EMBOSS — tilt-reactive region highlights ──
   drawEmboss(ctx);
 
-  // ── BLACK EDITION — gold frame treatment over all layers ──
-  if(par.name==='BLACK') drawBlackEdition(ctx);
+  // ── BLACK EDITION — tilt-reactive gold flash + edge lights, on top of everything ──
+  if(par.name==='BLACK') drawBlackEditionFlash(ctx);
 
   // ── HOLO FOIL full-card skin (after everything) ──
   if(par.name==='HOLO FOIL') drawHolo(ctx);
@@ -1589,6 +1590,13 @@ function drawFront(ctx){
 
 /* ── BLACK EDITION — jet black bg + gold frame treatment ── */
 function drawBlackEdition(ctx){
+  drawBlackEditionChrome(ctx);
+  drawBlackEditionFlash(ctx);
+}
+
+/* Gold frame + gold logo-ring chrome — replaces the white frame/ring in place,
+   so it sits UNDER text, the logo photo, and other top layers like every other parallel. */
+function drawBlackEditionChrome(ctx){
   if(!LAYERS.frame) return;
   const ry=CS.rotY||0, rx=CS.rotX||0;
   const realTilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
@@ -1598,7 +1606,6 @@ function drawBlackEdition(ctx){
   const effTilt=REST_TILT*(1-blend)+realTilt*blend;
   const effDir=REST_DIR*(1-blend)+realDir*blend;
   const lx=Math.cos(effDir*Math.PI/180)*effTilt;
-  const ly=-Math.sin(effDir*Math.PI/180)*effTilt;
   const goldHue=46;
 
   // Build gold sheen gradient (used to paint the frame in gold)
@@ -1610,7 +1617,7 @@ function drawBlackEdition(ctx){
   sheen.addColorStop(0.65,`hsl(${goldHue},100%,55%)`);
   sheen.addColorStop(1,  `hsl(${goldHue},70%,22%)`);
 
-  // ── Step 1: Render the frame as gold onto an offscreen canvas ──
+  // ── Render the frame as gold onto an offscreen canvas ──
   // Draw the white frame, then 'color' blend gold over it, preserving frame shape.
   const ft=document.createElement('canvas'); ft.width=PW; ft.height=PH;
   const fc=ft.getContext('2d');
@@ -1624,14 +1631,13 @@ function drawBlackEdition(ctx){
   sweep.addColorStop(0.6,'rgba(255,240,120,0)');
   fc.fillStyle=sweep; fc.fillRect(0,0,PW,PH);
 
-  // ── Step 2: Draw gold frame over the card (replaces white frame already drawn) ──
-  // Use 'source-over' — the frame sits on top, its transparent areas show the card below
+  // ── Draw gold frame onto the card (replaces the white frame) ──
   ctx.save();
   ctx.globalCompositeOperation='source-over';
   ctx.drawImage(ft,0,0,PW,PH);
   ctx.restore();
 
-  // ── Step 3: Do the same for the logo circle chrome (white ring → gold ring) ──
+  // ── Do the same for the logo circle chrome (white ring → gold ring) ──
   if(LAYERS.logo){
     const lt=document.createElement('canvas'); lt.width=PW; lt.height=PH;
     const lc=lt.getContext('2d');
@@ -1645,8 +1651,23 @@ function drawBlackEdition(ctx){
     lc.fillStyle=lsweep; lc.fillRect(0,0,PW,PH);
     ctx.save(); ctx.globalCompositeOperation='source-over'; ctx.drawImage(lt,0,0,PW,PH); ctx.restore();
   }
+}
 
-  // ── Step 4: Tilt-reactive gold specular flash over the entire card (subtle) ──
+/* Tilt-reactive specular flash + edge catch lights — full-card overlays meant
+   to sit above everything else (text, logo photo, etc.), drawn last. */
+function drawBlackEditionFlash(ctx){
+  const ry=CS.rotY||0, rx=CS.rotX||0;
+  const realTilt=Math.min(Math.sqrt((ry/14)**2+(rx/10)**2),1);
+  const realDir=((Math.atan2(rx,ry)*180/Math.PI)+360)%360;
+  const REST_TILT=0.55, REST_DIR=38;
+  const blend=realTilt;
+  const effTilt=REST_TILT*(1-blend)+realTilt*blend;
+  const effDir=REST_DIR*(1-blend)+realDir*blend;
+  const lx=Math.cos(effDir*Math.PI/180)*effTilt;
+  const ly=-Math.sin(effDir*Math.PI/180)*effTilt;
+  const goldHue=46;
+
+  // ── Tilt-reactive gold specular flash over the entire card (subtle) ──
   if(effTilt>0.04){
     ctx.save();
     ctx.globalCompositeOperation='screen';
@@ -1659,7 +1680,7 @@ function drawBlackEdition(ctx){
     ctx.restore();
   }
 
-  // ── Step 5: Frame edge catch lights (screen, just on the border) ──
+  // ── Frame edge catch lights (screen, just on the border) ──
   ctx.save();
   ctx.globalCompositeOperation='screen';
   const edgeA=Math.min(effTilt*0.55+0.06,0.45);
