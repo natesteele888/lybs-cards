@@ -109,8 +109,8 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .transform-row label{font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase;min-width:36px}
 .transform-row input[type=range]{width:100%;accent-color:var(--navy);height:3px;cursor:pointer}
 .transform-row .val{font-family:"Oswald",sans-serif;font-size:10px;color:var(--navy);min-width:32px;text-align:right;font-weight:600}
-.transform-btns{display:flex;gap:5px;margin-top:4px}
-.t-btn{flex:1;padding:4px 0;background:var(--cream);border:1px solid var(--border);border-radius:2px;font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:1px;color:var(--muted);cursor:pointer;transition:.15s}
+.transform-btns{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.t-btn{flex:1;min-width:54px;padding:4px 6px;background:var(--cream);border:1px solid var(--border);border-radius:2px;font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:1px;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
 .t-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
 /* Drag hint */
 .drag-hint{font-family:"Oswald",sans-serif;font-size:9px;color:var(--muted);letter-spacing:1px;text-align:center;margin-top:4px;opacity:.7}
@@ -544,6 +544,7 @@ window.addEventListener('unhandledrejection',function(e){
               <button class="t-btn" onclick="resetTransform()">RESET</button>
               <button class="t-btn" onclick="fitTransform()">FIT</button>
               <button class="t-btn" onclick="fillTransform()">FILL</button>
+              <button class="t-btn" onclick="calibrateFaceTargetFromCurrentPhoto()" title="Save this scale/position as the starting point for every future photo">★ USE AS DEFAULT</button>
             </div>
             <div class="drag-hint">&#x2725; DRAG ON CARD PREVIEW TO REPOSITION</div>
           </div>
@@ -949,6 +950,7 @@ let CS = {
   logoScale:1.0, logoOffsetX:0, logoOffsetY:0, showBanner:true,
   macImg:null, serialPos:'br',
   photoImg:null, logoImg:null, sigImg:null,
+  photoFaceBox:null, // last detected face box {x,y,w,h} for the current photoImg, used by "use as default" calibration
   data:{},
   // Image transform
   imgScale:1.0,    // 1.0 = natural fit
@@ -3017,13 +3019,16 @@ function hPhoto(i){
     const img=new Image();
     img.onload=()=>{
       CS.photoImg=img;
+      CS.photoFaceBox=null;
       // Safe default first (centered, neutral scale) so the card never looks broken
       fillTransform();
       document.getElementById('imgTransform').style.display='block';
       qR();
       // Then try to auto-center on the detected face; only overrides if a face is found
-      autoFaceCrop(img).then(crop=>{
+      detectFaceBox(img).then(box=>{
         if(CS.photoImg!==img) return; // a newer photo was uploaded while we were detecting
+        CS.photoFaceBox=box;
+        const crop=computeFaceCrop(img,box);
         CS.imgScale=crop.scale; CS.imgOffsetX=crop.offsetX; CS.imgOffsetY=crop.offsetY;
         syncTransformUI(); qR();
       });
@@ -3608,8 +3613,52 @@ async function detectFaceBox(imgEl){
 //   - face height fills FACE_FRAC of the photo-mask height
 //   - face vertical center sits at FACE_ANCHOR_Y down from the mask top
 //   - face horizontal center sits on the mask's horizontal center
-const FACE_FRAC=0.24;      // detected face height, as a fraction of mask height
-const FACE_ANCHOR_Y=0.40;  // where the face center should land, fraction of mask height from top
+const FACE_FRAC_DEFAULT=0.24;      // detected face height, as a fraction of mask height
+const FACE_ANCHOR_Y_DEFAULT=0.40;  // where the face center should land, fraction of mask height from top
+const FACE_CALIBRATION_KEY='lybs_face_calibration_v1';
+
+function loadFaceCalibration(){
+  try{
+    const raw=localStorage.getItem(FACE_CALIBRATION_KEY);
+    if(!raw) return {frac:FACE_FRAC_DEFAULT, anchorY:FACE_ANCHOR_Y_DEFAULT};
+    const parsed=JSON.parse(raw);
+    return {
+      frac:(typeof parsed.frac==='number'&&parsed.frac>0)?parsed.frac:FACE_FRAC_DEFAULT,
+      anchorY:(typeof parsed.anchorY==='number')?parsed.anchorY:FACE_ANCHOR_Y_DEFAULT,
+    };
+  }catch(e){ return {frac:FACE_FRAC_DEFAULT, anchorY:FACE_ANCHOR_Y_DEFAULT}; }
+}
+let FACE_CAL=loadFaceCalibration();
+function FACE_FRAC(){ return FACE_CAL.frac; }
+function FACE_ANCHOR_Y(){ return FACE_CAL.anchorY; }
+
+// Call after manually dragging the Scale/Up-Down sliders to a position that
+// looks right, with a photo (and its detected face box) loaded. Reads back
+// the CURRENT slider values + the photo's detected face box, works out what
+// face-height-fraction and anchor-Y that implies, and saves it so every
+// future photo — single or bulk — targets this same calibrated framing.
+function calibrateFaceTargetFromCurrentPhoto(){
+  if(!CS.photoImg){ showToast('Upload a photo first',true); return; }
+  if(!CS.photoFaceBox){ showToast('No face detected in this photo — can\'t calibrate from it',true); return; }
+  const areaW=MASK.x1-MASK.x4, areaH=MASK.y2-MASK.y0;
+  const iw=CS.photoImg.naturalWidth, ih=CS.photoImg.naturalHeight;
+  const baseScale=Math.max(areaW/iw, areaH/ih);
+  const finalScale=baseScale*CS.imgScale;
+
+  const faceHOnMask=CS.photoFaceBox.h*finalScale;
+  const newFrac=faceHOnMask/areaH;
+
+  const iwScaled=iw*finalScale, ihScaled=ih*finalScale;
+  const imgLeft=(MASK.x4+MASK.x1)/2 - iwScaled/2 + CS.imgOffsetX;
+  const imgTop =(MASK.y0+MASK.y2)/2 - ihScaled/2 + CS.imgOffsetY;
+  const faceCy=CS.photoFaceBox.y+CS.photoFaceBox.h/2;
+  const faceYOnMask=imgTop + faceCy*finalScale;
+  const newAnchorY=(faceYOnMask-MASK.y0)/areaH;
+
+  FACE_CAL={frac:newFrac, anchorY:newAnchorY};
+  try{ localStorage.setItem(FACE_CALIBRATION_KEY, JSON.stringify(FACE_CAL)); }catch(e){}
+  showToast(`✓ Saved as default framing (face ${Math.round(newFrac*100)}% of photo height)`);
+}
 
 function computeFaceCrop(img,faceBox){
   const areaW=MASK.x1-MASK.x4, areaH=MASK.y2-MASK.y0; // 603 x 850
@@ -3621,7 +3670,7 @@ function computeFaceCrop(img,faceBox){
   }
 
   // Desired on-screen face height, in mask pixels
-  const desiredFaceH=areaH*FACE_FRAC;
+  const desiredFaceH=areaH*FACE_FRAC();
   // baseScale already maps image px -> mask px at imgScale=1; solve for the
   // extra zoom needed so the detected face height matches desiredFaceH.
   const scale=desiredFaceH/(faceBox.h*baseScale);
@@ -3639,7 +3688,7 @@ function computeFaceCrop(img,faceBox){
 
   // Desired face position on the mask
   const desiredFaceX=(MASK.x4+MASK.x1)/2; // horizontally centered
-  const desiredFaceY=MASK.y0 + areaH*FACE_ANCHOR_Y;
+  const desiredFaceY=MASK.y0 + areaH*FACE_ANCHOR_Y();
 
   const offsetX=desiredFaceX-faceXOnMask;
   const offsetY=desiredFaceY-faceYOnMask;
