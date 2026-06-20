@@ -277,6 +277,26 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .bp-noimg{width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:#2a3a5a;color:rgba(255,255,255,.3);font-size:20px}
 .bp-name{font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;color:var(--ink);padding:3px 5px 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bp-meta{font-family:"Oswald",sans-serif;font-size:8px;color:var(--muted);padding:0 5px 4px}
+.bp-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:5px;background:var(--cream);margin-bottom:6px}
+.bp-row .bp-rthumb{width:34px;height:34px;border-radius:3px;object-fit:cover;flex-shrink:0;background:#1a2a4a}
+.bp-row .bp-rnoimg{width:34px;height:34px;border-radius:3px;flex-shrink:0;background:#2a3a5a;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:14px}
+.bp-row .bp-rname{font-family:"Oswald",sans-serif;font-size:11px;font-weight:600;color:var(--ink);min-width:130px;flex-shrink:0}
+.bp-row .bp-rmeta{font-family:"Oswald",sans-serif;font-size:9px;color:var(--muted);flex-shrink:0;min-width:120px}
+.bp-row .bp-rcardnum{width:48px;flex-shrink:0}
+.bp-row .bp-rcardnum input{width:100%;font-family:"Oswald",sans-serif;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box}
+.bp-row .bp-rstar{flex-shrink:0;display:flex;align-items:center;gap:4px;font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.5px;color:var(--muted);cursor:pointer}
+.bp-row .bp-rstar input{cursor:pointer}
+.bp-row .bp-rextra{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
+.bp-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(0,39,94,.08);color:var(--navy);font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;letter-spacing:.5px;padding:3px 6px 3px 8px;border-radius:10px}
+.bp-chip button{background:none;border:none;color:var(--navy);cursor:pointer;font-size:11px;line-height:1;padding:0;opacity:.6}
+.bp-chip button:hover{opacity:1}
+.bp-addpar{font-family:"Oswald",sans-serif;font-size:9px;padding:3px 6px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);cursor:pointer}
+.bp-addpar:hover{border-color:var(--navy);color:var(--navy)}
+.bp-parmenu{position:absolute;z-index:20;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto}
+.bp-parmenu button{display:flex;align-items:center;gap:6px;background:none;border:none;text-align:left;font-family:"Oswald",sans-serif;font-size:10px;padding:5px 8px;border-radius:4px;cursor:pointer;color:var(--ink);white-space:nowrap}
+.bp-parmenu button:hover{background:rgba(0,39,94,.06)}
+.bp-parmenu .sw{width:10px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.15)}
+.bulk-preview-list{max-height:340px;overflow-y:auto;position:relative}
 
 /* ── FORM TABS ── */
 .tab-bar{display:flex;border-bottom:2px solid var(--border);background:var(--paper);position:sticky;top:0;z-index:4;overflow-x:auto;scrollbar-width:none}
@@ -769,24 +789,24 @@ window.addEventListener('unhandledrejection',function(e){
     <div style="padding:22px">
       <div class="bulk-step">
         <div class="bulk-step-h"><span class="bulk-num">1</span> Download the template</div>
-        <p class="bulk-p">Your spreadsheet needs these columns (header row required). Extra columns are ignored.</p>
-        <div class="bulk-cols">firstName &#xB7; lastName &#xB7; jerseyNum &#xB7; team &#xB7; position &#xB7; division &#xB7; parallel &#xB7; cardNum &#xB7; photoFile</div>
+        <p class="bulk-p">Your spreadsheet needs these columns (header row required). Extra columns are ignored. <b>cardNum</b> auto-fills alphabetically by last name if left blank. <b>photoFile</b> is optional — if blank, photos auto-match by <code>firstinitial+lastname</code> (e.g. <code>dsteele.jpg</code>).</p>
+        <div class="bulk-cols">firstName &#xB7; lastName &#xB7; jerseyNum &#xB7; team &#xB7; position &#xB7; division &#xB7; cardNum &#xB7; all_star &#xB7; photoFile (optional)</div>
         <button class="bulk-btn-ghost" onclick="downloadTemplate()">&#x2B07; Download CSV Template</button>
       </div>
       <div class="bulk-step">
         <div class="bulk-step-h"><span class="bulk-num">2</span> Upload the spreadsheet</div>
-        <p class="bulk-p">.xlsx or .csv. The <b>photoFile</b> column holds each player's photo filename (e.g. <code>jsmith.jpg</code>).</p>
+        <p class="bulk-p">.xlsx or .csv. Every player gets a <b>BASE</b> card automatically — add parallel cards for specific players in the review step below.</p>
         <div class="bulk-drop"><input type="file" id="bulkSheet" accept=".xlsx,.xls,.csv" onchange="loadSheet(this)"><span id="bulkSheetName">Click to choose spreadsheet&#x2026;</span></div>
       </div>
       <div class="bulk-step">
         <div class="bulk-step-h"><span class="bulk-num">3</span> Upload the photo ZIP <span style="font-weight:400;color:var(--muted);font-size:11px">(optional)</span></div>
-        <p class="bulk-p">A .zip of photos. Filenames must match the <b>photoFile</b> column. Players without a match still generate (no photo).</p>
+        <p class="bulk-p">A .zip of photos named <code>firstinitial+lastname.jpg</code> (e.g. <code>dsteele.jpg</code>) — or matching your sheet's <b>photoFile</b> column if you filled it in. Players without a match still generate (no photo).</p>
         <div class="bulk-drop"><input type="file" id="bulkZip" accept=".zip" onchange="loadZip(this)"><span id="bulkZipName">Click to choose photo ZIP&#x2026;</span></div>
       </div>
       <div class="bulk-step" id="bulkPreviewStep" style="display:none">
         <div class="bulk-step-h"><span class="bulk-num">4</span> Review &amp; import</div>
         <div class="bulk-summary" id="bulkSummary"></div>
-        <div class="bulk-preview-grid" id="bulkPreview"></div>
+        <div class="bulk-preview-list" id="bulkPreview"></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:18px">
         <button class="cancel-btn" style="display:block;margin:0;flex:1" onclick="closeBulk()">CANCEL</button>
@@ -3334,13 +3354,13 @@ function resetForm(){
 /* ═══════════════════════════════════════════
    BULK IMPORT — spreadsheet + photo ZIP → cards
 ═══════════════════════════════════════════ */
-let BULK={rows:[],photos:{},matched:[]};
+let BULK={rows:[],photos:{},matched:[],extras:[]};
 const VALID_PARALLELS=['base','blue','red','gold','green','orange','purple','holo','black','ice','bubbles','tie_dye'];
 
 function openBulk(){document.getElementById('bulkOverlay').style.display='flex';}
 function closeBulk(){
   document.getElementById('bulkOverlay').style.display='none';
-  BULK={rows:[],photos:{},matched:[]};
+  BULK={rows:[],photos:{},matched:[],extras:[]};
   document.getElementById('bulkSheetName').textContent='Click to choose spreadsheet…';
   document.getElementById('bulkZipName').textContent='Click to choose photo ZIP…';
   document.getElementById('bulkPreviewStep').style.display='none';
@@ -3350,8 +3370,8 @@ function closeBulk(){
 }
 
 function downloadTemplate(){
-  const headers=['firstName','lastName','jerseyNum','team','position','division','parallel','cardNum','photoFile'];
-  const example=['Alex','Johnson','7','Lunenburg Blue','Pitcher','Majors Baseball','base','001','ajohnson.jpg'];
+  const headers=['firstName','lastName','jerseyNum','team','position','division','cardNum','all_star','photoFile'];
+  const example=['Alex','Johnson','7','Lunenburg Blue','Pitcher','Majors Baseball','','no',''];
   const csv=headers.join(',')+'\n'+example.join(',')+'\n';
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');
@@ -3371,10 +3391,30 @@ function loadSheet(input){
       const sheet=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
       BULK.rows=rows.map(normalizeRow).filter(r=>r.firstName||r.lastName);
+      assignCardNumbers(BULK.rows);
       rematchBulk();
     }catch(err){showToast('Could not read spreadsheet: '+err.message,true);}
   };
   reader.readAsArrayBuffer(file);
+}
+
+// Fill in any blank cardNum, alphabetically by last name (then first name), without
+// disturbing card numbers the spreadsheet explicitly provided.
+function assignCardNumbers(rows){
+  const sorted=rows.filter(r=>!r.cardNum).slice().sort((a,b)=>{
+    const al=(a.lastName||'').toLowerCase(), bl=(b.lastName||'').toLowerCase();
+    if(al!==bl) return al<bl?-1:1;
+    const af=(a.firstName||'').toLowerCase(), bf=(b.firstName||'').toLowerCase();
+    return af<bf?-1:(af>bf?1:0);
+  });
+  const used=new Set(rows.map(r=>r.cardNum).filter(Boolean));
+  let n=1;
+  sorted.forEach(r=>{
+    while(used.has(String(n))) n++;
+    r.cardNum=String(n);
+    used.add(r.cardNum);
+    n++;
+  });
 }
 
 function normalizeRow(r){
@@ -3388,6 +3428,7 @@ function normalizeRow(r){
   };
   let par=get('parallel','finish','rarity').toLowerCase();
   if(!VALID_PARALLELS.includes(par)) par='base';
+  const allStarRaw=get('allstar','isallstar','star').toLowerCase();
   return {
     firstName:get('firstname','first'),
     lastName: get('lastname','last'),
@@ -3398,6 +3439,7 @@ function normalizeRow(r){
     parallel: par,
     cardNum:  get('cardnum','cardnumber','card'),
     photoFile:get('photofile','photo','image','filename','file'),
+    allStar:  ['yes','y','true','1','x'].includes(allStarRaw),
   };
 }
 
@@ -3418,15 +3460,31 @@ function loadZip(input){
   }).catch(err=>{showToast('Could not read ZIP: '+err.message,true);});
 }
 
+// Derive the conventional "firstinitial+lastname" key for a row, e.g.
+// "Desmond" "Steele" -> "dsteele". Strips apostrophes/spaces/periods so
+// names like "D'Annolfo" normalize to "dannolfo".
+function derivedPhotoKey(row){
+  const fi=(row.firstName||'').trim().charAt(0).toLowerCase();
+  const ln=(row.lastName||'').toLowerCase().replace(/['\s.]/g,'');
+  return fi&&ln?fi+ln:'';
+}
+
 function rematchBulk(){
   if(!BULK.rows.length){return;}
   BULK.matched=BULK.rows.map(row=>{
     let blob=null;
+    // 1) Explicit photoFile column, if the sheet provided one
     if(row.photoFile){
       blob=BULK.photos[row.photoFile.toLowerCase()]||null;
-      // try without extension match if exact missed
       if(!blob){
         const want=row.photoFile.toLowerCase().replace(/\.[^.]+$/,'');
+        for(const key in BULK.photos){ if(key.replace(/\.[^.]+$/,'')===want){blob=BULK.photos[key];break;} }
+      }
+    }
+    // 2) Fall back to the firstinitial+lastname convention (e.g. dsteele.jpg)
+    if(!blob){
+      const want=derivedPhotoKey(row);
+      if(want){
         for(const key in BULK.photos){ if(key.replace(/\.[^.]+$/,'')===want){blob=BULK.photos[key];break;} }
       }
     }
@@ -3437,7 +3495,7 @@ function rematchBulk(){
 
 function renderBulkPreview(){
   const step=document.getElementById('bulkPreviewStep');
-  const grid=document.getElementById('bulkPreview');
+  const list=document.getElementById('bulkPreview');
   const sum=document.getElementById('bulkSummary');
   step.style.display='block';
   document.getElementById('bulkImportBtn').disabled=BULK.matched.length===0;
@@ -3446,32 +3504,108 @@ function renderBulkPreview(){
   const withPhoto=BULK.matched.filter(m=>m.blob).length;
   const noPhoto=total-withPhoto;
   const haveZip=Object.keys(BULK.photos).length>0;
-  sum.innerHTML=`<b>${total}</b> player${total!==1?'s':''} ready &#xB7; `+
+  const starCount=BULK.rows.filter(r=>r.allStar).length;
+  const extraCount=BULK.extras.length;
+  const totalCards=total+extraCount;
+  sum.innerHTML=`<b>${total}</b> player${total!==1?'s':''} &#x2192; <b>${totalCards}</b> card${totalCards!==1?'s':''} total &#xB7; `+
     `<b>${withPhoto}</b> with photo`+
     (noPhoto>0?` &#xB7; <span class="warn">${noPhoto} without a matching photo</span>`:'')+
-    (haveZip?'':` &#xB7; <span class="warn">no ZIP loaded</span>`);
+    (haveZip?'':` &#xB7; <span class="warn">no ZIP loaded</span>`)+
+    ` &#xB7; <b>${starCount}</b> all-star${starCount!==1?'s':''}`+
+    (extraCount?` &#xB7; <b>${extraCount}</b> extra parallel card${extraCount!==1?'s':''}`:'');
 
-  grid.innerHTML='';
-  BULK.matched.slice(0,60).forEach(m=>{
-    const card=document.createElement('div');card.className='bp-card';
+  list.innerHTML='';
+  BULK.matched.forEach((m,i)=>{
+    const row=document.createElement('div');row.className='bp-row';
+
     if(m.blob){
-      const img=document.createElement('img');img.className='bp-thumb';
-      img.src=URL.createObjectURL(m.blob);card.appendChild(img);
+      const img=document.createElement('img');img.className='bp-rthumb';
+      img.src=URL.createObjectURL(m.blob);row.appendChild(img);
     } else {
-      const ph=document.createElement('div');ph.className='bp-noimg';ph.textContent='\u26BE';card.appendChild(ph);
+      const ph=document.createElement('div');ph.className='bp-rnoimg';ph.textContent='\u26BE';row.appendChild(ph);
     }
-    const nm=document.createElement('div');nm.className='bp-name';
+
+    const nm=document.createElement('div');nm.className='bp-rname';
     nm.textContent=`${m.row.firstName} ${m.row.lastName}`.trim()||'(no name)';
-    const mt=document.createElement('div');mt.className='bp-meta';
-    mt.textContent=`${m.row.position||'—'} · ${(m.row.parallel||'base').toUpperCase()}`;
-    card.appendChild(nm);card.appendChild(mt);
-    grid.appendChild(card);
+    row.appendChild(nm);
+
+    const mt=document.createElement('div');mt.className='bp-rmeta';
+    mt.innerHTML=`${m.row.position||'&#x2014;'} &#xB7; ${m.row.team||'&#x2014;'}`;
+    row.appendChild(mt);
+
+    const cnWrap=document.createElement('div');cnWrap.className='bp-rcardnum';
+    const cnInput=document.createElement('input');
+    cnInput.type='text';cnInput.value=m.row.cardNum||'';cnInput.placeholder='#';
+    cnInput.title='Card number';
+    cnInput.oninput=()=>{ BULK.rows[i].cardNum=cnInput.value.trim(); };
+    cnWrap.appendChild(cnInput);
+    row.appendChild(cnWrap);
+
+    const starLbl=document.createElement('label');starLbl.className='bp-rstar';
+    const starChk=document.createElement('input');starChk.type='checkbox';starChk.checked=!!m.row.allStar;
+    starChk.onchange=()=>{ BULK.rows[i].allStar=starChk.checked; renderBulkPreview(); };
+    starLbl.appendChild(starChk);
+    starLbl.appendChild(document.createTextNode('\u2605 ALL-STAR'));
+    row.appendChild(starLbl);
+
+    const extraWrap=document.createElement('div');extraWrap.className='bp-rextra';
+    const baseChip=document.createElement('span');baseChip.className='bp-chip';
+    baseChip.style.background='rgba(0,0,0,.06)';baseChip.style.color='var(--muted)';
+    baseChip.textContent='BASE';
+    extraWrap.appendChild(baseChip);
+
+    BULK.extras.filter(x=>x.rowIndex===i).forEach((ex,exIdx)=>{
+      const par=PAR[ex.parallel]||PAR.base;
+      const chip=document.createElement('span');chip.className='bp-chip';
+      const g=par.glow;
+      if(g) chip.style.background=`rgba(${g[0]},${g[1]},${g[2]},.18)`;
+      chip.style.color=g?`rgb(${Math.round(g[0]*0.6)},${Math.round(g[1]*0.6)},${Math.round(g[2]*0.6)})`:'var(--navy)';
+      const label=document.createElement('span');label.textContent=par.name;
+      const rm=document.createElement('button');rm.type='button';rm.textContent='\u00d7';
+      rm.onclick=()=>{ BULK.extras=BULK.extras.filter(x=>x!==ex); renderBulkPreview(); };
+      chip.appendChild(label);chip.appendChild(rm);
+      extraWrap.appendChild(chip);
+    });
+
+    const addBtn=document.createElement('button');addBtn.type='button';addBtn.className='bp-addpar';
+    addBtn.textContent='+ parallel';
+    addBtn.onclick=(ev)=>openParallelMenu(ev,i);
+    extraWrap.appendChild(addBtn);
+
+    row.appendChild(extraWrap);
+    list.appendChild(row);
   });
-  if(total>60){
-    const more=document.createElement('div');more.className='bp-card';
-    more.style.cssText='display:flex;align-items:center;justify-content:center;font-family:Oswald;font-size:11px;color:var(--muted);min-height:90px';
-    more.textContent=`+${total-60} more`;grid.appendChild(more);
-  }
+}
+
+// Small floating menu of parallel swatches, opened from a row's "+ parallel" button.
+function openParallelMenu(ev,rowIndex){
+  closeParallelMenu();
+  const btn=ev.currentTarget;
+  const menu=document.createElement('div');menu.className='bp-parmenu';menu.id='bpParMenu';
+  VALID_PARALLELS.filter(k=>k!=='black').forEach(key=>{
+    const par=PAR[key];if(!par)return;
+    const opt=document.createElement('button');opt.type='button';
+    const sw=document.createElement('span');sw.className='sw';
+    sw.style.background=(par.sw&&par.sw.startsWith('#'))?par.sw:(par.glow?`rgb(${par.glow[0]},${par.glow[1]},${par.glow[2]})`:'#888');
+    opt.appendChild(sw);
+    opt.appendChild(document.createTextNode(par.name));
+    opt.onclick=(e)=>{
+      e.stopPropagation();
+      BULK.extras.push({rowIndex,parallel:key});
+      closeParallelMenu();
+      renderBulkPreview();
+    };
+    menu.appendChild(opt);
+  });
+  document.body.appendChild(menu);
+  const r=btn.getBoundingClientRect();
+  menu.style.left=(r.left+window.scrollX)+'px';
+  menu.style.top=(r.bottom+window.scrollY+4)+'px';
+  setTimeout(()=>{ document.addEventListener('click',closeParallelMenu,{once:true}); },0);
+}
+function closeParallelMenu(){
+  const m=document.getElementById('bpParMenu');
+  if(m) m.remove();
 }
 
 async function runBulkImport(){
@@ -3485,31 +3619,59 @@ async function runBulkImport(){
   prog.style.display='block';
 
   const db=window._db, st=window._storage;
-  let done=0, ok=0, fail=0;
-  const total=BULK.matched.length;
 
-  for(const m of BULK.matched){
-    const r=m.row;
+  // Build the flat list of cards to create: one BASE per player, plus any
+  // extra parallels picked for specific players in the review step.
+  const jobs=[];
+  BULK.matched.forEach((m,i)=>{ jobs.push({rowIndex:i,row:m.row,blob:m.blob,parallel:'base'}); });
+  BULK.extras.forEach(ex=>{
+    const m=BULK.matched[ex.rowIndex];
+    if(m) jobs.push({rowIndex:ex.rowIndex,row:m.row,blob:m.blob,parallel:ex.parallel});
+  });
+
+  let done=0, ok=0, fail=0;
+  const total=jobs.length;
+  const photoCache={}; // rowIndex -> photoURL, so a player's photo uploads once even with multiple parallel cards
+
+  for(const job of jobs){
+    const r=job.row;
     try{
       let photoURL='';
-      if(m.blob){
-        const slug=`${r.firstName}_${r.lastName}_${Date.now()}_${done}`.replace(/\s+/g,'_');
+      if(photoCache[job.rowIndex]!==undefined){
+        photoURL=photoCache[job.rowIndex];
+      } else if(job.blob){
+        const slug=`${r.firstName}_${r.lastName}_${Date.now()}_${job.rowIndex}`.replace(/\s+/g,'_');
         const ref=st.ref('photos/'+slug);
-        await ref.put(m.blob);
+        await ref.put(job.blob);
         photoURL=await ref.getDownloadURL();
+        photoCache[job.rowIndex]=photoURL;
+      } else {
+        photoCache[job.rowIndex]='';
       }
+      const par=job.parallel||'base';
       const data={
-        firstName:r.firstName,lastName:r.lastName,position:r.position,
-        team:r.team,division:r.division,jerseyNum:r.jerseyNum,cardNum:r.cardNum,
-        parallel:r.parallel,rarity:r.parallel,photoURL,sigURL:'',logoURL:'',
-        stats:[],bats:'Right',throws:'Right',height:'',weight:'',hometown:'',
-        showBanner:true,imgScale:1,imgOffsetX:0,imgOffsetY:0,
+        firstName:r.firstName,lastName:r.lastName,
+        position:r.position,team:r.team,teamAbbr:'',division:r.division,
+        jerseyNum:r.jerseyNum,cardNum:r.cardNum||'',
+        parallel:par,cardType:par,rarity:par,
+        photoURL,sigURL:'',logoURL:'',macURL:'',cutoutURL:'',
+        stats:[],pitchStats:[],statsPulled:false,pitchPulled:false,
+        playoffStats:[],pitchPlayoffStats:[],
+        bats:'Right',throws:'Right',height:'',weight:'',hometown:'',bio:'',
+        serialNum:'',printRun:'',serialPos:'h',
+        showBanner:true,
+        accentColor:'#1546a0',accentSat:100,outerColor:'#1546a0',outerOpacity:0.40,
+        breakout:false,breakoutPoly:null,
+        numbered:false,allStar:!!r.allStar,sPos:'br',sigColor:'black',
+        certAuto:false,showLybs:true,customBgURL:null,
+        imgScale:1,imgOffsetX:0,imgOffsetY:0,
+        logoScale:1,logoOffsetX:0,logoOffsetY:0,
         createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
-        bulkImport:true
+        bulkImport:true,
       };
       await db.collection('players').add(data);
       ok++;
-    }catch(err){console.error('row failed',r,err);fail++;}
+    }catch(err){console.error('row failed',r,job.parallel,err);fail++;}
     done++;
     bar.style.width=Math.round(done/total*100)+'%';
     txt.textContent=`Importing… ${done}/${total}  (${ok} ok${fail?', '+fail+' failed':''})`;
