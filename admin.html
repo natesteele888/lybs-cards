@@ -186,6 +186,7 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 /* Logo transform (reuses photo transform styles) */
 #logoTransform{background:rgba(0,39,94,0.04);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-top:8px}
 #cardCanvas{display:block;width:420px;height:591px;border-radius:2px}
+#cardCanvas.is-landscape{width:591px!important;height:420px!important}
 .card-hit{position:absolute;inset:0;z-index:5;cursor:crosshair}
 .card-hit.dragging{cursor:grabbing}
 .pv-hint{font-family:"Michroma",sans-serif;font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.15);text-align:center;margin-top:10px;text-transform:uppercase}
@@ -233,6 +234,7 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
   .pv-top{flex-direction:column;align-items:center;gap:4px;max-width:none;margin-bottom:8px;width:auto}
   .card-stage{flex-shrink:0}
   #cardCanvas{width:220px!important;height:309px!important}
+  #cardCanvas.is-landscape{width:309px!important;height:220px!important}
   .pv-hint{display:none}
   .preview-col > div[style*="display:flex"]{flex-direction:column}
   /* Form scrolls below */
@@ -253,6 +255,7 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 }
 @media(max-width:480px){
   #cardCanvas{width:180px!important;height:252px!important}
+  #cardCanvas.is-landscape{width:252px!important;height:180px!important}
   .cg{grid-template-columns:repeat(2,1fr)}
 }
 .bulk-step{margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border)}
@@ -679,6 +682,18 @@ window.addEventListener('unhandledrejection',function(e){
             <div id="pitchRows"></div>
             <button class="asr" onclick="addPR()">+ Add Pitching Year</button>
           </details>
+          <details style="margin-top:6px">
+            <summary style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">Playoff batting entry</summary>
+            <div class="sh" style="margin-top:6px"><span>Year</span><span>Team</span><span>AB</span><span>H</span><span>HR</span><span>RBI</span><span>AVG</span><span>OBP</span><span>SLG</span><span></span></div>
+            <div id="playoffStatsRows"></div>
+            <button class="asr" onclick="addSRP()">+ Add Playoff Batting Year</button>
+          </details>
+          <details style="margin-top:6px">
+            <summary style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">Playoff pitching entry</summary>
+            <div class="sh" style="margin-top:6px"><span>Year</span><span>Team</span><span>IP</span><span>W</span><span>L</span><span>ERA</span><span>SO</span><span>BB</span><span>WHIP</span><span></span></div>
+            <div id="playoffPitchRows"></div>
+            <button class="asr" onclick="addPRP()">+ Add Playoff Pitching Year</button>
+          </details>
         </div>
       </div>
 
@@ -845,6 +860,10 @@ const LAYER_SRCS = {
    CONSTANTS — exact pixel measurements from PSD
 ═══════════════════════════════════════════ */
 const PW = 712, PH = 1000;
+// Back face renders as a true landscape card (rotated relative to the front,
+// like a real trading card back) — separate canvas resolution swapped in at
+// the flip's edge-on midpoint so the resize is never visible.
+const BPW = 1000, BPH = 712;
 
 // Photo mask shape (from layer 03 pixel analysis):
 // Diagonal notch top-left: from (315,47) → (60,100) at slope -1px X per 1px Y
@@ -905,7 +924,7 @@ let CS = {
   imgOffsetX:0,    // px offset on PSD canvas
   imgOffsetY:0,
 };
-let rPending=false, sCnt=0;
+let rPending=false, sCnt=0, sCntP=0, pCntP=0;
 let pD='',sD='',lD='',mD='',pS='',sS='',lS='',mS='';
 let sigHasMark=false;  // true only after user actually draws a stroke
 let pCache=[];
@@ -967,6 +986,8 @@ function qR(){
     bio: (document.getElementById('fBio')||{value:''}).value,
     stats: (CS.loadedBatting&&CS.loadedBatting.length)?CS.loadedBatting:getStats(),
     pitchStats:(CS.loadedPitching&&CS.loadedPitching.length)?CS.loadedPitching:getPitch(),
+    playoffStats: getStatsPlayoff(),
+    pitchPlayoffStats: getPitchPlayoff(),
     statsPulled:!!CS.statsPulled, pitchPulled:!!(CS.statsPulled&&CS.loadedPitching&&CS.loadedPitching.length),
   };
   if(!rPending){
@@ -1137,22 +1158,30 @@ function animFlip(){
 ═══════════════════════════════════════════════════════════ */
 function drawCard(){
   const cv=document.getElementById('cardCanvas'); if(!cv) return;
+  const showBack=CS.flipT>0.5;
+  const cw=showBack?BPW:PW, ch=showBack?BPH:PH;
+
+  if(cv.width!==cw || cv.height!==ch){
+    cv.width=cw; cv.height=ch;
+    cv.classList.toggle('is-landscape', showBack);
+  }
+
   const ctx=cv.getContext('2d');
-  ctx.clearRect(0,0,PW,PH);
+  ctx.clearRect(0,0,cw,ch);
   // Guaranteed opaque base so the card is never transparent-black
-  ctx.fillStyle='#eeece6';ctx.fillRect(0,0,PW,PH);
+  ctx.fillStyle='#eeece6';ctx.fillRect(0,0,cw,ch);
   ctx.save();
   const sx=Math.abs(Math.cos(CS.flipT*Math.PI));
-  ctx.translate(PW/2,PH/2);
+  ctx.translate(cw/2,ch/2);
   ctx.scale(Math.max(.015,sx),1);
-  ctx.translate(-PW/2,-PH/2);
-  if(CS.flipT>0.5){
+  ctx.translate(-cw/2,-ch/2);
+  if(showBack){
     try{ drawBack(ctx); }
     catch(e){
-      ctx.fillStyle='#d2cec6'; ctx.fillRect(0,0,PW,PH);
+      ctx.fillStyle='#d2cec6'; ctx.fillRect(0,0,cw,ch);
       ctx.fillStyle='#333'; ctx.font='24px Oswald,sans-serif';
       ctx.textAlign='center';
-      ctx.fillText('Back render error: '+e.message, PW/2, PH/2);
+      ctx.fillText('Back render error: '+e.message, cw/2, ch/2);
       ctx.textAlign='left';
       console.error('drawBack error:',e);
     }
@@ -1160,10 +1189,10 @@ function drawCard(){
     try{ drawFront(ctx); }
     catch(e){
       // Fallback: paint texture so it's never black, and show the error
-      ctx.fillStyle='#e8e6e0'; ctx.fillRect(0,0,PW,PH);
-      for(let y=0;y<PH;y+=3){ctx.fillStyle=y%6===0?'rgba(0,0,0,0.04)':'rgba(255,255,255,0.5)';ctx.fillRect(0,y,PW,1);}
+      ctx.fillStyle='#e8e6e0'; ctx.fillRect(0,0,cw,ch);
+      for(let y=0;y<ch;y+=3){ctx.fillStyle=y%6===0?'rgba(0,0,0,0.04)':'rgba(255,255,255,0.5)';ctx.fillRect(0,y,cw,1);}
       ctx.fillStyle='#c0392b'; ctx.font='16px Oswald,sans-serif'; ctx.textAlign='center';
-      ctx.fillText('Front render error: '+e.message, PW/2, PH/2);
+      ctx.fillText('Front render error: '+e.message, cw/2, ch/2);
       ctx.textAlign='left';
       console.error('drawFront error:',e);
     }
@@ -2002,245 +2031,289 @@ function drawGloss(ctx,par){
 /* ── Card back ── portrait, mirrors front sidebar, clean Topps layout ── */
 function drawBack(ctx){
   const d=CS.data, par=PAR[CS.parallel]||PAR.base;
-  const fn=(d.firstName||'').toUpperCase(), ln=(d.lastName||'PLAYER').toUpperCase();
   const g=par.glow; const [pr,pg,pb]=g||[21,70,160];
 
-  // ── Portrait orientation — same 712×1000 as front ──
-  // No rotation. Back is portrait, same card dimensions.
+  // ── Canvas is landscape for the back face (BPW×BPH) — a true card-back
+  // orientation, swapped in by drawCard() at the flip's edge-on midpoint. ──
+  const LW=BPW, LH=BPH; // 1000 × 712
 
   // ── WHITE BACKGROUND ──
-  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,PW,PH);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,LW,LH);
 
-  // ── LEFT SIDEBAR (navy, contains logo) ──
-  const SBW=118;
-  ctx.fillStyle=`rgb(${pr},${pg},${pb})`; ctx.fillRect(0,0,SBW,PH);
-  // Subtle diagonal stripe texture in sidebar
+  // ── TOP HEADER BAND (team color) ──
+  const HBH=170; // header band height
+  ctx.fillStyle=`rgb(${pr},${pg},${pb})`; ctx.fillRect(0,0,LW,HBH);
+  // subtle darker gradient strip at the very top for depth
+  const hgrad=ctx.createLinearGradient(0,0,0,HBH);
+  hgrad.addColorStop(0,`rgba(0,0,0,0.12)`);
+  hgrad.addColorStop(0.15,`rgba(0,0,0,0)`);
+  ctx.fillStyle=hgrad; ctx.fillRect(0,0,LW,HBH);
+  // Thin white accent line along the bottom edge of the header band
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fillRect(0,HBH-3,LW,3);
+  // Decorative curved white border tucked around the logo corner (echoes reference card)
   ctx.save();
-  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=4;
-  for(let i=-PH;i<PW;i+=18){
-    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+PH,PH);ctx.stroke();
-  }
+  ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(168,10);
+  ctx.lineTo(LW-10,10);
+  ctx.lineTo(LW-10,HBH-12);
+  ctx.moveTo(10,HBH+34);
+  ctx.lineTo(10,28);
+  ctx.quadraticCurveTo(10,10,28,10);
+  ctx.lineTo(150,10);
+  ctx.stroke();
   ctx.restore();
-  // White accent line on right edge of sidebar
-  ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.fillRect(SBW-2,0,2,PH);
-  ctx.fillStyle=`rgba(${Math.min(pr+60,255)},${Math.min(pg+60,255)},${Math.min(pb+60,255)},0.5)`;
-  ctx.fillRect(SBW-5,0,3,PH);
 
-  // ── LOGO in sidebar ──
-  const logoY=24, logoR=46, logoCX=SBW/2, logoCY=logoY+logoR;
+  // ── WHITE CARD BODY BELOW HEADER (rest of background already white) ──
+
+  // ── LOGO circle, top-left of header ──
+  const logoR=58, logoCX=24+logoR, logoCY=18+logoR;
   if(CS.logoImg||LAYERS.mac_logo){
     ctx.save();
-    // White circle
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR,0,Math.PI*2);
-    ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=8; ctx.fill();
+    ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=10; ctx.fill();
     ctx.shadowBlur=0;
-    // Clip and draw logo
-    ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR-2,0,Math.PI*2); ctx.clip();
+    ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR-3,0,Math.PI*2); ctx.clip();
     const li=CS.logoImg||LAYERS.mac_logo;
     const iw=li.naturalWidth||100, ih=li.naturalHeight||100;
-    const scL=Math.max(((logoR-2)*2)/iw,((logoR-2)*2)/ih)*CS.logoScale;
+    const scL=Math.max(((logoR-3)*2)/iw,((logoR-3)*2)/ih)*(CS.logoScale||1);
     ctx.drawImage(li,logoCX-iw*scL/2,logoCY-ih*scL/2,iw*scL,ih*scL);
     ctx.restore();
   }
 
-  // ── HEADER AREA ──
-  const HX=SBW+14, HY=18, HW=PW-SBW-28;
-
-  // Jersey number — black box top right
+  // ── Jersey number — black box, top right of header ──
   const jNum=d.jerseyNum||'';
   if(jNum){
-    const jW=64, jH=64;
-    ctx.fillStyle='#111111'; ctx.fillRect(PW-jW-8,8,jW,jH);
-    ctx.font=`bold ${jNum.length>2?38:46}px Oswald,sans-serif`;
+    const jW=84, jH=84;
+    ctx.fillStyle='#111111'; ctx.fillRect(LW-jW-20,16,jW,jH);
+    ctx.font=`bold ${jNum.length>2?44:56}px Oswald,sans-serif`;
     ctx.fillStyle='#ffffff'; ctx.textAlign='center';
-    ctx.fillText(jNum,PW-jW-8+jW/2,8+jH-10);
+    ctx.fillText(jNum,LW-jW-20+jW/2,16+jH-22);
     ctx.textAlign='left';
   }
 
-  // First name — italic outline style
-  let firstFS=54; ctx.font=`italic bold ${firstFS}px Anton,sans-serif`;
-  while(ctx.measureText(fn).width>HW-60&&firstFS>28){firstFS-=2;ctx.font=`italic bold ${firstFS}px Anton,sans-serif`;}
-  // Outline effect (white stroke first)
-  ctx.save();
-  ctx.strokeStyle='#000000'; ctx.lineWidth=1; ctx.lineJoin='round';
-  ctx.strokeText(fn,HX,HY+firstFS);
-  ctx.fillStyle='#f8f8f8';
-  ctx.fillText(fn,HX,HY+firstFS);
-  ctx.restore();
+  // ── NAME — both first and last in BLACK; first italic, last upright bold ──
+  const HX=24+logoR*2+22; // text starts right of the logo
+  const nameY=46;
+  const fn=(d.firstName||'').toUpperCase();
+  const ln=(d.lastName||'PLAYER').toUpperCase();
+  function jW_safe(j){ return j?104:20; }
+  const availW=LW-jW_safe(jNum)-HX-30;
+  let nameFS=46;
+  ctx.font=`italic bold ${nameFS}px Anton,sans-serif`;
+  function totalNameWidth(fs){
+    ctx.font=`italic bold ${fs}px Anton,sans-serif`;
+    const fnW=fn?ctx.measureText(fn+' ').width:0;
+    ctx.font=`bold ${fs}px Anton,sans-serif`;
+    const lnW=ctx.measureText(ln).width;
+    return fnW+lnW;
+  }
+  while(totalNameWidth(nameFS)>availW && nameFS>22){ nameFS-=2; }
+  ctx.font=`italic bold ${nameFS}px Anton,sans-serif`;
+  const fnW=fn?ctx.measureText(fn+' ').width:0;
+  ctx.fillStyle='#000000';
+  ctx.textAlign='left';
+  if(fn) ctx.fillText(fn+' ',HX,nameY);
+  ctx.font=`bold ${nameFS}px Anton,sans-serif`;
+  ctx.fillStyle='#000000';
+  ctx.fillText(ln,HX+fnW,nameY);
 
-  // Last name — solid bold black, slightly bigger
-  const lastFS=Math.round(firstFS*1.1);
-  const fnW=ctx.measureText(fn+' ').width; // account for spacing
-  ctx.save();
-  // Reset font for last name
-  let lastFontSz=lastFS; ctx.font=`bold ${lastFontSz}px Anton,sans-serif`;
-  while(HX+fnW+ctx.measureText(ln).width>PW-64&&lastFontSz>24){lastFontSz--;ctx.font=`bold ${lastFontSz}px Anton,sans-serif`;}
-  ctx.fillStyle='#111111';
-  ctx.fillText(ln,HX+ctx.measureText(fn+' ').width,HY+firstFS);
-  ctx.restore();
+  // ── Team • Position ──
+  let hy=nameY+32;
+  ctx.font=`24px "Source Serif 4",Georgia,serif`; ctx.fillStyle='#ffffff';
+  const team=(d.team||'LYBS TEAM').toUpperCase();
+  ctx.fillText(team+'  ',HX,hy);
+  const teamW=ctx.measureText(team+'  ').width;
+  ctx.font=`italic bold 24px Oswald,sans-serif`;
+  ctx.fillText('•  ',HX+teamW,hy);
+  const dotW=ctx.measureText('•  ').width;
+  ctx.fillText((d.position||'PLAYER').toUpperCase(),HX+teamW+dotW,hy);
+  hy+=30;
 
-  let hcy=HY+firstFS+6;
-
-  // Team · Position
-  const teamPos=`${(d.team||'LYBS TEAM').toUpperCase()} · ${(d.position||'PLAYER').toUpperCase()}`;
-  ctx.font=`italic bold 28px "Source Serif 4",Georgia,serif`; ctx.fillStyle='#222';
-  ctx.fillText(teamPos,HX,hcy+16); hcy+=32;
-
-  // Stats line 1: HT / WT / THROWS / BATS
-  ctx.font='bold 19px Oswald,sans-serif'; ctx.fillStyle='#333';
-  const bio1Parts=[
-    d.height?`HT: ${d.height}`:'',
-    d.weight?`WT: ${d.weight}`:'',
-    `THROWS: ${d.throws||'RIGHT'}`,
-    `BATS: ${d.bats||'RIGHT'}`
-  ].filter(Boolean);
+  // ── HT / WT / THROWS / BATS ──
+  ctx.font='bold 16px Oswald,sans-serif';
   let bx=HX;
-  bio1Parts.forEach((part,i)=>{
-    if(i>0){ctx.fillStyle='#aaa';ctx.fillText('  ',bx,hcy+11);bx+=ctx.measureText('   ').width;}
-    const label=part.split(':')[0]+':';
-    const val=' '+(part.split(':')[1]||'').trim();
-    ctx.fillStyle='#555'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(label,bx,hcy+11);
-    bx+=ctx.measureText(label).width;
-    ctx.fillStyle='#111'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(val,bx,hcy+11);
-    bx+=ctx.measureText(val+'  ').width;
-  });
-  hcy+=20;
-
-  // Stats line 2: division / hometown / card number
-  bx=HX;
-  const bio2Parts=[
-    d.division?`DIV: ${d.division}`:'',
-    d.hometown?`HOME: ${d.hometown}`:'',
-    d.cardNum?`CARD #${d.cardNum}`:''
+  const bio1=[
+    d.height?['HT:',d.height]:null,
+    d.weight?['WT:',d.weight]:null,
+    ['THROWS:',d.throws||'RIGHT'],
+    ['BATS:',d.bats||'RIGHT'],
   ].filter(Boolean);
-  bio2Parts.forEach((part,i)=>{
-    const label=part.split(':')[0]+':';
-    const val=' '+(part.split(':')[1]||'').trim();
-    ctx.fillStyle='#555'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(label,bx,hcy+11);
-    bx+=ctx.measureText(label).width;
-    ctx.fillStyle='#111'; ctx.font='bold 17px Oswald,sans-serif'; ctx.fillText(val,bx,hcy+11);
-    bx+=ctx.measureText(val+'  ').width;
+  bio1.forEach((pair,i)=>{
+    if(i>0){bx+=14;}
+    ctx.fillStyle='rgba(255,255,255,0.78)'; ctx.font='bold 16px Oswald,sans-serif';
+    ctx.fillText(pair[0]+' ',bx,hy); bx+=ctx.measureText(pair[0]+' ').width;
+    ctx.fillStyle='#ffffff'; ctx.fillText(pair[1],bx,hy); bx+=ctx.measureText(pair[1]).width;
   });
-  hcy+=20;
+  hy+=22;
 
-  // Divider
-  ctx.strokeStyle=`rgb(${pr},${pg},${pb})`; ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(HX,hcy);ctx.lineTo(PW-12,hcy);ctx.stroke();
-  hcy+=8;
+  // ── DIVISION / HOME / CARD # ──
+  bx=HX;
+  const bio2=[
+    d.division?['DIV:',d.division]:null,
+    d.hometown?['HOME:',d.hometown]:null,
+    d.cardNum?['CARD #:',d.cardNum]:null,
+  ].filter(Boolean);
+  bio2.forEach((pair,i)=>{
+    if(i>0){bx+=14;}
+    ctx.fillStyle='rgba(255,255,255,0.78)'; ctx.font='bold 16px Oswald,sans-serif';
+    ctx.fillText(pair[0]+' ',bx,hy); bx+=ctx.measureText(pair[0]+' ').width;
+    ctx.fillStyle='#ffffff'; ctx.fillText(pair[1],bx,hy); bx+=ctx.measureText(pair[1]).width;
+  });
 
-  // ── STAT TABLES ──
-  const TX=SBW+10, TW=PW-SBW-18;
+  // ── BODY CONTENT BELOW HEADER ──
+  let cy=HBH+22;
+  const CX=28, CW=LW-56;
 
-  function drawStatTable(title, headers, widths, rows, accentRGB, note){
+  function drawStatBlock(title, headers, widths, rows, playoffRows, accentRGB){
     const [ar,ag2,ab2]=accentRGB;
     const totR=widths.reduce((a,b)=>a+b,0);
-    const cw=widths.map(w=>Math.floor(w/totR*TW));
-    cw[cw.length-1]+=TW-cw.reduce((a,b)=>a+b,0);
+    const cw=widths.map(w=>Math.floor(w/totR*CW));
+    cw[cw.length-1]+=CW-cw.reduce((a,b)=>a+b,0);
 
-    // Table title
-    ctx.font='bold 19px Oswald,sans-serif'; ctx.fillStyle='#222'; ctx.textAlign='left';
-    ctx.fillText(title.toUpperCase(),TX,hcy+22);
-    if(note){
-      ctx.font='italic bold 13px Oswald,sans-serif'; ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`;
-      ctx.textAlign='right'; ctx.fillText(note,PW-12,hcy+11); ctx.textAlign='left';
-    }
-    hcy+=20;
+    // Title row
+    ctx.font='bold 20px Oswald,sans-serif'; ctx.fillStyle='#111'; ctx.textAlign='left';
+    ctx.fillText(title.toUpperCase(),CX,cy+16);
+    ctx.font='italic bold 14px Oswald,sans-serif'; ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`;
+    ctx.textAlign='right'; ctx.fillText('*PLAYOFF STATISTICS',CX+CW,cy+15); ctx.textAlign='left';
+    cy+=22;
 
-    // Header row — solid blue band
-    const headH=26;
-    ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`; ctx.fillRect(TX,hcy,TW,headH);
-    ctx.font='bold 15px Oswald,sans-serif'; ctx.fillStyle='#ffffff';
-    let hx=TX;
-    headers.forEach((col,i)=>{
-      ctx.textAlign=i<2?'left':'center';
-      ctx.fillText(col,i<2?hx+3:hx+cw[i]/2,hcy+13);
-      hx+=cw[i];
-    });
-    ctx.textAlign='left'; hcy+=headH;
-
-    // Data rows — white, thin gray border between rows
-    const RH=28;
-    rows.forEach((row,idx)=>{
-      ctx.fillStyle=idx%2===0?'#ffffff':'#f4f6fa';
-      ctx.fillRect(TX,hcy,TW,RH);
-      // Left blue accent line
-      ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`; ctx.fillRect(TX,hcy,2,RH);
-      let rx=TX;
-      row.forEach((cell,i)=>{
-        const v=(cell&&cell.v!==undefined)?cell.v:cell;
-        const lead=(cell&&cell.lead);
-        ctx.font=lead?'bold italic 16px Oswald,sans-serif':'500 16px Oswald,sans-serif';
-        ctx.fillStyle=lead?`rgb(${ar},${ag2},${ab2})`:'#111';
+    function header(){
+      const headH=24;
+      ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`; ctx.fillRect(CX,cy,CW,headH);
+      ctx.font='bold 13px Oswald,sans-serif'; ctx.fillStyle='#ffffff';
+      let hx=CX;
+      headers.forEach((col,i)=>{
         ctx.textAlign=i<2?'left':'center';
-        const disp=(v===''||v==null||v===undefined)?'O':String(v);
-        ctx.fillText(disp,i<2?rx+4:rx+cw[i]/2,hcy+19);
-        rx+=cw[i];
+        ctx.fillText(col,i<2?hx+4:hx+cw[i]/2,cy+12+4);
+        hx+=cw[i];
       });
-      ctx.textAlign='left'; hcy+=RH;
-      // Row separator
-      ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.lineWidth=0.5;
-      ctx.beginPath();ctx.moveTo(TX,hcy);ctx.lineTo(TX+TW,hcy);ctx.stroke();
-    });
-    if(rows.length===0){
-      ctx.fillStyle='#f9f9f9'; ctx.fillRect(TX,hcy,TW,RH);
-      ctx.font='italic 15px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#bbb';
-      ctx.textAlign='center'; ctx.fillText('No stats recorded',TX+TW/2,hcy+13);
-      ctx.textAlign='left'; hcy+=RH;
+      ctx.textAlign='left'; cy+=headH;
     }
-    hcy+=8;
+    function dataRows(list,startIdx){
+      const RH=24;
+      list.forEach((row,idx)=>{
+        const zebra=(startIdx+idx)%2===0;
+        ctx.fillStyle=zebra?'#ffffff':'#f3f5fa';
+        ctx.fillRect(CX,cy,CW,RH);
+        ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`; ctx.fillRect(CX,cy,2,RH);
+        let rx=CX;
+        row.forEach((cell,i)=>{
+          const v=(cell&&typeof cell==='object'&&'v' in cell)?cell.v:cell;
+          const lead=(cell&&cell.lead);
+          ctx.font=lead?'bold italic 14px Oswald,sans-serif':'500 14px Oswald,sans-serif';
+          ctx.fillStyle=lead?`rgb(${ar},${ag2},${ab2})`:'#111';
+          ctx.textAlign=i<2?'left':'center';
+          const disp=(v===''||v==null||v===undefined)?'—':String(v);
+          ctx.fillText(disp,i<2?rx+4:rx+cw[i]/2,cy+16);
+          rx+=cw[i];
+        });
+        ctx.textAlign='left'; cy+=RH;
+        ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.lineWidth=0.5;
+        ctx.beginPath();ctx.moveTo(CX,cy);ctx.lineTo(CX+CW,cy);ctx.stroke();
+      });
+    }
+
+    header();
+    if(rows.length){ dataRows(rows,0); }
+    else {
+      const RH=24;
+      ctx.fillStyle='#f9f9f9'; ctx.fillRect(CX,cy,CW,RH);
+      ctx.font='italic 13px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#bbb';
+      ctx.textAlign='center'; ctx.fillText('No stats recorded',CX+CW/2,cy+16);
+      ctx.textAlign='left'; cy+=RH;
+    }
+
+    // Playoff sub-group — visually separated box, small gap above
+    if(playoffRows && playoffRows.length){
+      cy+=6;
+      const boxTop=cy;
+      const boxH=playoffRows.length*22+4;
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.025)';
+      rr2(ctx,CX,boxTop,CW,boxH,4); ctx.fill();
+      ctx.strokeStyle=`rgba(${ar},${ag2},${ab2},0.35)`; ctx.lineWidth=1;
+      rr2(ctx,CX,boxTop,CW,boxH,4); ctx.stroke();
+      ctx.restore();
+      cy+=2;
+      const RH2=22;
+      playoffRows.forEach((row,idx)=>{
+        let rx=CX;
+        row.forEach((cell,i)=>{
+          const v=(cell&&typeof cell==='object'&&'v' in cell)?cell.v:cell;
+          const lead=(cell&&cell.lead);
+          ctx.font=lead?'bold italic 13px Oswald,sans-serif':'italic 500 13px Oswald,sans-serif';
+          ctx.fillStyle=lead?`rgb(${ar},${ag2},${ab2})`:'#333';
+          ctx.textAlign=i<2?'left':'center';
+          let disp=(v===''||v==null||v===undefined)?'—':String(v);
+          if(i===0) disp=disp+'*';
+          ctx.fillText(disp,i<2?rx+4:rx+cw[i]/2,cy+15);
+          rx+=cw[i];
+        });
+        ctx.textAlign='left'; cy+=RH2;
+      });
+    }
+    cy+=12;
   }
 
-  // BATTING
-  const bHeaders=['YR','CLUB','G','AB','R','H','2B','3B','HR','RBI','SB','K','BB','AVG','OBP','OPS','SLG'];
-  const bWidths= [26,  60,  20, 26, 20, 22, 22,  22,  22,  26,  22, 20,  22,  34,  34,  36,  34];
-  const battingRows=(d.stats||[]).map(s=>{
-    const lead=s.leaders||{};
-    const cell=(key,val)=>({v:val,lead:!!lead[key]});
-    return [s.year,s.club,
-      cell('g',s.g),cell('ab',s.ab),cell('r',s.r),cell('h',s.h),
-      cell('d2',s['2b']||s.d2),cell('d3',s['3b']||s.d3),cell('hr',s.hr),
-      cell('rbi',s.rbi),cell('sb',s.sb),cell('k',s.k||s.so),cell('bb',s.bb),
-      cell('avg',s.avg),cell('obp',s.obp),cell('ops',s.ops),cell('slg',s.slg)];
-  });
-  if(battingRows.length) drawStatTable('BATTING RECORD',bHeaders,bWidths,battingRows,[pr,pg,pb],'* PLAYOFF STATS');
-
-  // PITCHING
-  if((d.pitchStats||[]).length){
+  // PITCHING first (matches reference order), then BATTING
+  if((d.pitchStats||[]).length || (d.pitchPlayoffStats||[]).length){
     const pHeaders=['YR','CLUB','GP','IP','W','L','SV','ERA','WHIP','SO','BB','H','R','FIP','BAA'];
-    const pWidths= [26,  58,  24, 28, 20, 20, 22,  36,  38,  26,  24, 24, 20,  32,  36];
-    const pitchingRows=(d.pitchStats||[]).map(s=>{
+    const pWidths= [34,  70,  28, 34, 26, 26, 26,  42,  44,  30, 28, 28, 26,  38,  42];
+    const mapPRow=s=>{
       const lead=s.leaders||{};
       const cell=(key,val)=>({v:val,lead:!!lead[key]});
       return [s.year,s.club,
         cell('gp',s.gp),cell('ip',s.ip),cell('w',s.w),cell('l',s.l),cell('sv',s.sv),
         cell('era',s.era),cell('whip',s.whip),cell('so',s.so),cell('bb',s.bb),
         cell('h',s.h),cell('r',s.r),cell('fip',s.fip),cell('baa',s.baa)];
-    });
-    drawStatTable('PITCHING RECORD',pHeaders,pWidths,pitchingRows,
-      [Math.floor(pr*0.55),Math.floor(pg*0.65),Math.min(pb+20,255)],'* PLAYOFF STATS');
+    };
+    const pitchingRows=(d.pitchStats||[]).map(mapPRow);
+    const pitchingPlayoffRows=(d.pitchPlayoffStats||[]).map(mapPRow);
+    drawStatBlock('PITCHING RECORD',pHeaders,pWidths,pitchingRows,pitchingPlayoffRows,
+      [Math.floor(pr*0.55),Math.floor(pg*0.65),Math.min(pb+20,255)]);
   }
 
-  // ── BIO / QUOTE ──
+  // BATTING
+  const bHeaders=['YR','CLUB','G','AB','R','H','2B','3B','HR','RBI','SB','K','BB','AVG','OBP','OPS','SLG'];
+  const bWidths= [34,  78,  26, 34, 26, 28, 28,  28,  28,  34,  28, 26,  28,  44,  44,  46,  44];
+  const mapBRow=s=>{
+    const lead=s.leaders||{};
+    const cell=(key,val)=>({v:val,lead:!!lead[key]});
+    return [s.year,s.club,
+      cell('g',s.g),cell('ab',s.ab),cell('r',s.r),cell('h',s.h),
+      cell('d2',s['2b']!=null?s['2b']:s.d2),cell('d3',s['3b']!=null?s['3b']:s.d3),cell('hr',s.hr),
+      cell('rbi',s.rbi),cell('sb',s.sb),cell('k',s.k!=null?s.k:s.so),cell('bb',s.bb),
+      cell('avg',s.avg),cell('obp',s.obp),cell('ops',s.ops),cell('slg',s.slg)];
+  };
+  const battingRows=(d.stats||[]).map(mapBRow);
+  const battingPlayoffRows=(d.playoffStats||[]).map(mapBRow);
+  if(battingRows.length || battingPlayoffRows.length || !(d.pitchStats||[]).length){
+    drawStatBlock('BATTING RECORD',bHeaders,bWidths,battingRows,battingPlayoffRows,[pr,pg,pb]);
+  }
+
+  // ── BIO / QUOTE — more horizontal room in landscape ──
   const bio=d.bio||'';
-  if(bio && hcy+28<PH-32){
+  if(bio && cy+60<LH-16){
     ctx.strokeStyle=`rgb(${pr},${pg},${pb})`; ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(TX,hcy+2);ctx.lineTo(TX,hcy+28);ctx.stroke();
-    ctx.font='italic 15px "Source Serif 4",Georgia,serif'; ctx.fillStyle='#444';
-    const words=bio.split(' '); let line='',lineY=hcy+12, lc=0;
+    ctx.beginPath();ctx.moveTo(CX,cy+2);ctx.lineTo(CX,cy+60);ctx.stroke();
+    ctx.font='600 16px Oswald,sans-serif'; ctx.fillStyle='#111';
+    const words=bio.split(' '); let line='',lineY=cy+16, lc=0;
+    const maxLines=4;
     words.forEach(w=>{
       const test=line+w+' ';
-      if(ctx.measureText(test).width>TW-14&&line&&lc<2){
-        ctx.fillText(line.trim(),TX+8,lineY); line=w+' '; lineY+=18; lc++;
+      if(ctx.measureText(test).width>CW-14&&line&&lc<maxLines-1){
+        ctx.fillText(line.trim(),CX+12,lineY); line=w+' '; lineY+=20; lc++;
       } else line=test;
     });
-    if(line&&lc<3) ctx.fillText(line.trim(),TX+8,lineY);
-    hcy=lineY+20;
+    if(line&&lc<maxLines) ctx.fillText(line.trim(),CX+12,lineY);
+    cy=lineY+18;
   }
 
   // ── SIGNATURE ──
-  if(CS.sigImg&&sigHasMark&&hcy+44<PH-32){
-    const sigH=60;
-    ctx.fillStyle='rgba(248,248,252,0.9)'; rr2(ctx,TX,hcy,TW,sigH,3); ctx.fill();
+  if(CS.sigImg&&cy+40<LH-16){
+    const sigH=52;
+    ctx.fillStyle='rgba(248,248,252,0.9)'; rr2(ctx,CX,cy,CW,sigH,3); ctx.fill();
     ctx.strokeStyle=`rgba(${pr},${pg},${pb},0.2)`; ctx.lineWidth=0.8; ctx.stroke();
     const si=CS.sigImg;
     const padW=si.naturalWidth||si.width||560, padH=si.naturalHeight||si.height||200;
@@ -2255,26 +2328,26 @@ function drawBack(ctx){
       if(drk<30){dd2[i2+3]=0;}else{const a=Math.min(255,Math.round((drk-30)/225*255));dd2[i2]=ir;dd2[i2+1]=ig3;dd2[i2+2]=ib3;dd2[i2+3]=a;}
     }
     sc3.putImageData(id2,0,0);
-    const scl=Math.min((TW-12)/(padW||1),(sigH-8)/(padH||1));
-    ctx.drawImage(samp,TX+6+(TW-12-padW*scl)/2,hcy+4,padW*scl,padH*scl);
-    hcy+=sigH+4;
+    const scl=Math.min((CW-12)/(padW||1),(sigH-8)/(padH||1));
+    ctx.drawImage(samp,CX+6+(CW-12-padW*scl)/2,cy+4,padW*scl,padH*scl);
+    cy+=sigH+4;
   }
 
   // ── FOOTER ──
-  const footY=PH-22;
-  ctx.fillStyle=`rgb(${pr},${pg},${pb})`; ctx.fillRect(0,footY,PW,22);
-  ctx.font='400 13px Oswald,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
+  const footY=LH-20;
+  ctx.fillStyle=`rgb(${pr},${pg},${pb})`; ctx.fillRect(0,footY,LW,20);
+  ctx.font='400 11px Oswald,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
   ctx.textAlign='center';
-  ctx.fillText('® & © 2026 LYBS CARD SERIES · OFFICIAL VIRTUAL TRADING CARD · SERIES ONE',PW/2,footY+14);
-  // Serial + parallel tags
+  ctx.fillText('® & © 2026 LYBS CARD SERIES · OFFICIAL VIRTUAL TRADING CARD · SERIES ONE',LW/2,footY+13);
   if(CS.numbered&&d.serialNum&&d.printRun){
-    ctx.font='bold 13px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
-    ctx.textAlign='right'; ctx.fillText(`#${d.serialNum}/${d.printRun}`,PW-10,footY+14);
+    ctx.font='bold 11px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.textAlign='right'; ctx.fillText(`#${d.serialNum}/${d.printRun}`,LW-10,footY+13);
   }
-  if(g){ ctx.font='bold 13px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
-    ctx.textAlign='left'; ctx.fillText(par.name,SBW+10,footY+14); }
+  if(g){ ctx.font='bold 11px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.textAlign='left'; ctx.fillText(par.name,10,footY+13); }
   ctx.textAlign='left';
 }
+
 
 
 function rr2(ctx,x,y,w,h,r){
@@ -2304,9 +2377,10 @@ function drawAutoSig(ctx){
 
 /* ── Download front/back ── */
 function downloadCard(side){
-  // Step 1: render to offscreen canvas
+  // Step 1: render to offscreen canvas — back face exports as a landscape card
   const tmp=document.createElement('canvas');
-  tmp.width=PW; tmp.height=PH;
+  const isBack=side!=='front';
+  tmp.width=isBack?BPW:PW; tmp.height=isBack?BPH:PH;
   const tctx=tmp.getContext('2d');
   const mx0=CS.mx, my0=CS.my;
   CS.mx=0.5; CS.my=0.5;  // neutral gloss for export
@@ -2976,10 +3050,17 @@ function setThumb(tid,iid,nid,src,name){const t=document.getElementById(tid);t.s
    STATS
 ═══════════════════════════════════════════ */
 function addSR(d={}){sCnt++;const id=sCnt;const div=document.createElement('div');div.className='sr';div.id='sr_'+id;div.innerHTML=`<input type="text" value="${d.year||''}" placeholder="2026" oninput="qR()"><input type="text" value="${d.club||''}" placeholder="Team" oninput="qR()"><input type="text" value="${d.ab||''}" placeholder="AB" oninput="qR()"><input type="text" value="${d.h||''}" placeholder="H" oninput="qR()"><input type="text" value="${d.hr||''}" placeholder="HR" oninput="qR()"><input type="text" value="${d.rbi||''}" placeholder="RBI" oninput="qR()"><input type="text" value="${d.avg||''}" placeholder="AVG" oninput="qR()"><input type="text" value="${d.obp||''}" placeholder="OBP" oninput="qR()"><input type="text" value="${d.slg||''}" placeholder="SLG" oninput="qR()"><button class="dsr" onclick="document.getElementById('sr_${id}').remove();qR()">\u00d7</button>`;document.getElementById('statsRows').appendChild(div);}
-function getStats(){return Array.from(document.querySelectorAll('.sr')).map(r=>{const i=r.querySelectorAll('input');return{year:i[0].value,club:i[1].value,ab:i[2].value,h:i[3].value,hr:i[4].value,rbi:i[5].value,avg:i[6].value,obp:i[7].value,slg:i[8].value};});}
+function getStats(){return Array.from(document.querySelectorAll('#statsRows .sr')).map(r=>{const i=r.querySelectorAll('input');return{year:i[0].value,club:i[1].value,ab:i[2].value,h:i[3].value,hr:i[4].value,rbi:i[5].value,avg:i[6].value,obp:i[7].value,slg:i[8].value};});}
 let pCnt=0;
 function addPR(d={}){pCnt++;const id=pCnt;const div=document.createElement('div');div.className='sr pr';div.id='pr_'+id;div.innerHTML=`<input type="text" value="${d.year||''}" placeholder="2026" oninput="qR()"><input type="text" value="${d.club||''}" placeholder="Team" oninput="qR()"><input type="text" value="${d.ip||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.w||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.l||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.era||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.so||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.bb||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.whip||''}" placeholder="—" oninput="qR()"><button class="dsr" onclick="document.getElementById('pr_${id}').remove();qR()">\u00d7</button>`;document.getElementById('pitchRows').appendChild(div);}
-function getPitch(){return Array.from(document.querySelectorAll('.pr')).map(r=>{const i=r.querySelectorAll('input');return{year:i[0].value,club:i[1].value,ip:i[2].value,w:i[3].value,l:i[4].value,era:i[5].value,so:i[6].value,bb:i[7].value,whip:i[8].value};});}
+function getPitch(){return Array.from(document.querySelectorAll('#pitchRows .pr')).map(r=>{const i=r.querySelectorAll('input');return{year:i[0].value,club:i[1].value,ip:i[2].value,w:i[3].value,l:i[4].value,era:i[5].value,so:i[6].value,bb:i[7].value,whip:i[8].value};});}
+
+/* ── Playoff stats — separate manual-entry rows, kept apart from regular-season stats/CSV import ── */
+function addSRP(d={}){sCntP++;const id=sCntP;const div=document.createElement('div');div.className='sr srp';div.id='srp_'+id;div.innerHTML=`<input type="text" value="${d.year||''}" placeholder="2026" oninput="qR()"><input type="text" value="${d.club||''}" placeholder="Team" oninput="qR()"><input type="text" value="${d.ab||''}" placeholder="AB" oninput="qR()"><input type="text" value="${d.h||''}" placeholder="H" oninput="qR()"><input type="text" value="${d.hr||''}" placeholder="HR" oninput="qR()"><input type="text" value="${d.rbi||''}" placeholder="RBI" oninput="qR()"><input type="text" value="${d.avg||''}" placeholder="AVG" oninput="qR()"><input type="text" value="${d.obp||''}" placeholder="OBP" oninput="qR()"><input type="text" value="${d.slg||''}" placeholder="SLG" oninput="qR()"><button class="dsr" onclick="document.getElementById('srp_${id}').remove();qR()">\u00d7</button>`;document.getElementById('playoffStatsRows').appendChild(div);}
+function getStatsPlayoff(){return Array.from(document.querySelectorAll('#playoffStatsRows .srp')).map(r=>{const i=r.querySelectorAll('input');return{year:i[0].value,club:i[1].value,ab:i[2].value,h:i[3].value,hr:i[4].value,rbi:i[5].value,avg:i[6].value,obp:i[7].value,slg:i[8].value};});}
+function addPRP(d={}){pCntP++;const id=pCntP;const div=document.createElement('div');div.className='sr prp';div.id='prp_'+id;div.innerHTML=`<input type="text" value="${d.year||''}" placeholder="2026" oninput="qR()"><input type="text" value="${d.club||''}" placeholder="Team" oninput="qR()"><input type="text" value="${d.ip||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.w||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.l||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.era||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.so||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.bb||''}" placeholder="—" oninput="qR()"><input type="text" value="${d.whip||''}" placeholder="—" oninput="qR()"><button class="dsr" onclick="document.getElementById('prp_${id}').remove();qR()">\u00d7</button>`;document.getElementById('playoffPitchRows').appendChild(div);}
+function getPitchPlayoff(){return Array.from(document.querySelectorAll('#playoffPitchRows .prp')).map(r=>{const i=r.querySelectorAll('input');return{year:i[0].value,club:i[1].value,ip:i[2].value,w:i[3].value,l:i[4].value,era:i[5].value,so:i[6].value,bb:i[7].value,whip:i[8].value};});}
+
 
 /* ═══════════════════════════════════════════
    AUTH
@@ -3105,6 +3186,7 @@ async function saveCard(){
       parallel:CS.parallel||'base',cardType:CS.cardType||CS.parallel||'base',rarity:CS.parallel||'base',
       photoURL:photoURL||'',sigURL:sigURL||'',logoURL:logoURL||'',macURL:macURL||'',cutoutURL:CS.cutoutURL||'',
       stats:((CS.loadedBatting&&CS.loadedBatting.length)?CS.loadedBatting:getStats())||[],pitchStats:((CS.loadedPitching&&CS.loadedPitching.length)?CS.loadedPitching:getPitch())||[],statsPulled:!!CS.statsPulled,pitchPulled:!!(CS.statsPulled&&CS.loadedPitching&&CS.loadedPitching.length),
+      playoffStats:getStatsPlayoff()||[],pitchPlayoffStats:getPitchPlayoff()||[],
       bats:str('fBats'),throws:str('fThrows'),
       height:str('fHeight'),weight:str('fWeight'),hometown:str('fHometown'),bio:str('fBio'),
       serialNum:str('fSerialNum'),printRun:str('fPrintRun'),serialPos:str('fSerialPos')||'h',
@@ -3173,6 +3255,7 @@ function editCard(id){
   if(p.sigURL){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{CS.sigImg=img;qR();};img.src=p.sigURL;setThumb('sigThumb','sigIcon','sigName',p.sigURL,'Existing sig');} if(p.sigColor) setSigColor(p.sigColor);
   if(p.logoURL){const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{CS.logoImg=img;qR();};img.src=p.logoURL;setThumb('logoThumb','logoIcon','logoName',p.logoURL,'Existing logo');}
   document.getElementById('statsRows').innerHTML='';sCnt=0;(p.stats||[]).forEach(s=>addSR(s));document.getElementById('pitchRows').innerHTML='';pCnt=0;(p.pitchStats||[]).forEach(s=>addPR(s));
+  document.getElementById('playoffStatsRows').innerHTML='';sCntP=0;(p.playoffStats||[]).forEach(s=>addSRP(s));document.getElementById('playoffPitchRows').innerHTML='';pCntP=0;(p.pitchPlayoffStats||[]).forEach(s=>addPRP(s));
   // Restore pulled-stats state
   CS.statsPulled=!!p.statsPulled;
   CS.breakout=!!p.breakout;CS.breakoutPoly=p.breakoutPoly||null;CS.numbered=!!p.numbered;CS.allStar=!!p.allStar;CS.sPos=p.sPos||'br';CS.sigColor=p.sigColor||'black';CS.certAuto=!!p.certAuto;CS.showLybs=p.showLybs!==false;CS.customBgURL=p.customBgURL||null;
@@ -3214,7 +3297,7 @@ function resetForm(){
   ['fFirst','fLast','fTeam','fJersey','fCardNum','fHeight','fWeight','fHometown'].forEach(id=>document.getElementById(id).value=''); if(document.getElementById('fBio'))document.getElementById('fBio').value='';
   document.getElementById('fPos').value='PITCHER';document.getElementById('fPosCustomWrap').style.display='none';if(document.getElementById('fPosCustom'))document.getElementById('fPosCustom').value='';document.getElementById('fDiv').value='T-BALL';
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
-  document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.tieDyeSat=100;CS.tieDyeHueShift=0;CS.tieDyeLightness=0;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}const tdSecReset=document.getElementById('tieDyeSection');if(tdSecReset)tdSecReset.style.display='none';if(document.getElementById('tieDyeSat')){document.getElementById('tieDyeSat').value=100;document.getElementById('tieDyeSatVal').textContent='100%';}if(document.getElementById('tieDyeHue')){document.getElementById('tieDyeHue').value=0;document.getElementById('tieDyeHueVal').textContent='0°';}if(document.getElementById('tieDyeLight')){document.getElementById('tieDyeLight').value=0;document.getElementById('tieDyeLightVal').textContent='0';}
+  document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;document.getElementById('playoffStatsRows').innerHTML='';sCntP=0;document.getElementById('playoffPitchRows').innerHTML='';pCntP=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.tieDyeSat=100;CS.tieDyeHueShift=0;CS.tieDyeLightness=0;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sPos='br';CS.sigColor='black';if(document.getElementById('sPosBR')){document.getElementById('sPosBR').classList.add('active');document.getElementById('sPosBL').classList.remove('active');}if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}const tdSecReset=document.getElementById('tieDyeSection');if(tdSecReset)tdSecReset.style.display='none';if(document.getElementById('tieDyeSat')){document.getElementById('tieDyeSat').value=100;document.getElementById('tieDyeSatVal').textContent='100%';}if(document.getElementById('tieDyeHue')){document.getElementById('tieDyeHue').value=0;document.getElementById('tieDyeHueVal').textContent='0°';}if(document.getElementById('tieDyeLight')){document.getElementById('tieDyeLight').value=0;document.getElementById('tieDyeLightVal').textContent='0';}
   pD='';sD='';lD='';pS='';sS='';lS='';
   CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.customBgImg=null;CS.customBgURL=null;CS.cutoutImg=null;CS.cutoutURL=null;CS.cutoutScale=1.0;CS.cutoutOffsetX=0;CS.cutoutOffsetY=0;
   CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
