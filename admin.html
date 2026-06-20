@@ -794,9 +794,20 @@ window.addEventListener('unhandledrejection',function(e){
         <button class="bulk-btn-ghost" onclick="downloadTemplate()">&#x2B07; Download CSV Template</button>
       </div>
       <div class="bulk-step">
-        <div class="bulk-step-h"><span class="bulk-num">2</span> Upload the spreadsheet</div>
+        <div class="bulk-step-h"><span class="bulk-num">2</span> Add your roster</div>
         <p class="bulk-p">.xlsx or .csv. Every player gets a <b>BASE</b> card automatically — add parallel cards for specific players in the review step below.</p>
         <div class="bulk-drop"><input type="file" id="bulkSheet" accept=".xlsx,.xls,.csv" onchange="loadSheet(this)"><span id="bulkSheetName">Click to choose spreadsheet&#x2026;</span></div>
+        <div style="display:flex;align-items:center;gap:8px;margin:10px 0">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--muted)">OR TYPE IT IN</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <p class="bulk-p">One player per line, same column order as the template, separated by commas: <code>firstName,lastName,jerseyNum,team,position,division,cardNum,all_star,photoFile</code>. Leave a field blank between commas if you don't have it (e.g. <code>Desmond,Steele,5,Lunenburg Blue,Pitcher,Majors Baseball,,yes,</code>).</p>
+        <textarea id="bulkPaste" rows="6" placeholder="Desmond,Steele,5,Lunenburg Blue,Pitcher,Majors Baseball,,yes,
+Alex,DAnnolfo,10,Lunenburg Blue,Left Field,Majors Baseball,,,"
+          style="width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;padding:8px;border:1px solid var(--border);border-radius:4px;resize:vertical"></textarea>
+        <button class="bulk-btn-ghost" style="margin-top:6px" onclick="loadPastedRoster()">Use this list</button>
+        <span id="bulkPasteStatus" style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);margin-left:8px"></span>
       </div>
       <div class="bulk-step">
         <div class="bulk-step-h"><span class="bulk-num">3</span> Upload the photo ZIP <span style="font-weight:400;color:var(--muted);font-size:11px">(optional)</span></div>
@@ -1156,11 +1167,10 @@ function fitTransform(){
   syncTransformUI(); qR();
 }
 function fillTransform(){
-  // Scale so the image fills the mask area completely
+  // CS.imgScale is a MULTIPLIER on top of drawPhotoLayer's own cover-fit baseScale,
+  // so the neutral/default value is always 1.0 — never a raw px-per-px ratio.
   if(!CS.photoImg) return;
-  const iw=CS.photoImg.naturalWidth, ih=CS.photoImg.naturalHeight;
-  const fw=MASK.x1-MASK.x4, fh=MASK.y2-MASK.y0;
-  CS.imgScale=Math.max(fw/iw, fh/ih);
+  CS.imgScale=1.0;
   CS.imgOffsetX=0; CS.imgOffsetY=0;
   syncTransformUI(); qR();
 }
@@ -3007,10 +3017,16 @@ function hPhoto(i){
     const img=new Image();
     img.onload=()=>{
       CS.photoImg=img;
-      // Auto-fill on load
+      // Safe default first (centered, neutral scale) so the card never looks broken
       fillTransform();
       document.getElementById('imgTransform').style.display='block';
       qR();
+      // Then try to auto-center on the detected face; only overrides if a face is found
+      autoFaceCrop(img).then(crop=>{
+        if(CS.photoImg!==img) return; // a newer photo was uploaded while we were detecting
+        CS.imgScale=crop.scale; CS.imgOffsetX=crop.offsetX; CS.imgOffsetY=crop.offsetY;
+        syncTransformUI(); qR();
+      });
     };
     img.src=e.target.result;
   };
@@ -3398,6 +3414,57 @@ function loadSheet(input){
   reader.readAsArrayBuffer(file);
 }
 
+// Split one CSV-style line into fields, respecting simple "quoted, fields"
+// so a name or team containing a comma doesn't break the column count.
+function splitCsvLine(line){
+  const out=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQ){
+      if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else inQ=false; }
+      else cur+=c;
+    } else {
+      if(c==='"') inQ=true;
+      else if(c===','){ out.push(cur); cur=''; }
+      else cur+=c;
+    }
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+
+const PASTE_COLUMNS=['firstname','lastname','jerseynum','team','position','division','cardnum','allstar','photofile'];
+
+// Type-it-in alternative to uploading a spreadsheet — same column order as the
+// template, one player per line. Routed through the identical normalizeRow()/
+// assignCardNumbers()/rematchBulk() pipeline as the file upload, so the two
+// entry methods can never drift apart.
+function loadPastedRoster(){
+  const raw=document.getElementById('bulkPaste').value;
+  const lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(!lines.length){ showToast('Type in at least one player first',true); return; }
+  const status=document.getElementById('bulkPasteStatus');
+  try{
+    const objRows=lines.map(line=>{
+      const fields=splitCsvLine(line);
+      const obj={};
+      PASTE_COLUMNS.forEach((col,i)=>{ obj[col]=fields[i]!==undefined?fields[i]:''; });
+      return obj;
+    });
+    BULK.rows=objRows.map(normalizeRow).filter(r=>r.firstName||r.lastName);
+    if(!BULK.rows.length){ status.textContent='No valid rows found — need at least first or last name.'; status.style.color='var(--red)'; return; }
+    assignCardNumbers(BULK.rows);
+    rematchBulk();
+    document.getElementById('bulkSheetName').textContent='Click to choose spreadsheet…';
+    status.textContent=`✓ ${BULK.rows.length} player${BULK.rows.length!==1?'s':''} loaded from typed list`;
+    status.style.color='var(--green)';
+    showToast(`✓ ${BULK.rows.length} players loaded`);
+  }catch(err){
+    status.textContent='Could not parse list: '+err.message;
+    status.style.color='var(--red)';
+  }
+}
+
 // Fill in any blank cardNum, alphabetically by last name (then first name), without
 // disturbing card numbers the spreadsheet explicitly provided.
 function assignCardNumbers(rows){
@@ -3467,6 +3534,126 @@ function derivedPhotoKey(row){
   const fi=(row.firstName||'').trim().charAt(0).toLowerCase();
   const ln=(row.lastName||'').toLowerCase().replace(/['\s.]/g,'');
   return fi&&ln?fi+ln:'';
+}
+
+/* ═══════════════════════════════════════════
+   AUTO FACE CENTERING — consistent player scale/position across cards
+   Uses TensorFlow.js + BlazeFace (loaded lazily, only when a photo needs it)
+   to find the player's face, then converts that into the SAME imgScale /
+   imgOffsetX / imgOffsetY fields the manual sliders use — so auto-detected
+   cards and hand-tuned cards go through one identical rendering path.
+═══════════════════════════════════════════ */
+const FACE_LIBS_SRC=[
+  'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
+  'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.1.0/dist/blazeface.min.js',
+];
+let _faceLibsPromise=null, _faceModelPromise=null;
+
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=src; s.onload=()=>resolve(); s.onerror=()=>reject(new Error('Failed to load '+src));
+    document.head.appendChild(s);
+  });
+}
+
+// Loads tfjs + blazeface exactly once, no matter how many photos need detecting.
+function ensureFaceLibs(){
+  if(!_faceLibsPromise){
+    _faceLibsPromise=(async()=>{
+      if(typeof window.tf==='undefined') await loadScript(FACE_LIBS_SRC[0]);
+      if(typeof window.blazeface==='undefined') await loadScript(FACE_LIBS_SRC[1]);
+    })();
+  }
+  return _faceLibsPromise;
+}
+function ensureFaceModel(){
+  if(!_faceModelPromise){
+    _faceModelPromise=ensureFaceLibs().then(()=>window.blazeface.load());
+  }
+  return _faceModelPromise;
+}
+
+// Runs face detection on an already-loaded <img>. Returns the largest
+// detected face as {x,y,w,h} in the image's natural pixel coordinates,
+// or null if detection failed / found nothing (caller should fall back
+// to the existing centered "cover" behavior in that case).
+async function detectFaceBox(imgEl){
+  try{
+    const model=await ensureFaceModel();
+    const preds=await model.estimateFaces(imgEl, false);
+    if(!preds||!preds.length) return null;
+    // Pick the largest face box (most likely the player, not a bystander)
+    let best=null, bestArea=0;
+    preds.forEach(p=>{
+      const x0=Array.isArray(p.topLeft)?p.topLeft[0]:p.topLeft.arraySync()[0];
+      const y0=Array.isArray(p.topLeft)?p.topLeft[1]:p.topLeft.arraySync()[1];
+      const x1=Array.isArray(p.bottomRight)?p.bottomRight[0]:p.bottomRight.arraySync()[0];
+      const y1=Array.isArray(p.bottomRight)?p.bottomRight[1]:p.bottomRight.arraySync()[1];
+      const w=x1-x0, h=y1-y0, area=w*h;
+      if(area>bestArea){ bestArea=area; best={x:x0,y:y0,w,h}; }
+    });
+    return best;
+  }catch(e){
+    console.warn('Face detection unavailable:',e.message);
+    return null;
+  }
+}
+
+// Converts a detected face box into {scale, offsetX, offsetY} matching the
+// existing CS.imgScale / CS.imgOffsetX / CS.imgOffsetY fields, so the result
+// plugs directly into drawPhotoLayer()'s existing math with no changes there.
+//
+// Target framing (tuned for head-and-shoulders consistency across a set):
+//   - face height fills FACE_FRAC of the photo-mask height
+//   - face vertical center sits at FACE_ANCHOR_Y down from the mask top
+//   - face horizontal center sits on the mask's horizontal center
+const FACE_FRAC=0.24;      // detected face height, as a fraction of mask height
+const FACE_ANCHOR_Y=0.40;  // where the face center should land, fraction of mask height from top
+
+function computeFaceCrop(img,faceBox){
+  const areaW=MASK.x1-MASK.x4, areaH=MASK.y2-MASK.y0; // 603 x 850
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const baseScale=Math.max(areaW/iw, areaH/ih); // same "cover" baseline drawPhotoLayer uses
+
+  if(!faceBox){
+    return {scale:1.0, offsetX:0, offsetY:0}; // no face found — leave the existing centered default
+  }
+
+  // Desired on-screen face height, in mask pixels
+  const desiredFaceH=areaH*FACE_FRAC;
+  // baseScale already maps image px -> mask px at imgScale=1; solve for the
+  // extra zoom needed so the detected face height matches desiredFaceH.
+  const scale=desiredFaceH/(faceBox.h*baseScale);
+
+  // Face center, in image px
+  const faceCx=faceBox.x+faceBox.w/2, faceCy=faceBox.y+faceBox.h/2;
+  // Where that point lands on the mask at the FINAL scale (baseScale*scale),
+  // before any offset, when the image is centered on the mask:
+  const finalScale=baseScale*scale;
+  const iwScaled=iw*finalScale, ihScaled=ih*finalScale;
+  const imgLeftAtCenter=(MASK.x4+MASK.x1)/2 - iwScaled/2;
+  const imgTopAtCenter =(MASK.y0+MASK.y2)/2 - ihScaled/2;
+  const faceXOnMask=imgLeftAtCenter + faceCx*finalScale;
+  const faceYOnMask=imgTopAtCenter + faceCy*finalScale;
+
+  // Desired face position on the mask
+  const desiredFaceX=(MASK.x4+MASK.x1)/2; // horizontally centered
+  const desiredFaceY=MASK.y0 + areaH*FACE_ANCHOR_Y;
+
+  const offsetX=desiredFaceX-faceXOnMask;
+  const offsetY=desiredFaceY-faceYOnMask;
+
+  return {scale, offsetX, offsetY};
+}
+
+// High-level helper: given a loaded <img>, returns {scale, offsetX, offsetY}
+// ready to assign straight onto CS.imgScale / CS.imgOffsetX / CS.imgOffsetY
+// (or onto a bulk-import row's equivalent fields). Never throws — falls back
+// to the centered default if detection isn't available or finds no face.
+async function autoFaceCrop(imgEl){
+  const box=await detectFaceBox(imgEl);
+  return computeFaceCrop(imgEl,box);
 }
 
 function rematchBulk(){
@@ -3632,21 +3819,37 @@ async function runBulkImport(){
   let done=0, ok=0, fail=0;
   const total=jobs.length;
   const photoCache={}; // rowIndex -> photoURL, so a player's photo uploads once even with multiple parallel cards
+  const cropCache={};  // rowIndex -> {scale,offsetX,offsetY}, likewise computed once per player
 
   for(const job of jobs){
     const r=job.row;
     try{
       let photoURL='';
+      let crop={scale:1,offsetX:0,offsetY:0};
       if(photoCache[job.rowIndex]!==undefined){
         photoURL=photoCache[job.rowIndex];
+        crop=cropCache[job.rowIndex]||crop;
       } else if(job.blob){
+        txt.textContent=`Centering photo for ${r.firstName} ${r.lastName}…`;
         const slug=`${r.firstName}_${r.lastName}_${Date.now()}_${job.rowIndex}`.replace(/\s+/g,'_');
         const ref=st.ref('photos/'+slug);
         await ref.put(job.blob);
         photoURL=await ref.getDownloadURL();
         photoCache[job.rowIndex]=photoURL;
+        // Auto-center on the detected face once per player; falls back to the
+        // safe centered default if no face is found or detection isn't available.
+        try{
+          const objUrl=URL.createObjectURL(job.blob);
+          const imgEl=await new Promise((res,rej)=>{
+            const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=objUrl;
+          });
+          crop=await autoFaceCrop(imgEl);
+          URL.revokeObjectURL(objUrl);
+        }catch(faceErr){ console.warn('Face crop skipped for',r.firstName,r.lastName,faceErr.message); }
+        cropCache[job.rowIndex]=crop;
       } else {
         photoCache[job.rowIndex]='';
+        cropCache[job.rowIndex]=crop;
       }
       const par=job.parallel||'base';
       const data={
@@ -3664,7 +3867,7 @@ async function runBulkImport(){
         breakout:false,breakoutPoly:null,
         numbered:false,allStar:!!r.allStar,sPos:'br',sigColor:'black',
         certAuto:false,showLybs:true,customBgURL:null,
-        imgScale:1,imgOffsetX:0,imgOffsetY:0,
+        imgScale:crop.scale,imgOffsetX:crop.offsetX,imgOffsetY:crop.offsetY,
         logoScale:1,logoOffsetX:0,logoOffsetY:0,
         createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
         bulkImport:true,
