@@ -3697,12 +3697,15 @@ function computeFaceCrop(img,faceBox){
 // to the centered default if detection isn't available or finds no face.
 // Races a promise against a timeout, resolving with a fallback value instead
 // of hanging forever if the promise never settles (e.g. a slow/blocked CDN).
+// Races a promise against a timeout. On a genuine timeout, resolves with
+// fallbackValue. If the promise itself rejects (a real error, not a hang),
+// that rejection is re-thrown as-is so the real error message is never lost.
 function withTimeout(promise,timeoutMs,fallbackValue){
-  return new Promise(resolve=>{
+  return new Promise((resolve,reject)=>{
     let settled=false;
     const timer=setTimeout(()=>{ if(settled)return; settled=true; resolve(fallbackValue); },timeoutMs);
     promise.then(v=>{ if(settled)return; settled=true; clearTimeout(timer); resolve(v); })
-           .catch(()=>{ if(settled)return; settled=true; clearTimeout(timer); resolve(fallbackValue); });
+           .catch(err=>{ if(settled)return; settled=true; clearTimeout(timer); reject(err); });
   });
 }
 
@@ -4032,10 +4035,7 @@ async function runBulkImport(){
       // Outer 40s guarantee: no matter what goes wrong inside runOneJob — a
       // hang we didn't anticipate, a promise that never settles — the import
       // moves on to the next player instead of sitting forever.
-      const result=await withTimeout(
-        runOneJob(job).then(()=>'OK').catch(e=>{ throw e; }),
-        40000,'HARD_TIMEOUT'
-      );
+      const result=await withTimeout(runOneJob(job).then(()=>'OK'),40000,'HARD_TIMEOUT');
       if(result==='HARD_TIMEOUT') throw new Error('This card took too long and was skipped — check your internet connection and Firebase setup');
       ok++;
     }catch(err){
