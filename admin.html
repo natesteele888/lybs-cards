@@ -3055,7 +3055,7 @@ function hPhoto(i){
       document.getElementById('imgTransform').style.display='block';
       qR();
       // Then try to auto-center on the detected face; only overrides if a face is found
-      detectFaceBox(img).then(box=>{
+      withTimeout(detectFaceBox(img), 10000, null).then(box=>{
         if(CS.photoImg!==img) return; // a newer photo was uploaded while we were detecting
         CS.photoFaceBox=box;
         const crop=computeFaceCrop(img,box);
@@ -3614,10 +3614,17 @@ const FACE_LIBS_SRC=[
 ];
 let _faceLibsPromise=null, _faceModelPromise=null;
 
-function loadScript(src){
+function loadScript(src,timeoutMs=8000){
   return new Promise((resolve,reject)=>{
     const s=document.createElement('script');
-    s.src=src; s.onload=()=>resolve(); s.onerror=()=>reject(new Error('Failed to load '+src));
+    let done=false;
+    const timer=setTimeout(()=>{
+      if(done)return; done=true;
+      reject(new Error('Timed out loading '+src));
+    },timeoutMs);
+    s.src=src;
+    s.onload=()=>{ if(done)return; done=true; clearTimeout(timer); resolve(); };
+    s.onerror=()=>{ if(done)return; done=true; clearTimeout(timer); reject(new Error('Failed to load '+src)); };
     document.head.appendChild(s);
   });
 }
@@ -3760,6 +3767,17 @@ function computeFaceCrop(img,faceBox){
 // ready to assign straight onto CS.imgScale / CS.imgOffsetX / CS.imgOffsetY
 // (or onto a bulk-import row's equivalent fields). Never throws — falls back
 // to the centered default if detection isn't available or finds no face.
+// Races a promise against a timeout, resolving with a fallback value instead
+// of hanging forever if the promise never settles (e.g. a slow/blocked CDN).
+function withTimeout(promise,timeoutMs,fallbackValue){
+  return new Promise(resolve=>{
+    let settled=false;
+    const timer=setTimeout(()=>{ if(settled)return; settled=true; resolve(fallbackValue); },timeoutMs);
+    promise.then(v=>{ if(settled)return; settled=true; clearTimeout(timer); resolve(v); })
+           .catch(()=>{ if(settled)return; settled=true; clearTimeout(timer); resolve(fallbackValue); });
+  });
+}
+
 async function autoFaceCrop(imgEl){
   const box=await detectFaceBox(imgEl);
   return computeFaceCrop(imgEl,box);
@@ -4024,6 +4042,7 @@ async function runBulkImport(){
   const total=jobs.length;
   const photoCache={}; // rowIndex -> photoURL, so a player's photo uploads once even with multiple parallel cards
   const cropCache={};  // rowIndex -> {scale,offsetX,offsetY}, likewise computed once per player
+  let _faceTimeoutWarned=false;
 
   for(const job of jobs){
     const r=job.row;
@@ -4047,7 +4066,13 @@ async function runBulkImport(){
           const imgEl=await new Promise((res,rej)=>{
             const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=objUrl;
           });
-          crop=await autoFaceCrop(imgEl);
+          const detected=await withTimeout(detectFaceBox(imgEl), 10000, 'TIMEOUT');
+          if(detected==='TIMEOUT'){
+            crop={scale:1,offsetX:0,offsetY:0};
+            if(!_faceTimeoutWarned){ _faceTimeoutWarned=true; showToast('Face auto-centering is slow/unavailable — continuing with centered photos',true); }
+          } else {
+            crop=computeFaceCrop(imgEl,detected);
+          }
           URL.revokeObjectURL(objUrl);
         }catch(faceErr){ console.warn('Face crop skipped for',r.firstName,r.lastName,faceErr.message); }
         cropCache[job.rowIndex]=crop;
