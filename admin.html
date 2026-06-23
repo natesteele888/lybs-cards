@@ -277,16 +277,31 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .bp-noimg{width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:#2a3a5a;color:rgba(255,255,255,.3);font-size:20px}
 .bp-name{font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;color:var(--ink);padding:3px 5px 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bp-meta{font-family:"Oswald",sans-serif;font-size:8px;color:var(--muted);padding:0 5px 4px}
-.bp-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:5px;background:var(--cream);margin-bottom:6px}
+.bp-row{display:flex;flex-direction:column;gap:6px;padding:9px 10px;border:1px solid var(--border);border-radius:5px;background:var(--cream);margin-bottom:6px}
+.bp-row .bp-toprow{display:flex;align-items:center;gap:10px}
 .bp-row .bp-rthumb{width:34px;height:34px;border-radius:3px;object-fit:cover;flex-shrink:0;background:#1a2a4a}
 .bp-row .bp-rnoimg{width:34px;height:34px;border-radius:3px;flex-shrink:0;background:#2a3a5a;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:14px}
-.bp-row .bp-rname{font-family:"Oswald",sans-serif;font-size:11px;font-weight:600;color:var(--ink);min-width:130px;flex-shrink:0}
-.bp-row .bp-rmeta{font-family:"Oswald",sans-serif;font-size:9px;color:var(--muted);flex-shrink:0;min-width:120px}
-.bp-row .bp-rcardnum{width:48px;flex-shrink:0}
-.bp-row .bp-rcardnum input{width:100%;font-family:"Oswald",sans-serif;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box}
+.bp-row .bp-rname{font-family:"Oswald",sans-serif;font-size:11px;font-weight:600;color:var(--ink);min-width:120px;flex-shrink:0}
+.bp-row .bp-rjersey{width:42px;flex-shrink:0}
+.bp-row .bp-rjersey input{width:100%;font-family:"Oswald",sans-serif;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;text-align:center}
+.bp-row .bp-rcardnum{width:42px;flex-shrink:0}
+.bp-row .bp-rcardnum input{width:100%;font-family:"Oswald",sans-serif;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;text-align:center}
 .bp-row .bp-rstar{flex-shrink:0;display:flex;align-items:center;gap:4px;font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.5px;color:var(--muted);cursor:pointer}
 .bp-row .bp-rstar input{cursor:pointer}
-.bp-row .bp-rextra{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
+.bp-row .bp-rstats{flex-shrink:0;font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.3px;padding:3px 7px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted)}
+.bp-row .bp-rstats.has-stats{color:var(--navy);border-color:rgba(0,39,94,.3);background:rgba(0,39,94,.05)}
+.bp-row .bp-rstats:hover{border-color:var(--navy)}
+.bp-row .bp-rextra{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1;min-width:0;margin-left:auto;justify-content:flex-end}
+.bp-row .bp-fields{display:flex;gap:6px;flex-wrap:wrap}
+.bp-row .bp-fields input{font-family:"Oswald",sans-serif;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box}
+.bp-row .bp-fields input.f-team,.bp-row .bp-fields input.f-position{width:120px}
+.bp-row .bp-fields input.f-division{width:110px}
+.bp-row .bp-fields input.f-hometown{width:110px}
+.bp-row .bp-statsdetail{display:none;font-family:"Oswald",sans-serif;font-size:9px;color:var(--ink);background:rgba(0,0,0,.03);border-radius:4px;padding:6px 8px;line-height:1.7}
+.bp-row .bp-statsdetail.open{display:block}
+.bp-row .bp-statsdetail table{width:100%;border-collapse:collapse;margin-top:2px}
+.bp-row .bp-statsdetail td,.bp-row .bp-statsdetail th{padding:2px 5px;text-align:left;font-size:9px}
+.bp-row .bp-statsdetail th{color:var(--muted);font-weight:600}
 .bp-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(0,39,94,.08);color:var(--navy);font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;letter-spacing:.5px;padding:3px 6px 3px 8px;border-radius:10px}
 .bp-chip button{background:none;border:none;color:var(--navy);cursor:pointer;font-size:11px;line-height:1;padding:0;opacity:.6}
 .bp-chip button:hover{opacity:1}
@@ -296,7 +311,12 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .bp-parmenu button{display:flex;align-items:center;gap:6px;background:none;border:none;text-align:left;font-family:"Oswald",sans-serif;font-size:10px;padding:5px 8px;border-radius:4px;cursor:pointer;color:var(--ink);white-space:nowrap}
 .bp-parmenu button:hover{background:rgba(0,39,94,.06)}
 .bp-parmenu .sw{width:10px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.15)}
-.bulk-preview-list{max-height:340px;overflow-y:auto;position:relative}
+.bulk-preview-list{max-height:420px;overflow-y:auto;position:relative}
+.bp-fillall{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:rgba(0,39,94,.05);border-radius:6px;padding:8px 10px;margin-bottom:10px}
+.bp-fillall input{font-family:"Oswald",sans-serif;font-size:10px;padding:4px 6px;border:1px solid var(--border);border-radius:3px;width:110px}
+.bp-fillall button{font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.5px;padding:4px 8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:4px;cursor:pointer}
+.bp-fillall button:hover{background:var(--navy);color:#fff}
+.bp-fillall label{font-family:"Oswald",sans-serif;font-size:8px;letter-spacing:.5px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
 
 /* ── FORM TABS ── */
 .tab-bar{display:flex;border-bottom:2px solid var(--border);background:var(--paper);position:sticky;top:0;z-index:4;overflow-x:auto;scrollbar-width:none}
@@ -789,35 +809,42 @@ window.addEventListener('unhandledrejection',function(e){
     </div>
     <div style="padding:22px">
       <div class="bulk-step">
-        <div class="bulk-step-h"><span class="bulk-num">1</span> Download the template</div>
-        <p class="bulk-p">Your spreadsheet needs these columns (header row required). Extra columns are ignored. <b>cardNum</b> auto-fills alphabetically by last name if left blank. <b>photoFile</b> is optional — if blank, photos auto-match by <code>firstinitial+lastname</code> (e.g. <code>dsteele.jpg</code>).</p>
-        <div class="bulk-cols">firstName &#xB7; lastName &#xB7; jerseyNum &#xB7; team &#xB7; position &#xB7; division &#xB7; cardNum &#xB7; all_star &#xB7; photoFile (optional)</div>
-        <button class="bulk-btn-ghost" onclick="downloadTemplate()">&#x2B07; Download CSV Template</button>
+        <div class="bulk-step-h"><span class="bulk-num">1</span> Upload regular-season stats CSV</div>
+        <p class="bulk-p">The same export format as Stats Import (Number/Last/First + Batting/Pitching columns). <b>This file creates your player list</b> — one player per name found in it, with jersey number read from the <b>Number</b> column. If a player has multiple rows (one per year), give each row's season a year below and every row will show up as a separate year on their card.</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted)">SEASON YEAR<br>
+            <input type="text" id="bulkStatsYear" value="2026" style="width:70px;margin-top:3px;font-family:'Oswald',sans-serif;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:3px">
+          </label>
+          <label style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted)">TEAM/CLUB NAME<br>
+            <input type="text" id="bulkStatsTeam" placeholder="e.g. Blue" style="width:140px;margin-top:3px;font-family:'Oswald',sans-serif;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:3px">
+          </label>
+        </div>
+        <div class="bulk-drop"><input type="file" id="bulkStatsCsv" accept=".xlsx,.xls,.csv" onchange="loadBulkStatsCSV(this,'regular')"><span id="bulkStatsCsvName">Click to choose regular-season stats CSV&#x2026;</span></div>
       </div>
       <div class="bulk-step">
-        <div class="bulk-step-h"><span class="bulk-num">2</span> Add your roster</div>
-        <p class="bulk-p">.xlsx or .csv. Every player gets a <b>BASE</b> card automatically — add parallel cards for specific players in the review step below.</p>
-        <div class="bulk-drop"><input type="file" id="bulkSheet" accept=".xlsx,.xls,.csv" onchange="loadSheet(this)"><span id="bulkSheetName">Click to choose spreadsheet&#x2026;</span></div>
-        <div style="display:flex;align-items:center;gap:8px;margin:10px 0">
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-          <span style="font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:1px;color:var(--muted)">OR TYPE IT IN</span>
-          <div style="flex:1;height:1px;background:var(--border)"></div>
+        <div class="bulk-step-h"><span class="bulk-num">2</span> Upload playoff stats CSV <span style="font-weight:400;color:var(--muted);font-size:11px">(optional)</span></div>
+        <p class="bulk-p">Same format. Matched to players already loaded above by name — players not found in step 1 are skipped (upload regular-season stats first).</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted)">SEASON YEAR<br>
+            <input type="text" id="bulkPlayoffYear" value="2026" style="width:70px;margin-top:3px;font-family:'Oswald',sans-serif;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:3px">
+          </label>
+          <label style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted)">TEAM/CLUB NAME<br>
+            <input type="text" id="bulkPlayoffTeam" placeholder="e.g. Blue" style="width:140px;margin-top:3px;font-family:'Oswald',sans-serif;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:3px">
+          </label>
         </div>
-        <p class="bulk-p">One player per line, same column order as the template, separated by commas: <code>firstName,lastName,jerseyNum,team,position,division,cardNum,all_star,photoFile</code>. Leave a field blank between commas if you don't have it (e.g. <code>Desmond,Steele,5,Lunenburg Blue,Pitcher,Majors Baseball,,yes,</code>).</p>
-        <textarea id="bulkPaste" rows="6" placeholder="Desmond,Steele,5,Lunenburg Blue,Pitcher,Majors Baseball,,yes,
-Alex,DAnnolfo,10,Lunenburg Blue,Left Field,Majors Baseball,,,"
-          style="width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;padding:8px;border:1px solid var(--border);border-radius:4px;resize:vertical"></textarea>
-        <button class="bulk-btn-ghost" style="margin-top:6px" onclick="loadPastedRoster()">Use this list</button>
-        <span id="bulkPasteStatus" style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);margin-left:8px"></span>
+        <div class="bulk-drop"><input type="file" id="bulkPlayoffCsv" accept=".xlsx,.xls,.csv" onchange="loadBulkStatsCSV(this,'playoff')" disabled><span id="bulkPlayoffCsvName">Upload regular-season stats first&#x2026;</span></div>
       </div>
       <div class="bulk-step">
         <div class="bulk-step-h"><span class="bulk-num">3</span> Upload the photo ZIP <span style="font-weight:400;color:var(--muted);font-size:11px">(optional)</span></div>
-        <p class="bulk-p">A .zip of photos named <code>firstinitial+lastname.jpg</code> (e.g. <code>dsteele.jpg</code>) — or matching your sheet's <b>photoFile</b> column if you filled it in. Players without a match still generate (no photo).</p>
+        <p class="bulk-p">A .zip of photos named <code>firstinitial+lastname.jpg</code> (e.g. <code>dsteele.jpg</code>). Players without a match still generate (no photo).</p>
         <div class="bulk-drop"><input type="file" id="bulkZip" accept=".zip" onchange="loadZip(this)"><span id="bulkZipName">Click to choose photo ZIP&#x2026;</span></div>
       </div>
       <div class="bulk-step" id="bulkPreviewStep" style="display:none">
         <div class="bulk-step-h"><span class="bulk-num">4</span> Review &amp; import</div>
+        <p class="bulk-p">Team, position, division and hometown aren't in the stats CSV — fill them in per player below (or click <b>fill all</b> to apply one value to everyone, then adjust the exceptions).</p>
         <div class="bulk-summary" id="bulkSummary"></div>
+        <div class="bp-fillall" id="bpFillAll"></div>
+        <button class="bulk-btn-ghost" style="margin-bottom:10px" onclick="addManualBulkPlayer()">+ Add a player without stats</button>
         <div class="bulk-preview-list" id="bulkPreview"></div>
       </div>
       <div style="display:flex;gap:10px;margin-top:18px">
@@ -3382,96 +3409,22 @@ function openBulk(){document.getElementById('bulkOverlay').style.display='flex';
 function closeBulk(){
   document.getElementById('bulkOverlay').style.display='none';
   BULK={rows:[],photos:{},matched:[],extras:[]};
-  document.getElementById('bulkSheetName').textContent='Click to choose spreadsheet…';
+  document.getElementById('bulkStatsCsvName').textContent='Click to choose regular-season stats CSV…';
+  document.getElementById('bulkPlayoffCsvName').textContent='Upload regular-season stats first…';
+  document.getElementById('bulkPlayoffCsv').disabled=true;
   document.getElementById('bulkZipName').textContent='Click to choose photo ZIP…';
   document.getElementById('bulkPreviewStep').style.display='none';
   document.getElementById('bulkImportBtn').disabled=true;
   document.getElementById('bulkProgress').style.display='none';
-  try{document.getElementById('bulkSheet').value='';document.getElementById('bulkZip').value='';}catch(e){}
-}
-
-function downloadTemplate(){
-  const headers=['firstName','lastName','jerseyNum','team','position','division','cardNum','all_star','photoFile'];
-  const example=['Alex','Johnson','7','Lunenburg Blue','Pitcher','Majors Baseball','','no',''];
-  const csv=headers.join(',')+'\n'+example.join(',')+'\n';
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='LYBS_card_template.csv';
-  document.body.appendChild(a);a.click();
-  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(a.href);},200);
-}
-
-function loadSheet(input){
-  const file=input.files[0];if(!file)return;
-  document.getElementById('bulkSheetName').textContent=file.name;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      const data=new Uint8Array(e.target.result);
-      const wb=XLSX.read(data,{type:'array'});
-      const sheet=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
-      BULK.rows=rows.map(normalizeRow).filter(r=>r.firstName||r.lastName);
-      assignCardNumbers(BULK.rows);
-      rematchBulk();
-    }catch(err){showToast('Could not read spreadsheet: '+err.message,true);}
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-// Split one CSV-style line into fields, respecting simple "quoted, fields"
-// so a name or team containing a comma doesn't break the column count.
-function splitCsvLine(line){
-  const out=[]; let cur=''; let inQ=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(inQ){
-      if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else inQ=false; }
-      else cur+=c;
-    } else {
-      if(c==='"') inQ=true;
-      else if(c===','){ out.push(cur); cur=''; }
-      else cur+=c;
-    }
-  }
-  out.push(cur);
-  return out.map(s=>s.trim());
-}
-
-const PASTE_COLUMNS=['firstname','lastname','jerseynum','team','position','division','cardnum','allstar','photofile'];
-
-// Type-it-in alternative to uploading a spreadsheet — same column order as the
-// template, one player per line. Routed through the identical normalizeRow()/
-// assignCardNumbers()/rematchBulk() pipeline as the file upload, so the two
-// entry methods can never drift apart.
-function loadPastedRoster(){
-  const raw=document.getElementById('bulkPaste').value;
-  const lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-  if(!lines.length){ showToast('Type in at least one player first',true); return; }
-  const status=document.getElementById('bulkPasteStatus');
   try{
-    const objRows=lines.map(line=>{
-      const fields=splitCsvLine(line);
-      const obj={};
-      PASTE_COLUMNS.forEach((col,i)=>{ obj[col]=fields[i]!==undefined?fields[i]:''; });
-      return obj;
-    });
-    BULK.rows=objRows.map(normalizeRow).filter(r=>r.firstName||r.lastName);
-    if(!BULK.rows.length){ status.textContent='No valid rows found — need at least first or last name.'; status.style.color='var(--red)'; return; }
-    assignCardNumbers(BULK.rows);
-    rematchBulk();
-    document.getElementById('bulkSheetName').textContent='Click to choose spreadsheet…';
-    status.textContent=`✓ ${BULK.rows.length} player${BULK.rows.length!==1?'s':''} loaded from typed list`;
-    status.style.color='var(--green)';
-    showToast(`✓ ${BULK.rows.length} players loaded`);
-  }catch(err){
-    status.textContent='Could not parse list: '+err.message;
-    status.style.color='var(--red)';
-  }
+    document.getElementById('bulkStatsCsv').value='';
+    document.getElementById('bulkPlayoffCsv').value='';
+    document.getElementById('bulkZip').value='';
+  }catch(e){}
 }
 
 // Fill in any blank cardNum, alphabetically by last name (then first name), without
-// disturbing card numbers the spreadsheet explicitly provided.
+// disturbing card numbers already assigned.
 function assignCardNumbers(rows){
   const sorted=rows.filter(r=>!r.cardNum).slice().sort((a,b)=>{
     const al=(a.lastName||'').toLowerCase(), bl=(b.lastName||'').toLowerCase();
@@ -3489,30 +3442,134 @@ function assignCardNumbers(rows){
   });
 }
 
-function normalizeRow(r){
-  // Case-insensitive column lookup
-  const get=(...keys)=>{
-    for(const k of Object.keys(r)){
-      const kl=k.toLowerCase().replace(/[^a-z0-9]/g,'');
-      for(const want of keys){ if(kl===want) return String(r[k]).trim(); }
+// Same numeric-cleanup helper Stats Import already uses, for consistency.
+function bulkNum(v){ if(v==null)return ''; const s=String(v).trim(); if(s===''||s==='-'||s==='N/A')return ''; return s; }
+
+// Parses one "league export" stats CSV (two header rows: section labels, then
+// column names) into a flat list of {jerseyNum, firstName, lastName, batting, pitching}
+// season records — one per row in the file. Shared by both the regular-season
+// and playoff uploads, since they're the same export format.
+function parseStatsCsvRows(rows, year, club){
+  if(!rows || rows.length<3) return [];
+  const headers=rows[1].map(h=>String(h).trim());
+  const col={};
+  headers.forEach((h,i)=>{ if(col[h]===undefined) col[h]=i; });
+  const sections=rows[0].map(s=>String(s).trim());
+  let pitchStart=sections.indexOf('Pitching');
+  let fieldStart=sections.indexOf('Fielding');
+  if(fieldStart<0) fieldStart=headers.length;
+
+  function colIn(name,from,to){
+    for(let i=from;i<to;i++){ if(String(headers[i]).trim()===name) return i; }
+    return -1;
+  }
+
+  const out=[];
+  for(let r=2;r<rows.length;r++){
+    const row=rows[r]; if(!row||!row.length) continue;
+    const last=String(row[col['Last']]||'').trim();
+    const first=String(row[col['First']]||'').trim();
+    if(!last && !first) continue;
+    if(/^totals?$/i.test(last) || /^glossary$/i.test(last)) continue; // trailing summary rows
+    const jerseyNum=String(row[col['Number']]||'').trim();
+
+    const bGet=n=>{const i=colIn(n,0,pitchStart>0?pitchStart:headers.length);return i<0?'':bulkNum(row[i]);};
+    const batting={year,club,
+      pa:bGet('PA'),ab:bGet('AB'),h:bGet('H'),avg:bGet('AVG'),obp:bGet('OBP'),slg:bGet('SLG'),
+      '2b':bGet('2B'),'3b':bGet('3B'),hr:bGet('HR'),bb:bGet('BB'),k:bGet('SO'),rbi:bGet('RBI'),
+      tb:bGet('TB'),sb:bGet('SB'),r:bGet('R'),ops:bGet('OPS'),g:bGet('GP')};
+
+    let pitching=null;
+    if(pitchStart>0){
+      const pGet=n=>{const i=colIn(n,pitchStart,fieldStart);return i<0?'':bulkNum(row[i]);};
+      const ip=pGet('IP');
+      if(ip && ip!=='0.0' && ip!=='0'){
+        pitching={year,club,ip,gp:pGet('GP'),w:pGet('W'),l:pGet('L'),sv:pGet('SV'),
+          era:pGet('ERA'),whip:pGet('WHIP'),so:pGet('SO'),bb:pGet('BB'),h:pGet('H'),r:pGet('R'),
+          baa:pGet('BAA'),fip:pGet('FIP')};
+      }
     }
-    return '';
+    out.push({firstName:first,lastName:last,jerseyNum,batting,pitching});
+  }
+  return out;
+}
+
+// Upload handler for both the regular-season and playoff CSV inputs.
+// kind is 'regular' or 'playoff'. Regular-season CREATES the player list;
+// playoff stats are matched onto players already loaded by name.
+function loadBulkStatsCSV(input,kind){
+  const file=input.files[0]; if(!file) return;
+  const nameEl=document.getElementById(kind==='regular'?'bulkStatsCsvName':'bulkPlayoffCsvName');
+  nameEl.textContent=file.name+' (reading…)';
+  const yearEl=document.getElementById(kind==='regular'?'bulkStatsYear':'bulkPlayoffYear');
+  const teamEl=document.getElementById(kind==='regular'?'bulkStatsTeam':'bulkPlayoffTeam');
+  const year=(yearEl.value||'').trim()||'2026';
+  const club=(teamEl.value||'').trim();
+
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const sheetRows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+      const seasonRows=parseStatsCsvRows(sheetRows,year,club);
+
+      if(kind==='regular'){
+        // Group rows by player name -> one BULK.rows entry per unique player,
+        // with a `seasons` array holding every year/row found for them.
+        const byName=new Map();
+        seasonRows.forEach(sr=>{
+          const key=(sr.lastName+'|'+sr.firstName).toLowerCase();
+          if(!byName.has(key)){
+            byName.set(key,{
+              firstName:sr.firstName,lastName:sr.lastName,jerseyNum:sr.jerseyNum,
+              team:'',position:'',division:'',hometown:'',cardNum:'',allStar:false,
+              seasons:[],playoffSeasons:[],
+            });
+          }
+          const p=byName.get(key);
+          if(sr.jerseyNum && !p.jerseyNum) p.jerseyNum=sr.jerseyNum;
+          p.seasons.push({batting:sr.batting,pitching:sr.pitching});
+        });
+        BULK.rows=Array.from(byName.values());
+        assignCardNumbers(BULK.rows);
+        document.getElementById('bulkPlayoffCsv').disabled=false;
+        document.getElementById('bulkPlayoffCsvName').textContent='Click to choose playoff stats CSV…';
+        rematchBulk();
+      } else {
+        // Playoff pass: match onto existing players by name, skip the rest.
+        let matchedCount=0, skipped=0;
+        seasonRows.forEach(sr=>{
+          const key=(sr.lastName+'|'+sr.firstName).toLowerCase();
+          const player=BULK.rows.find(p=>(p.lastName+'|'+p.firstName).toLowerCase()===key);
+          if(player){ player.playoffSeasons.push({batting:sr.batting,pitching:sr.pitching}); matchedCount++; }
+          else skipped++;
+        });
+        rematchBulk();
+        showToast(`✓ Playoff stats matched for ${matchedCount} player${matchedCount!==1?'s':''}`+(skipped?`, ${skipped} skipped (no name match)`:''));
+      }
+      nameEl.textContent=file.name+` (${seasonRows.length} row${seasonRows.length!==1?'s':''} parsed)`;
+    }catch(err){
+      showToast('Stats CSV error: '+err.message,true);
+      console.error(err);
+    }
   };
-  let par=get('parallel','finish','rarity').toLowerCase();
-  if(!VALID_PARALLELS.includes(par)) par='base';
-  const allStarRaw=get('allstar','isallstar','star').toLowerCase();
-  return {
-    firstName:get('firstname','first'),
-    lastName: get('lastname','last'),
-    jerseyNum:get('jerseynum','jersey','number','no','num'),
-    team:     get('team','teamname'),
-    position: get('position','pos'),
-    division: get('division','div'),
-    parallel: par,
-    cardNum:  get('cardnum','cardnumber','card'),
-    photoFile:get('photofile','photo','image','filename','file'),
-    allStar:  ['yes','y','true','1','x'].includes(allStarRaw),
-  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Manual fallback for a player who has no stats CSV row yet (e.g. just joined,
+// no game history). Adds an empty player so they still get a card.
+function addManualBulkPlayer(){
+  const fn=prompt('First name?'); if(fn===null) return;
+  const ln=prompt('Last name?'); if(ln===null) return;
+  if(!fn.trim() && !ln.trim()) return;
+  BULK.rows.push({
+    firstName:fn.trim(),lastName:ln.trim(),jerseyNum:'',
+    team:'',position:'',division:'',hometown:'',cardNum:'',allStar:false,
+    seasons:[],playoffSeasons:[],
+  });
+  assignCardNumbers(BULK.rows);
+  rematchBulk();
 }
 
 function loadZip(input){
@@ -3729,12 +3786,36 @@ function rematchBulk(){
   renderBulkPreview();
 }
 
+function statsSummaryText(player){
+  const regYears=player.seasons.map(s=>s.batting.year).filter(Boolean);
+  const poYears=player.playoffSeasons.map(s=>s.batting.year).filter(Boolean);
+  const parts=[];
+  if(regYears.length) parts.push(`${regYears.length} season${regYears.length!==1?'s':''}`);
+  if(poYears.length) parts.push(`${poYears.length} playoff`);
+  return parts.length?parts.join(' + '):'no stats';
+}
+
+function renderStatsDetailHTML(player){
+  function rows(seasons,label){
+    if(!seasons.length) return '';
+    let html=`<div><b>${label}</b></div><table><tr><th>Year</th><th>Team</th><th>AVG</th><th>HR</th><th>RBI</th><th>IP</th><th>ERA</th></tr>`;
+    seasons.forEach(s=>{
+      const b=s.batting||{}, p=s.pitching;
+      html+=`<tr><td>${b.year||''}</td><td>${b.club||''}</td><td>${b.avg||'—'}</td><td>${b.hr||'—'}</td><td>${b.rbi||'—'}</td><td>${p?p.ip:'—'}</td><td>${p?p.era:'—'}</td></tr>`;
+    });
+    html+='</table>';
+    return html;
+  }
+  return rows(player.seasons,'Regular season')+rows(player.playoffSeasons,'Playoffs');
+}
+
 function renderBulkPreview(){
   const step=document.getElementById('bulkPreviewStep');
   const list=document.getElementById('bulkPreview');
   const sum=document.getElementById('bulkSummary');
   step.style.display='block';
   document.getElementById('bulkImportBtn').disabled=BULK.matched.length===0;
+  renderBulkFillAll();
 
   const total=BULK.matched.length;
   const withPhoto=BULK.matched.filter(m=>m.blob).length;
@@ -3743,8 +3824,10 @@ function renderBulkPreview(){
   const starCount=BULK.rows.filter(r=>r.allStar).length;
   const extraCount=BULK.extras.length;
   const totalCards=total+extraCount;
+  const withStats=BULK.rows.filter(r=>r.seasons.length||r.playoffSeasons.length).length;
   sum.innerHTML=`<b>${total}</b> player${total!==1?'s':''} &#x2192; <b>${totalCards}</b> card${totalCards!==1?'s':''} total &#xB7; `+
-    `<b>${withPhoto}</b> with photo`+
+    `<b>${withStats}</b> with stats`+
+    `<b> &#xB7; ${withPhoto}</b> with photo`+
     (noPhoto>0?` &#xB7; <span class="warn">${noPhoto} without a matching photo</span>`:'')+
     (haveZip?'':` &#xB7; <span class="warn">no ZIP loaded</span>`)+
     ` &#xB7; <b>${starCount}</b> all-star${starCount!==1?'s':''}`+
@@ -3753,44 +3836,60 @@ function renderBulkPreview(){
   list.innerHTML='';
   BULK.matched.forEach((m,i)=>{
     const row=document.createElement('div');row.className='bp-row';
+    const top=document.createElement('div');top.className='bp-toprow';
 
     if(m.blob){
       const img=document.createElement('img');img.className='bp-rthumb';
-      img.src=URL.createObjectURL(m.blob);row.appendChild(img);
+      img.src=URL.createObjectURL(m.blob);top.appendChild(img);
     } else {
-      const ph=document.createElement('div');ph.className='bp-rnoimg';ph.textContent='\u26BE';row.appendChild(ph);
+      const ph=document.createElement('div');ph.className='bp-rnoimg';ph.textContent='\u26BE';top.appendChild(ph);
     }
 
     const nm=document.createElement('div');nm.className='bp-rname';
-    nm.textContent=`${m.row.firstName} ${m.row.lastName}`.trim()||'(no name)';
-    row.appendChild(nm);
+    nm.innerHTML=`${m.row.firstName} ${m.row.lastName}`.trim()?`${m.row.firstName} ${m.row.lastName} <span style="opacity:.35;font-size:9px">&#x21C4;</span>`:'(no name)';
+    nm.title='Click to swap first/last name (the stats export sometimes has these reversed)';
+    nm.style.cursor='pointer';
+    nm.onclick=()=>{
+      const tmp=BULK.rows[i].firstName; BULK.rows[i].firstName=BULK.rows[i].lastName; BULK.rows[i].lastName=tmp;
+      renderBulkPreview();
+    };
+    top.appendChild(nm);
 
-    const mt=document.createElement('div');mt.className='bp-rmeta';
-    mt.innerHTML=`${m.row.position||'&#x2014;'} &#xB7; ${m.row.team||'&#x2014;'}`;
-    row.appendChild(mt);
+    const jWrap=document.createElement('div');jWrap.className='bp-rjersey';
+    const jInput=document.createElement('input');
+    jInput.type='text';jInput.value=m.row.jerseyNum||'';jInput.placeholder='#';jInput.title='Jersey number';
+    jInput.oninput=()=>{ BULK.rows[i].jerseyNum=jInput.value.trim(); };
+    jWrap.appendChild(jInput);
+    top.appendChild(jWrap);
 
     const cnWrap=document.createElement('div');cnWrap.className='bp-rcardnum';
     const cnInput=document.createElement('input');
-    cnInput.type='text';cnInput.value=m.row.cardNum||'';cnInput.placeholder='#';
+    cnInput.type='text';cnInput.value=m.row.cardNum||'';cnInput.placeholder='Card';
     cnInput.title='Card number';
     cnInput.oninput=()=>{ BULK.rows[i].cardNum=cnInput.value.trim(); };
     cnWrap.appendChild(cnInput);
-    row.appendChild(cnWrap);
+    top.appendChild(cnWrap);
 
     const starLbl=document.createElement('label');starLbl.className='bp-rstar';
     const starChk=document.createElement('input');starChk.type='checkbox';starChk.checked=!!m.row.allStar;
-    starChk.onchange=()=>{ BULK.rows[i].allStar=starChk.checked; renderBulkPreview(); };
+    starChk.onchange=()=>{ BULK.rows[i].allStar=starChk.checked; };
     starLbl.appendChild(starChk);
-    starLbl.appendChild(document.createTextNode('\u2605 ALL-STAR'));
-    row.appendChild(starLbl);
+    starLbl.appendChild(document.createTextNode('\u2605'));
+    top.appendChild(starLbl);
+
+    const statsBtn=document.createElement('button');statsBtn.type='button';
+    const hasStats=m.row.seasons.length||m.row.playoffSeasons.length;
+    statsBtn.className='bp-rstats'+(hasStats?' has-stats':'');
+    statsBtn.textContent=statsSummaryText(m.row);
+    statsBtn.onclick=()=>{ detail.classList.toggle('open'); };
+    top.appendChild(statsBtn);
 
     const extraWrap=document.createElement('div');extraWrap.className='bp-rextra';
     const baseChip=document.createElement('span');baseChip.className='bp-chip';
     baseChip.style.background='rgba(0,0,0,.06)';baseChip.style.color='var(--muted)';
     baseChip.textContent='BASE';
     extraWrap.appendChild(baseChip);
-
-    BULK.extras.filter(x=>x.rowIndex===i).forEach((ex,exIdx)=>{
+    BULK.extras.filter(x=>x.rowIndex===i).forEach(ex=>{
       const par=PAR[ex.parallel]||PAR.base;
       const chip=document.createElement('span');chip.className='bp-chip';
       const g=par.glow;
@@ -3802,15 +3901,59 @@ function renderBulkPreview(){
       chip.appendChild(label);chip.appendChild(rm);
       extraWrap.appendChild(chip);
     });
-
     const addBtn=document.createElement('button');addBtn.type='button';addBtn.className='bp-addpar';
     addBtn.textContent='+ parallel';
     addBtn.onclick=(ev)=>openParallelMenu(ev,i);
     extraWrap.appendChild(addBtn);
+    top.appendChild(extraWrap);
 
-    row.appendChild(extraWrap);
+    row.appendChild(top);
+
+    // Editable fields not present in the stats CSV
+    const fields=document.createElement('div');fields.className='bp-fields';
+    const fieldDefs=[['team','f-team','Team'],['position','f-position','Position'],['division','f-division','Division'],['hometown','f-hometown','Hometown']];
+    fieldDefs.forEach(([key,cls,placeholder])=>{
+      const inp=document.createElement('input');
+      inp.type='text';inp.className=cls;inp.placeholder=placeholder;inp.value=m.row[key]||'';
+      inp.oninput=()=>{ BULK.rows[i][key]=inp.value; };
+      fields.appendChild(inp);
+    });
+    row.appendChild(fields);
+
+    // Expandable per-year stats detail
+    const detail=document.createElement('div');detail.className='bp-statsdetail';
+    detail.innerHTML=hasStats?renderStatsDetailHTML(m.row):'<i>No stats rows matched this player.</i>';
+    row.appendChild(detail);
+
     list.appendChild(row);
   });
+}
+
+// "Fill all" bar — applies one value to every player's team/position/division
+// at once (useful since a whole roster usually shares the same team/division),
+// without touching anything you've already typed per-player.
+function renderBulkFillAll(){
+  const wrap=document.getElementById('bpFillAll');
+  if(!BULK.rows.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML=`
+    <label>TEAM<input type="text" id="faTeam" placeholder="e.g. Lunenburg Blue"></label>
+    <label>DIVISION<input type="text" id="faDivision" placeholder="e.g. Majors Baseball"></label>
+    <label>HOMETOWN<input type="text" id="faHometown" placeholder="e.g. Lunenburg, MA"></label>
+    <button type="button" onclick="applyFillAll()">Apply to all players</button>
+  `;
+}
+function applyFillAll(){
+  const team=document.getElementById('faTeam').value.trim();
+  const division=document.getElementById('faDivision').value.trim();
+  const hometown=document.getElementById('faHometown').value.trim();
+  if(!team&&!division&&!hometown){ showToast('Type a value in at least one field first',true); return; }
+  BULK.rows.forEach(r=>{
+    if(team) r.team=team;
+    if(division) r.division=division;
+    if(hometown) r.hometown=hometown;
+  });
+  renderBulkPreview();
+  showToast('✓ Applied to all players');
 }
 
 // Small floating menu of parallel swatches, opened from a row's "+ parallel" button.
@@ -3901,15 +4044,19 @@ async function runBulkImport(){
         cropCache[job.rowIndex]=crop;
       }
       const par=job.parallel||'base';
+      const stats=(r.seasons||[]).map(s=>s.batting).filter(Boolean);
+      const pitchStats=(r.seasons||[]).map(s=>s.pitching).filter(Boolean);
+      const playoffStats=(r.playoffSeasons||[]).map(s=>s.batting).filter(Boolean);
+      const pitchPlayoffStats=(r.playoffSeasons||[]).map(s=>s.pitching).filter(Boolean);
       const data={
         firstName:r.firstName,lastName:r.lastName,
         position:r.position,team:r.team,teamAbbr:'',division:r.division,
         jerseyNum:r.jerseyNum,cardNum:r.cardNum||'',
         parallel:par,cardType:par,rarity:par,
         photoURL,sigURL:'',logoURL:'',macURL:'',cutoutURL:'',
-        stats:[],pitchStats:[],statsPulled:false,pitchPulled:false,
-        playoffStats:[],pitchPlayoffStats:[],
-        bats:'Right',throws:'Right',height:'',weight:'',hometown:'',bio:'',
+        stats,pitchStats,statsPulled:stats.length>0,pitchPulled:pitchStats.length>0,
+        playoffStats,pitchPlayoffStats,
+        bats:'Right',throws:'Right',height:'',weight:'',hometown:r.hometown||'',bio:'',
         serialNum:'',printRun:'',serialPos:'h',
         showBanner:true,
         accentColor:'#1546a0',accentSat:100,outerColor:'#1546a0',outerOpacity:0.40,
