@@ -845,7 +845,11 @@ window.addEventListener('unhandledrejection',function(e){
         <button class="bulk-btn-ghost" style="margin-bottom:10px" onclick="addManualBulkPlayer()">+ Add a player without stats</button>
         <div class="bulk-preview-list" id="bulkPreview"></div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:18px">
+      <div style="display:flex;gap:10px;margin-top:18px;align-items:center">
+        <button class="bulk-btn-ghost" style="margin:0" onclick="testFirebaseConnection()">&#x1F50C; Test Connection</button>
+        <span id="connTestResult" style="font-family:'Oswald',sans-serif;font-size:11px"></span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
         <button class="cancel-btn" style="display:block;margin:0;flex:1" onclick="closeBulk()">CANCEL</button>
         <button class="save-btn" style="margin:0;flex:2" id="bulkImportBtn" onclick="runBulkImport()" disabled>IMPORT CARDS</button>
       </div>
@@ -4064,6 +4068,68 @@ async function runBulkImport(){
 
 function firebaseReady(){
   try{ return !String(firebaseConfig.apiKey||'').startsWith('YOUR_') && window._db; }catch(e){ return false; }
+}
+
+// Runs a real, minimal Firestore round-trip (write → read → delete) against a
+// harmless test document, so connection/permission problems are caught in a
+// few seconds instead of discovering them mid-bulk-import. Reports exactly
+// which step failed and why.
+async function testFirebaseConnection(){
+  const out=document.getElementById('connTestResult');
+  out.style.color='var(--muted)';
+  out.textContent='Testing…';
+
+  if(typeof firebase==='undefined'){
+    out.style.color='var(--red)'; out.textContent='✗ Firebase SDK did not load (check the <script> tags / network)';
+    return;
+  }
+  if(String(firebaseConfig.apiKey||'').startsWith('YOUR_')){
+    out.style.color='var(--red)'; out.textContent='✗ firebaseConfig still has placeholder values — set up your real Firebase project first';
+    return;
+  }
+  if(!window._db){
+    try{ window._db=firebase.firestore(); }catch(e){
+      out.style.color='var(--red)'; out.textContent='✗ Could not initialize Firestore: '+e.message;
+      return;
+    }
+  }
+
+  const testId='_connection_test_'+Date.now();
+  const ref=window._db.collection('_connectionTest').doc(testId);
+
+  try{
+    await withTimeout(ref.set({ts:new Date().toISOString()}).then(()=>'OK'),10000,'TIMEOUT').then(r=>{
+      if(r==='TIMEOUT') throw new Error('Write timed out after 10s — check your internet connection');
+    });
+  }catch(err){
+    out.style.color='var(--red)';
+    out.textContent='✗ Write failed: '+err.message+(/permission/i.test(err.message)?' — check Firestore security rules allow writes':'');
+    return;
+  }
+
+  try{
+    const snap=await withTimeout(ref.get(),10000,'TIMEOUT');
+    if(snap==='TIMEOUT') throw new Error('Read timed out after 10s');
+    if(!snap.exists) throw new Error('Wrote successfully but could not read it back (rules may allow write but not read)');
+  }catch(err){
+    out.style.color='var(--red)';
+    out.textContent='✗ Read failed: '+err.message;
+    try{ await ref.delete(); }catch(e){} // best-effort cleanup
+    return;
+  }
+
+  try{
+    await withTimeout(ref.delete().then(()=>'OK'),10000,'TIMEOUT').then(r=>{
+      if(r==='TIMEOUT') throw new Error('Delete timed out after 10s');
+    });
+  }catch(err){
+    out.style.color='#b8860b';
+    out.textContent='⚠ Write/read OK, but cleanup delete failed: '+err.message+' (a tiny test doc was left behind, harmless)';
+    return;
+  }
+
+  out.style.color='#1a7a3c';
+  out.textContent='✓ Firestore is connected and working — write, read, and delete all succeeded';
 }
 
 /* ═══════════════════════════════════════════
