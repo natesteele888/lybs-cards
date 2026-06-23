@@ -4042,66 +4042,96 @@ async function runBulkImport(){
   const total=jobs.length;
   const photoCache={}; // rowIndex -> photoURL, so a player's photo uploads once even with multiple parallel cards
   const cropCache={};  // rowIndex -> {scale,offsetX,offsetY}, likewise computed once per player
+  const failDetails=[]; // human-readable reasons for any failed rows, shown at the end
+
+  async function runOneJob(job){
+    const r=job.row;
+    let photoURL='';
+    let crop={scale:1,offsetX:0,offsetY:0};
+    if(photoCache[job.rowIndex]!==undefined){
+      photoURL=photoCache[job.rowIndex];
+      crop=cropCache[job.rowIndex]||crop;
+    } else if(job.blob){
+      txt.textContent=`Uploading photo for ${r.firstName} ${r.lastName}…`;
+      const slug=`${r.firstName}_${r.lastName}_${Date.now()}_${job.rowIndex}`.replace(/\s+/g,'_');
+      const ref=st.ref('photos/'+slug);
+      const putResult=await withTimeout(ref.put(job.blob).then(()=>'OK'),20000,'TIMEOUT');
+      if(putResult==='TIMEOUT') throw new Error('Photo upload timed out after 20s (check Firebase Storage rules/connection)');
+      const urlResult=await withTimeout(ref.getDownloadURL(),15000,'TIMEOUT');
+      if(urlResult==='TIMEOUT') throw new Error('Getting photo URL timed out after 15s');
+      photoURL=urlResult;
+      photoCache[job.rowIndex]=photoURL;
+      // No auto face-centering in bulk import — photos come in at the safe
+      // centered default; nudge scale/position per-card afterward in the editor.
+      cropCache[job.rowIndex]=crop;
+    } else {
+      photoCache[job.rowIndex]='';
+      cropCache[job.rowIndex]=crop;
+    }
+    const par=job.parallel||'base';
+    const stats=(r.seasons||[]).map(s=>s.batting).filter(Boolean);
+    const pitchStats=(r.seasons||[]).map(s=>s.pitching).filter(Boolean);
+    const playoffStats=(r.playoffSeasons||[]).map(s=>s.batting).filter(Boolean);
+    const pitchPlayoffStats=(r.playoffSeasons||[]).map(s=>s.pitching).filter(Boolean);
+    const data={
+      firstName:r.firstName,lastName:r.lastName,
+      position:r.position,team:r.team,teamAbbr:'',division:r.division,
+      jerseyNum:r.jerseyNum,cardNum:r.cardNum||'',
+      parallel:par,cardType:par,rarity:par,
+      photoURL,sigURL:'',logoURL:'',macURL:'',cutoutURL:'',
+      stats,pitchStats,statsPulled:stats.length>0,pitchPulled:pitchStats.length>0,
+      playoffStats,pitchPlayoffStats,
+      bats:'Right',throws:'Right',height:'',weight:'',hometown:r.hometown||'',bio:'',
+      serialNum:'',printRun:'',serialPos:'h',
+      showBanner:true,
+      accentColor:'#1546a0',accentSat:100,outerColor:'#1546a0',outerOpacity:0.40,
+      breakout:false,breakoutPoly:null,
+      numbered:false,allStar:!!r.allStar,sPos:'br',sigColor:'black',
+      certAuto:false,showLybs:true,customBgURL:null,
+      imgScale:crop.scale,imgOffsetX:crop.offsetX,imgOffsetY:crop.offsetY,
+      logoScale:1,logoOffsetX:0,logoOffsetY:0,
+      createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+      bulkImport:true,
+    };
+    txt.textContent=`Saving card for ${r.firstName} ${r.lastName}…`;
+    const addResult=await withTimeout(db.collection('players').add(data).then(()=>'OK'),15000,'TIMEOUT');
+    if(addResult==='TIMEOUT') throw new Error('Saving card timed out after 15s (check Firestore rules/connection)');
+  }
 
   for(const job of jobs){
     const r=job.row;
     try{
-      let photoURL='';
-      let crop={scale:1,offsetX:0,offsetY:0};
-      if(photoCache[job.rowIndex]!==undefined){
-        photoURL=photoCache[job.rowIndex];
-        crop=cropCache[job.rowIndex]||crop;
-      } else if(job.blob){
-        txt.textContent=`Uploading photo for ${r.firstName} ${r.lastName}…`;
-        const slug=`${r.firstName}_${r.lastName}_${Date.now()}_${job.rowIndex}`.replace(/\s+/g,'_');
-        const ref=st.ref('photos/'+slug);
-        await ref.put(job.blob);
-        photoURL=await ref.getDownloadURL();
-        photoCache[job.rowIndex]=photoURL;
-        // No auto face-centering in bulk import — photos come in at the safe
-        // centered default; nudge scale/position per-card afterward in the editor.
-        cropCache[job.rowIndex]=crop;
-      } else {
-        photoCache[job.rowIndex]='';
-        cropCache[job.rowIndex]=crop;
-      }
-      const par=job.parallel||'base';
-      const stats=(r.seasons||[]).map(s=>s.batting).filter(Boolean);
-      const pitchStats=(r.seasons||[]).map(s=>s.pitching).filter(Boolean);
-      const playoffStats=(r.playoffSeasons||[]).map(s=>s.batting).filter(Boolean);
-      const pitchPlayoffStats=(r.playoffSeasons||[]).map(s=>s.pitching).filter(Boolean);
-      const data={
-        firstName:r.firstName,lastName:r.lastName,
-        position:r.position,team:r.team,teamAbbr:'',division:r.division,
-        jerseyNum:r.jerseyNum,cardNum:r.cardNum||'',
-        parallel:par,cardType:par,rarity:par,
-        photoURL,sigURL:'',logoURL:'',macURL:'',cutoutURL:'',
-        stats,pitchStats,statsPulled:stats.length>0,pitchPulled:pitchStats.length>0,
-        playoffStats,pitchPlayoffStats,
-        bats:'Right',throws:'Right',height:'',weight:'',hometown:r.hometown||'',bio:'',
-        serialNum:'',printRun:'',serialPos:'h',
-        showBanner:true,
-        accentColor:'#1546a0',accentSat:100,outerColor:'#1546a0',outerOpacity:0.40,
-        breakout:false,breakoutPoly:null,
-        numbered:false,allStar:!!r.allStar,sPos:'br',sigColor:'black',
-        certAuto:false,showLybs:true,customBgURL:null,
-        imgScale:crop.scale,imgOffsetX:crop.offsetX,imgOffsetY:crop.offsetY,
-        logoScale:1,logoOffsetX:0,logoOffsetY:0,
-        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
-        bulkImport:true,
-      };
-      await db.collection('players').add(data);
+      // Outer 40s guarantee: no matter what goes wrong inside runOneJob — a
+      // hang we didn't anticipate, a promise that never settles — the import
+      // moves on to the next player instead of sitting forever.
+      const result=await withTimeout(
+        runOneJob(job).then(()=>'OK').catch(e=>{ throw e; }),
+        40000,'HARD_TIMEOUT'
+      );
+      if(result==='HARD_TIMEOUT') throw new Error('This card took too long and was skipped — check your internet connection and Firebase setup');
       ok++;
-    }catch(err){console.error('row failed',r,job.parallel,err);fail++;}
+    }catch(err){
+      console.error('row failed',r,job.parallel,err);
+      fail++;
+      failDetails.push(`${r.firstName} ${r.lastName} (${job.parallel}): ${err.message}`);
+    }
     done++;
     bar.style.width=Math.round(done/total*100)+'%';
     txt.textContent=`Importing… ${done}/${total}  (${ok} ok${fail?', '+fail+' failed':''})`;
   }
 
-  txt.textContent=`Done! ${ok} card${ok!==1?'s':''} created${fail?', '+fail+' failed':''}.`;
-  showToast(`✓ Imported ${ok} cards`);
-  loadPlayers();
-  setTimeout(()=>{closeBulk();},1500);
+  if(fail===0){
+    txt.textContent=`Done! ${ok} card${ok!==1?'s':''} created.`;
+    showToast(`✓ Imported ${ok} cards`);
+    loadPlayers();
+    setTimeout(()=>{closeBulk();},1500);
+  } else {
+    txt.innerHTML=`Done with errors: ${ok} created, <span style="color:var(--red)">${fail} failed</span>.<br>`+
+      failDetails.map(d=>`<span style="color:var(--red);font-size:10px">&bull; ${d}</span>`).join('<br>');
+    showToast(`${ok} cards imported, ${fail} failed — see details below`,true);
+    loadPlayers();
+    // Leave the modal open so the error messages stay visible.
+  }
 }
 
 function firebaseReady(){
