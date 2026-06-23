@@ -4042,7 +4042,6 @@ async function runBulkImport(){
   const total=jobs.length;
   const photoCache={}; // rowIndex -> photoURL, so a player's photo uploads once even with multiple parallel cards
   const cropCache={};  // rowIndex -> {scale,offsetX,offsetY}, likewise computed once per player
-  let _faceTimeoutWarned=false;
 
   for(const job of jobs){
     const r=job.row;
@@ -4053,28 +4052,14 @@ async function runBulkImport(){
         photoURL=photoCache[job.rowIndex];
         crop=cropCache[job.rowIndex]||crop;
       } else if(job.blob){
-        txt.textContent=`Centering photo for ${r.firstName} ${r.lastName}…`;
+        txt.textContent=`Uploading photo for ${r.firstName} ${r.lastName}…`;
         const slug=`${r.firstName}_${r.lastName}_${Date.now()}_${job.rowIndex}`.replace(/\s+/g,'_');
         const ref=st.ref('photos/'+slug);
         await ref.put(job.blob);
         photoURL=await ref.getDownloadURL();
         photoCache[job.rowIndex]=photoURL;
-        // Auto-center on the detected face once per player; falls back to the
-        // safe centered default if no face is found or detection isn't available.
-        try{
-          const objUrl=URL.createObjectURL(job.blob);
-          const imgEl=await new Promise((res,rej)=>{
-            const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=objUrl;
-          });
-          const detected=await withTimeout(detectFaceBox(imgEl), 10000, 'TIMEOUT');
-          if(detected==='TIMEOUT'){
-            crop={scale:1,offsetX:0,offsetY:0};
-            if(!_faceTimeoutWarned){ _faceTimeoutWarned=true; showToast('Face auto-centering is slow/unavailable — continuing with centered photos',true); }
-          } else {
-            crop=computeFaceCrop(imgEl,detected);
-          }
-          URL.revokeObjectURL(objUrl);
-        }catch(faceErr){ console.warn('Face crop skipped for',r.firstName,r.lastName,faceErr.message); }
+        // No auto face-centering in bulk import — photos come in at the safe
+        // centered default; nudge scale/position per-card afterward in the editor.
         cropCache[job.rowIndex]=crop;
       } else {
         photoCache[job.rowIndex]='';
