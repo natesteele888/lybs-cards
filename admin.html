@@ -282,9 +282,10 @@ body{font-family:"Source Serif 4",Georgia,serif;background:var(--cream);color:va
 .bp-row .bp-rthumb{width:34px;height:34px;border-radius:3px;object-fit:cover;flex-shrink:0;background:#1a2a4a}
 .bp-row .bp-rnoimg{width:34px;height:34px;border-radius:3px;flex-shrink:0;background:#2a3a5a;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:14px}
 .bp-row .bp-rname{font-family:"Oswald",sans-serif;font-size:11px;font-weight:600;color:var(--ink);min-width:120px;flex-shrink:0}
-.bp-row .bp-rjersey{width:42px;flex-shrink:0}
+.bp-row .bp-rjersey{width:42px;flex-shrink:0;display:flex;flex-direction:column;gap:2px}
+.bp-row .bp-rjersey span,.bp-row .bp-rcardnum span{font-family:"Oswald",sans-serif;font-size:7px;letter-spacing:.5px;color:var(--muted);text-align:center}
 .bp-row .bp-rjersey input{width:100%;font-family:"Oswald",sans-serif;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;text-align:center}
-.bp-row .bp-rcardnum{width:42px;flex-shrink:0}
+.bp-row .bp-rcardnum{width:42px;flex-shrink:0;display:flex;flex-direction:column;gap:2px}
 .bp-row .bp-rcardnum input{width:100%;font-family:"Oswald",sans-serif;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;box-sizing:border-box;text-align:center}
 .bp-row .bp-rstar{flex-shrink:0;display:flex;align-items:center;gap:4px;font-family:"Oswald",sans-serif;font-size:9px;font-weight:600;letter-spacing:.5px;color:var(--muted);cursor:pointer;border:1px solid var(--border);border-radius:10px;padding:3px 8px 3px 6px;background:#fff;transition:.15s}
 .bp-row .bp-rstar:hover{border-color:var(--gold)}
@@ -3861,18 +3862,20 @@ function renderBulkPreview(){
     top.appendChild(nm);
 
     const jWrap=document.createElement('div');jWrap.className='bp-rjersey';
+    const jLbl=document.createElement('span');jLbl.textContent='JERSEY #';
     const jInput=document.createElement('input');
     jInput.type='text';jInput.value=m.row.jerseyNum||'';jInput.placeholder='#';jInput.title='Jersey number';
     jInput.oninput=()=>{ BULK.rows[i].jerseyNum=jInput.value.trim(); };
-    jWrap.appendChild(jInput);
+    jWrap.appendChild(jLbl);jWrap.appendChild(jInput);
     top.appendChild(jWrap);
 
     const cnWrap=document.createElement('div');cnWrap.className='bp-rcardnum';
+    const cnLbl=document.createElement('span');cnLbl.textContent='CARD #';
     const cnInput=document.createElement('input');
     cnInput.type='text';cnInput.value=m.row.cardNum||'';cnInput.placeholder='Card';
     cnInput.title='Card number';
     cnInput.oninput=()=>{ BULK.rows[i].cardNum=cnInput.value.trim(); };
-    cnWrap.appendChild(cnInput);
+    cnWrap.appendChild(cnLbl);cnWrap.appendChild(cnInput);
     top.appendChild(cnWrap);
 
     const starLbl=document.createElement('label');starLbl.className='bp-rstar'+(m.row.allStar?' is-star':'');
