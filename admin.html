@@ -721,6 +721,10 @@ window.addEventListener('unhandledrejection',function(e){
             <div id="pitchRows"></div>
             <button class="asr" onclick="addPR()">+ Add Pitching Year</button>
           </details>
+          <div class="field" style="margin-top:10px">
+            <label>Playoff/Tournament Label</label>
+            <input type="text" id="fPlayoffLabel" placeholder="PLAYOFF STATISTICS (or DISTRICT TOURNAMENT, STATE TOURNAMENT, REGIONAL TOURNAMENT for Montachusett cards)" oninput="qR()">
+          </div>
           <details style="margin-top:6px">
             <summary style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer">Playoff batting entry</summary>
             <div class="sh" style="margin-top:6px"><span>Year</span><span>Team</span><span>AB</span><span>H</span><span>HR</span><span>RBI</span><span>AVG</span><span>OBP</span><span>SLG</span><span></span></div>
@@ -1052,6 +1056,7 @@ function qR(){
     pitchStats:(CS.loadedPitching&&CS.loadedPitching.length)?CS.loadedPitching:getPitch(),
     playoffStats: getStatsPlayoff(),
     pitchPlayoffStats: getPitchPlayoff(),
+    playoffLabel: (document.getElementById('fPlayoffLabel')||{value:''}).value,
     statsPulled:!!CS.statsPulled, pitchPulled:!!(CS.statsPulled&&CS.loadedPitching&&CS.loadedPitching.length),
   };
   if(!rPending){
@@ -2189,6 +2194,8 @@ function drawBack(ctx){
   let cy=HBH+22;
   const CX=28, CW=LW-56;
 
+  const playoffCaption=(d.playoffLabel&&d.playoffLabel.trim())?('*'+d.playoffLabel.trim().toUpperCase()):'*PLAYOFF STATISTICS';
+
   function drawStatBlock(title, headers, widths, rows, playoffRows, accentRGB){
     const [ar,ag2,ab2]=accentRGB;
     const totR=widths.reduce((a,b)=>a+b,0);
@@ -2199,7 +2206,7 @@ function drawBack(ctx){
     ctx.font='bold 20px Oswald,sans-serif'; ctx.fillStyle='#111'; ctx.textAlign='left';
     ctx.fillText(title.toUpperCase(),CX,cy+16);
     ctx.font='italic bold 14px Oswald,sans-serif'; ctx.fillStyle=`rgb(${ar},${ag2},${ab2})`;
-    ctx.textAlign='right'; ctx.fillText('*PLAYOFF STATISTICS',CX+CW,cy+15); ctx.textAlign='left';
+    ctx.textAlign='right'; ctx.fillText(playoffCaption,CX+CW,cy+15); ctx.textAlign='left';
     cy+=22;
 
     function header(){
@@ -2985,6 +2992,8 @@ function pickCardType(key){
     const opEl=document.getElementById('outerOpacity'); if(opEl) opEl.value=94;
     const opvEl=document.getElementById('outerOpacityVal'); if(opvEl) opvEl.textContent='94%';
     const lybsEl=document.getElementById('showLybsOn'); if(lybsEl) lybsEl.checked=false;
+    const lblEl=document.getElementById('fPlayoffLabel');
+    if(lblEl && !lblEl.value.trim()) lblEl.value='DISTRICT TOURNAMENT';
     syncOuterColorVal();
   }
   // Update PAR tint dynamically for tintable types
@@ -3235,7 +3244,7 @@ async function saveCard(){
       parallel:CS.parallel||'base',cardType:CS.cardType||CS.parallel||'base',rarity:CS.parallel||'base',
       photoURL:photoURL||'',sigURL:sigURL||'',logoURL:logoURL||'',macURL:macURL||'',cutoutURL:CS.cutoutURL||'',
       stats:((CS.loadedBatting&&CS.loadedBatting.length)?CS.loadedBatting:getStats())||[],pitchStats:((CS.loadedPitching&&CS.loadedPitching.length)?CS.loadedPitching:getPitch())||[],statsPulled:!!CS.statsPulled,pitchPulled:!!(CS.statsPulled&&CS.loadedPitching&&CS.loadedPitching.length),
-      playoffStats:getStatsPlayoff()||[],pitchPlayoffStats:getPitchPlayoff()||[],
+      playoffStats:getStatsPlayoff()||[],pitchPlayoffStats:getPitchPlayoff()||[],playoffLabel:str('fPlayoffLabel'),
       bats:str('fBats'),throws:str('fThrows'),
       height:str('fHeight'),weight:str('fWeight'),hometown:str('fHometown'),bio:str('fBio'),
       serialNum:str('fSerialNum'),printRun:str('fPrintRun'),serialPos:str('fSerialPos')||'h',
@@ -3285,7 +3294,7 @@ function editCard(id){
   document.getElementById('fDiv').value=p.division||'T-BALL';document.getElementById('fJersey').value=p.jerseyNum||'';
   document.getElementById('fCardNum').value=p.cardNum||'';document.getElementById('fBats').value=p.bats||'Right';
   document.getElementById('fThrows').value=p.throws||'Right';document.getElementById('fHeight').value=p.height||'';
-  document.getElementById('fWeight').value=p.weight||'';document.getElementById('fHometown').value=p.hometown||''; if(document.getElementById('fBio'))document.getElementById('fBio').value=p.bio||'';
+  document.getElementById('fWeight').value=p.weight||'';document.getElementById('fHometown').value=p.hometown||''; if(document.getElementById('fBio'))document.getElementById('fBio').value=p.bio||''; if(document.getElementById('fPlayoffLabel'))document.getElementById('fPlayoffLabel').value=p.playoffLabel||'';
   const parKey=p.parallel||p.rarity||'base';
   document.querySelectorAll('.pp').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.pp').forEach(el=>{if(el.querySelector('span')&&el.querySelector('span').textContent===(PAR[parKey]||PAR.base).name)el.classList.add('active');});
@@ -3345,7 +3354,7 @@ function resetForm(){
   ['fFirst','fLast','fTeam','fJersey','fCardNum','fHeight','fWeight','fHometown'].forEach(id=>document.getElementById(id).value=''); if(document.getElementById('fBio'))document.getElementById('fBio').value='';
   document.getElementById('fPos').value='PITCHER';document.getElementById('fPosCustomWrap').style.display='none';if(document.getElementById('fPosCustom'))document.getElementById('fPosCustom').value='';document.getElementById('fDiv').value='T-BALL';
   document.getElementById('fBats').value='Right';document.getElementById('fThrows').value='Right';
-  document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;document.getElementById('playoffStatsRows').innerHTML='';sCntP=0;document.getElementById('playoffPitchRows').innerHTML='';pCntP=0;CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.tieDyeSat=100;CS.tieDyeHueShift=0;CS.tieDyeLightness=0;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sigColor='black';if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}const tdSecReset=document.getElementById('tieDyeSection');if(tdSecReset)tdSecReset.style.display='none';if(document.getElementById('tieDyeSat')){document.getElementById('tieDyeSat').value=100;document.getElementById('tieDyeSatVal').textContent='100%';}if(document.getElementById('tieDyeHue')){document.getElementById('tieDyeHue').value=0;document.getElementById('tieDyeHueVal').textContent='0°';}if(document.getElementById('tieDyeLight')){document.getElementById('tieDyeLight').value=0;document.getElementById('tieDyeLightVal').textContent='0';}
+  document.getElementById('statsRows').innerHTML='';sCnt=0;document.getElementById('pitchRows').innerHTML='';pCnt=0;document.getElementById('playoffStatsRows').innerHTML='';sCntP=0;document.getElementById('playoffPitchRows').innerHTML='';pCntP=0;if(document.getElementById('fPlayoffLabel'))document.getElementById('fPlayoffLabel').value='';CS.loadedBatting=null;CS.loadedPitching=null;CS.statsPulled=false;CS.accentColor='#1546a0';CS.accentSat=100;CS.outerColor='#1546a0';CS.outerOpacity=0.40;CS.tieDyeSat=100;CS.tieDyeHueShift=0;CS.tieDyeLightness=0;CS.breakout=false;CS.breakoutPoly=null;CS.numbered=false;CS.allStar=false;CS.sigColor='black';if(document.getElementById('allStarOn'))document.getElementById('allStarOn').checked=false;if(document.getElementById('numberedOn')){document.getElementById('numberedOn').checked=false;document.getElementById('numberedFields').style.display='none';}if(document.getElementById('breakoutOn')){document.getElementById('breakoutOn').checked=false;document.getElementById('breakoutCtrls').style.display='none';}if(document.getElementById('accentColor'))document.getElementById('accentColor').value='#1546a0';if(document.getElementById('accentSat')){document.getElementById('accentSat').value=100;document.getElementById('accentSatVal').textContent='100%';}syncOuterColorVal();if(document.getElementById('outerOpacity')){document.getElementById('outerOpacity').value=40;document.getElementById('outerOpacityVal').textContent='40%';}const tdSecReset=document.getElementById('tieDyeSection');if(tdSecReset)tdSecReset.style.display='none';if(document.getElementById('tieDyeSat')){document.getElementById('tieDyeSat').value=100;document.getElementById('tieDyeSatVal').textContent='100%';}if(document.getElementById('tieDyeHue')){document.getElementById('tieDyeHue').value=0;document.getElementById('tieDyeHueVal').textContent='0°';}if(document.getElementById('tieDyeLight')){document.getElementById('tieDyeLight').value=0;document.getElementById('tieDyeLightVal').textContent='0';}
   pD='';sD='';lD='';pS='';sS='';lS='';
   CS.photoImg=null;CS.sigImg=null;CS.logoImg=null;CS.customBgImg=null;CS.customBgURL=null;CS.cutoutImg=null;CS.cutoutURL=null;CS.cutoutScale=1.0;CS.cutoutOffsetX=0;CS.cutoutOffsetY=0;
   CS.flipped=false;CS.flipT=0;CS.sigColor='black';setSigColor('black');sigHasMark=false;
