@@ -205,7 +205,7 @@ body{position:fixed;inset:0}
   border-radius:50%;
   background:radial-gradient(circle,rgba(255,255,255,1) 0%,rgba(255,255,255,.7) 40%,rgba(255,255,255,0) 100%);
   transform:translate(-50%,-50%);pointer-events:none;z-index:50;opacity:0}
-.foil-pack.tearing .pack-burst{animation:packBurstGo .45s cubic-bezier(.05,.9,.2,1) .42s forwards}
+.foil-pack.tearing .pack-burst{animation:packBurstGo .55s cubic-bezier(.05,.9,.2,1) 0s forwards}
 @keyframes packBurstGo{
   0%  {opacity:0;width:10px;height:10px;box-shadow:0 0 0 0 rgba(255,255,255,0)}
   15% {opacity:1;width:80px;height:80px;box-shadow:0 0 100px 60px rgba(255,255,255,.9)}
@@ -225,19 +225,17 @@ body{position:fixed;inset:0}
   100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
 
 /* Big card reveal flash */
-.card-blast{position:fixed;top:50%;left:50%;width:300px;height:421px;
-  margin-top:-210px;margin-left:-150px;
-  background:#fff;
-  box-shadow:0 0 0 0 rgba(255,255,255,0);
-  opacity:0;z-index:200;pointer-events:none;
-  transform:scale(.9)}
-.card-blast.go{animation:blastGo .9s cubic-bezier(.15,.7,.25,1)}
+.card-blast{position:fixed;top:50%;left:50%;
+  width:10px;height:10px;
+  margin-top:-5px;margin-left:-5px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,255,255,.5) 35%,rgba(220,230,255,0) 100%);
+  opacity:0;z-index:200;pointer-events:none;transform:none}
+.card-blast.go{animation:blastGo .75s cubic-bezier(.05,.9,.2,1)}
 @keyframes blastGo{
-  0%{opacity:0;transform:scale(.9);box-shadow:0 0 0 0 rgba(255,255,255,0)}
-  16%{opacity:1;transform:scale(1.05);box-shadow:0 0 90px 60px rgba(255,255,255,.9)}
-  34%{opacity:1;transform:scale(1.6);box-shadow:0 0 220px 160px rgba(255,255,255,.75)}
-  62%{opacity:.85;transform:scale(2.4);box-shadow:0 0 320px 240px rgba(255,255,255,.4)}
-  100%{opacity:0;transform:scale(3.2);box-shadow:0 0 360px 280px rgba(255,255,255,0)}}
+  0%  {opacity:0;width:10px;height:10px;margin-top:-5px;margin-left:-5px;box-shadow:0 0 0 0 rgba(255,255,255,0)}
+  12% {opacity:.95;width:120px;height:120px;margin-top:-60px;margin-left:-60px;box-shadow:0 0 80px 50px rgba(255,255,255,.85)}
+  100%{opacity:0;width:600px;height:600px;margin-top:-300px;margin-left:-300px;box-shadow:0 0 260px 180px rgba(210,225,255,0)}}}}
 .card-holder.revealing{animation:cardReveal .8s cubic-bezier(.2,.8,.3,1)}
 @keyframes cardReveal{0%{transform:scale(.3) rotateY(180deg);opacity:0}
   55%{opacity:0}75%{opacity:1}100%{transform:scale(1) rotateY(0);opacity:1}}
@@ -388,64 +386,80 @@ body{position:fixed;inset:0}
 #caseScreen.active{display:flex}
 
 /* Outer cabinet — black anodized aluminum frame */
-.cabinet{width:100%;height:100%;display:flex;flex-direction:column;background:#0e0e0f}
+/* ── Wall-mount display case — dark wood frame, rows of graded slabs ── */
+.cabinet{width:100%;height:100%;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#1a1208 0%,#0f0c06 100%)}
 
+/* Top header bar — dark walnut panel look */
 .cabinet-top-bar{
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 18px;padding-top:calc(12px + env(safe-area-inset-top));
-  background:linear-gradient(180deg,#1a1a1c,#111113);
-  border-bottom:1px solid rgba(255,255,255,.08);
-  flex-shrink:0}
-.cabinet-back{background:none;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.7);
+  padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));
+  background:linear-gradient(180deg,#2a1f0e,#1e1508);
+  border-bottom:2px solid #3d2c14;
+  flex-shrink:0;
+  box-shadow:0 2px 12px rgba(0,0,0,.6)}
+.cabinet-back{background:none;border:1px solid rgba(200,160,80,.3);color:rgba(220,180,100,.8);
   font-family:"Michroma";font-size:10px;letter-spacing:1.5px;padding:6px 14px;
-  border-radius:16px;cursor:pointer}
-.cabinet-title{font-family:"Anton";font-size:18px;letter-spacing:4px;color:#fff}
+  border-radius:4px;cursor:pointer}
+.cabinet-title{font-family:"Anton";font-size:17px;letter-spacing:4px;
+  color:rgba(230,195,120,.9);text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .cabinet-count{font-family:"Michroma";font-size:9px;letter-spacing:2px;
-  color:rgba(255,255,255,.4);text-align:right;min-width:60px}
+  color:rgba(200,160,80,.5);text-align:right;min-width:60px}
 
-/* Cabinet body — the display case interior */
-.cabinet-body{flex:1;overflow:hidden;padding:10px 12px 12px;display:flex;flex-direction:column}
+/* Outer frame — thick dark wood border all around */
+.cabinet-body{
+  flex:1;overflow:hidden;
+  padding:10px 10px 14px;display:flex;flex-direction:column}
+
 .cabinet-interior{
   flex:1;position:relative;overflow:hidden;
-  background:linear-gradient(180deg,#1c1008 0%,#140d06 30%,#0e0a05 100%);
-  border-radius:4px;
-  border:3px solid #2a2018;
+  /* Deep dark interior — almost black walnut */
+  background:linear-gradient(180deg,#100d08 0%,#0c0a05 40%,#080704 100%);
+  border-radius:3px;
+  /* Thick walnut frame walls */
+  border-left:6px solid #2c1f0a;
+  border-right:6px solid #221808;
+  border-top:6px solid #2c1f0a;
+  border-bottom:8px solid #1a1206;
   box-shadow:
-    inset 0 0 60px rgba(0,0,0,.9),
-    inset 0 30px 80px rgba(255,160,60,.06),
-    0 0 0 1px #3a2a18,
-    0 4px 24px rgba(0,0,0,.8)}
+    inset 0 0 40px rgba(0,0,0,.95),
+    inset 0 20px 60px rgba(255,180,60,.04),
+    0 0 0 1px #3d2a0e,
+    0 6px 30px rgba(0,0,0,.8),
+    0 2px 0 #4a3618}
 
-/* Warm interior spotlight strip along the top — like a real display cabinet */
-.cabinet-light{
-  position:absolute;top:0;left:0;right:0;height:4px;z-index:3;pointer-events:none;
-  background:linear-gradient(90deg,transparent 2%,rgba(255,190,80,.55) 20%,rgba(255,215,120,1) 50%,rgba(255,190,80,.55) 80%,transparent 98%);
-  box-shadow:0 0 18px 6px rgba(255,175,50,.55),0 0 60px 20px rgba(255,140,30,.25),0 0 120px 40px rgba(255,110,10,.12)}
-
-/* Velvet-effect back panel — dark warm burgundy with subtle texture */
+/* Frame wood grain lines */
 .cabinet-interior::before{
-  content:'';position:absolute;inset:0;z-index:0;
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
   background:
-    linear-gradient(180deg,rgba(255,140,30,.08) 0%,rgba(255,100,20,.04) 15%,transparent 40%),
-    repeating-linear-gradient(90deg,rgba(0,0,0,.03) 0px,transparent 1px,transparent 3px,rgba(0,0,0,.03) 4px),
-    repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0px,transparent 1px,transparent 3px,rgba(0,0,0,.03) 4px),
-    linear-gradient(160deg,#1a0e0a,#120a07 60%,#0e0806)}
+    linear-gradient(180deg,rgba(255,150,40,.05) 0%,transparent 25%),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.04) 0px,transparent 2px,transparent 18px,rgba(0,0,0,.02) 20px)}
 
-/* Glass front — subtle reflection and glare */
+/* Warm overhead LED strip — illuminates slabs from above */
+.cabinet-light{
+  position:absolute;top:0;left:8%;right:8%;height:3px;z-index:4;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,200,100,.5) 25%,rgba(255,215,150,1) 50%,rgba(255,200,100,.5) 75%,transparent);
+  box-shadow:0 0 12px 4px rgba(255,180,60,.6),0 0 40px 14px rgba(255,150,30,.3),0 0 90px 30px rgba(255,120,20,.12)}
+
+/* Shelf dividers — horizontal lines between card rows */
 .cabinet-glass{
   position:absolute;inset:0;z-index:10;pointer-events:none;
-  background:linear-gradient(160deg,rgba(255,255,255,.06) 0%,transparent 40%,transparent 70%,rgba(255,255,255,.02) 100%);
-  border-radius:1px}
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0px,
+      transparent calc(var(--row-h, 48%) - 3px),
+      rgba(60,40,15,.8) calc(var(--row-h, 48%) - 3px),
+      rgba(80,55,20,.4) calc(var(--row-h, 48%) - 1px),
+      transparent var(--row-h, 48%))}
 .cabinet-glass::after{
-  content:'';position:absolute;top:0;left:10%;width:30%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.03) 50%,transparent);
-  transform:skewX(-8deg)}
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,180,60,.04) 0%,transparent 30%,transparent 70%,rgba(0,0,0,.3) 100%)}
 
-/* Card grid inside the cabinet — like cards in stands */
+/* Card grid — wall-mount shelved rows of slabs */
 .case-grid{
   position:relative;z-index:2;
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;
-  padding:22px 14px 14px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px 6px;
+  padding:18px 10px 12px;
   overflow-y:auto;height:100%;
   scrollbar-width:none}
 .case-grid::-webkit-scrollbar{display:none}
@@ -455,47 +469,24 @@ body{position:fixed;inset:0}
   position:relative;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;
   transition:.2s}
-.case-card:hover{transform:translateY(-3px) scale(1.04)}
+.case-card:hover{transform:translateY(-4px) scale(1.03);filter:drop-shadow(0 12px 24px rgba(0,0,0,.6))}
 .case-card:active{transform:scale(.97)}
 
-/* The acrylic magnetic case — thick 35pt clear slab with visible side depth */
+/* Clean acrylic holder — clear face, white border, inner glow */
 .case-acrylic{
   width:100%;aspect-ratio:712/1000;
-  position:relative;border-radius:3px;overflow:visible;
-  /* Layered shadows simulate the thick acrylic depth */
-  filter:drop-shadow(2px 3px 0px rgba(0,0,0,.6)) drop-shadow(4px 6px 0px rgba(0,0,0,.35)) drop-shadow(0 10px 18px rgba(0,0,0,.65))}
-.case-acrylic-inner{
-  width:100%;height:100%;position:relative;
-  border-radius:3px;overflow:hidden;
-  border:2px solid rgba(255,255,255,.55);
+  position:relative;border-radius:4px;overflow:hidden;
+  border:1.5px solid rgba(255,255,255,.22);
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.08),
-    inset 1px 1px 0 rgba(255,255,255,.3)}
-.case-acrylic-inner canvas{width:100%;height:100%;display:block}
-/* Left/bottom edge — visible acrylic thickness */
-.case-acrylic::before{
-  content:'';position:absolute;
-  top:4px;left:100%;width:5px;height:100%;
-  background:linear-gradient(90deg,rgba(180,190,200,.4),rgba(120,130,140,.15));
-  border-radius:0 2px 2px 0;clip-path:polygon(0 0,100% 4px,100% 100%,0 100%)}
+    inset 0 1px 0 rgba(255,255,255,.25),
+    0 0 0 0.5px rgba(255,255,255,.06),
+    0 8px 24px rgba(0,0,0,.7),
+    0 2px 8px rgba(0,0,0,.5)}
+.case-acrylic canvas{width:100%;height:100%;display:block}
+/* Subtle acrylic sheen across the face */
 .case-acrylic::after{
-  content:'';position:absolute;
-  top:100%;left:4px;width:100%;height:5px;
-  background:linear-gradient(180deg,rgba(160,170,180,.35),rgba(100,110,120,.12));
-  border-radius:0 0 2px 2px;clip-path:polygon(0 0,100% 0,calc(100% - 4px) 100%,0 100%)}
-/* Acrylic face sheen */
-.case-acrylic-inner::after{
-  content:'';position:absolute;inset:0;pointer-events:none;border-radius:3px;
-  background:linear-gradient(135deg,rgba(255,255,255,.18) 0%,transparent 40%,rgba(255,255,255,.05) 100%)}
-/* Magnetic snap dots — top and bottom center */
-.case-mag{
-  position:absolute;left:50%;transform:translateX(-50%);
-  width:8px;height:8px;border-radius:50%;
-  background:radial-gradient(circle at 40% 35%,#4a4a4a,#111);
-  border:1.5px solid rgba(80,80,80,.6);
-  box-shadow:0 1px 3px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.08)}
-.case-mag-top{top:-5px}
-.case-mag-bot{bottom:-5px}
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 45%,rgba(255,255,255,.04) 100%)}
 
 /* Parallel label badge */
 .case-card .cc-par{
@@ -1068,6 +1059,20 @@ async function buildPack(){
   // every time it's opened — no more fixed roster-then-specials sequence.
   PACK = shuffleArray([...rosterCopy, ...montachusettCards, ...specials]);
 
+  // Post-shuffle: avoid back-to-back same player id. Single pass — swap the
+  // duplicate with the next non-duplicate further ahead, or with the card
+  // two positions ahead if nothing better is found.
+  for(let i=0;i<PACK.length-1;i++){
+    if(PACK[i].id===PACK[i+1].id){
+      // Find the next card with a different id to swap with
+      let swapIdx=-1;
+      for(let j=i+2;j<PACK.length;j++){
+        if(PACK[j].id!==PACK[i].id){swapIdx=j;break;}
+      }
+      if(swapIdx>-1)[PACK[i+1],PACK[swapIdx]]=[PACK[swapIdx],PACK[i+1]];
+    }
+  }
+
   // Keep the kid's own Cracked Ice card out of the very first slot so the
   // pack still has a few base cards' worth of build-up before the big pull.
   // Must check cardType==='ice' too, not just id — a Montachusett insert
@@ -1520,7 +1525,7 @@ function setBgGlow(par){
   const ring=document.getElementById('glowRing');
   const g=par.glow||[60,90,160];
   const premium=['HOLO FOIL','CRACKED ICE','SPARKLE FOIL','TIE DYE'];
-  const heavyColor=['PURPLE','BLUE','BLACK','GOLD'];
+  const heavyColor=['RED','PURPLE','BLUE','BLACK','GOLD','MONTACHUSETT ALL-STAR'];
   // Suppress the always-on animated blue blobs for BLACK — they'd bleed
   // through and ruin the all-dark aesthetic.
   if(par.name==='BLACK') bg.setAttribute('data-dark','1');
@@ -3485,7 +3490,17 @@ function closeCase(){
   document.getElementById('caseScreen').classList.remove('active');
   const tb=document.getElementById('topbar');
   if(tb) tb.style.display='';
-  if(PACK.length>0){
+  // Restore exactly where the user was before entering the case
+  const s=window._preCaseState;
+  if(s){
+    PACK=s.pack; packIdx=s.packIdx;
+    if(s.revealActive){
+      document.getElementById('revealScreen').classList.add('active');
+      showCard(packIdx); // re-render the card they were on
+    } else {
+      document.getElementById('packScreen').classList.add('active');
+    }
+  } else if(PACK.length>0){
     document.getElementById('revealScreen').classList.add('active');
   } else {
     document.getElementById('packScreen').classList.add('active');
@@ -3537,6 +3552,13 @@ function playSlabAnimation(cb,card){
 // COLLECTION / DISPLAY CASE
 // ═══════════════════════════════════════════
 function showCase(){
+  // Save where we were so ← BACK can restore it exactly
+  window._preCaseState = {
+    pack: PACK.slice(),
+    packIdx: packIdx,
+    revealActive: document.getElementById('revealScreen').classList.contains('active'),
+    packScreenActive: document.getElementById('packScreen').classList.contains('active'),
+  };
   document.getElementById('packScreen').classList.remove('active');
   document.getElementById('revealScreen').classList.remove('active');
   document.getElementById('caseScreen').classList.add('active');
@@ -3560,17 +3582,9 @@ function showCase(){
       serialNum:snap.serialNum, printRun:snap.printRun, savedAt:snap.savedAt};
 
     const holder=document.createElement('div');holder.className='case-card';
-    // Magnetic slab: outer acrylic frame with depth + inner card canvas
     const acrylic=document.createElement('div');acrylic.className='case-acrylic';
-    const inner=document.createElement('div');inner.className='case-acrylic-inner';
     const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
-    inner.appendChild(cv);
-    acrylic.appendChild(inner);
-    // Magnetic snap dots
-    const magTop=document.createElement('div');magTop.className='case-mag case-mag-top';
-    const magBot=document.createElement('div');magBot.className='case-mag case-mag-bot';
-    acrylic.appendChild(magTop);
-    acrylic.appendChild(magBot);
+    acrylic.appendChild(cv);
     holder.appendChild(acrylic);
     const par=PAR[card.parallel||'base']||PAR.base;
     const g=par.glow;
@@ -3636,13 +3650,51 @@ function viewCaseCard(card){
 
 function backToCase(){
   window._viewingCaseCard=false;
-  // Restore button styles
+  // Restore button styles and callbacks
   const btn=document.getElementById('saveBtn');
   btn.textContent='📷 SAVE PHOTO'; btn.style=''; btn.onclick=savePhotoJPEG;
   const cBtn=document.getElementById('collectBtn');
   if(cBtn){ cBtn.style.display='none'; cBtn.onclick=saveToCollection; }
+  // Restore the pre-case PACK so collection renders correctly
+  const s=window._preCaseState;
+  if(s){ PACK=s.pack; packIdx=s.packIdx; }
+  // Go directly to case grid WITHOUT calling showCase() to avoid overwriting
+  // _preCaseState — so the outer ← BACK still knows where to return to.
   document.getElementById('revealScreen').classList.remove('active');
-  showCase(); // showCase re-hides the topbar
+  document.getElementById('caseScreen').classList.add('active');
+  const tb=document.getElementById('topbar'); if(tb) tb.style.display='none';
+  // Refresh the grid
+  const grid=document.getElementById('caseGrid');
+  const snaps=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
+  document.getElementById('caseCount').textContent=`${snaps.length} CARD${snaps.length!==1?'S':''}`;
+  if(snaps.length===0){
+    grid.innerHTML='<div class="case-empty">No cards yet — open a pack and<br>tap ★ to save one!</div>';
+    return;
+  }
+  grid.innerHTML='';
+  snaps.forEach(snap=>{
+    const rosterCard=ROSTER_CARDS.find(c=>c.id===snap.id);
+    if(!rosterCard) return;
+    const card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
+      serialNum:snap.serialNum, printRun:snap.printRun};
+    const holder=document.createElement('div');holder.className='case-card';
+    const acrylic=document.createElement('div');acrylic.className='case-acrylic';
+    const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
+    acrylic.appendChild(cv);
+    holder.appendChild(acrylic);
+    const par=PAR[card.parallel||'base']||PAR.base;
+    const g=par.glow;
+    if(par.name!=='BASE'){
+      const tag=document.createElement('div');tag.className='cc-par';
+      tag.textContent=par.name;
+      if(par.name==='BLACK'){tag.style.color='#fff';tag.style.background='rgba(255,255,255,.12)';}
+      else{tag.style.background=g?`rgb(${g[0]},${g[1]},${g[2]})`:'#888';}
+      holder.appendChild(tag);
+    }
+    holder.onclick=()=>viewCaseCard(card);
+    grid.appendChild(holder);
+    requestAnimationFrame(()=>renderCardTo(cv,card));
+  });
 }
 
 function removeFromCollection(card){
