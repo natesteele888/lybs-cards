@@ -150,6 +150,26 @@ body{position:fixed;inset:0}
 
 /* ── PACK ── */
 #packScreen{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+/* ── Pack Selection Screen ── */
+#packSelectScreen{display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+#packSelectScreen.active{display:flex}
+.pack-select-header{text-align:center}
+.pack-select-title{font-family:"Anton";font-size:28px;letter-spacing:5px;color:#fff;margin-bottom:4px}
+.pack-select-sub{font-family:"Michroma";font-size:10px;letter-spacing:4px;color:rgba(255,255,255,.4)}
+.pack-select-grid{display:flex;gap:18px;align-items:flex-end;justify-content:center;padding:0 16px}
+.pack-choice{cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:.2s;-webkit-tap-highlight-color:transparent}
+.pack-choice:hover{transform:translateY(-6px) scale(1.04)}
+.pack-choice:active{transform:scale(.97)}
+.pack-choice.opened{opacity:.4;pointer-events:none;filter:grayscale(.8)}
+.pack-choice-foil{position:relative;border-radius:14px}
+.pack-choice-foil .pack-whole{border-radius:14px}
+.pack-choice-label{font-family:"Michroma";font-size:9px;letter-spacing:3px;
+  color:rgba(255,255,255,.55);text-align:center}
+.pack-choice-num{font-family:"Anton";font-size:18px;letter-spacing:2px;color:#fff}
+/* Stagger heights so packs look like a display */
+.pack-choice:nth-child(2) .pack-choice-foil{transform:translateY(-12px);filter:drop-shadow(0 20px 30px rgba(0,0,0,.6))}
 .pack-prompt{position:absolute;bottom:14%;font-family:"Michroma";font-size:13px;letter-spacing:4px;
   color:rgba(255,255,255,.6);animation:pulse 2s ease-in-out infinite;text-align:center}
 @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
@@ -500,6 +520,13 @@ body{position:fixed;inset:0}
   padding:60px 20px;font-family:"Michroma";font-size:11px;letter-spacing:2px;line-height:2}
 
 /* collect button — star/gold style below the save photo button */
+.open-another-btn{
+  margin-top:10px;background:linear-gradient(135deg,var(--gold),#cfc9bd);
+  color:#000;border:none;padding:12px 28px;border-radius:30px;
+  font-family:"Oswald";font-weight:700;font-size:13px;letter-spacing:3px;
+  cursor:pointer;transition:.2s;box-shadow:0 6px 20px rgba(240,237,230,.25)}
+.open-another-btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(240,237,230,.4)}
+
 .collect-btn{
   background:transparent;border:1px solid rgba(255,210,80,.4);
   color:rgba(255,210,80,.85);
@@ -592,26 +619,34 @@ window.addEventListener('error',function(e){
 </div>
 
 <!-- PACK SCREEN -->
+<!-- Pack Selection Screen — choose which of the 3 packs to open -->
+<div class="screen" id="packSelectScreen">
+  <div class="pack-select-header">
+    <div class="pack-select-title">CHOOSE YOUR PACK</div>
+    <div class="pack-select-sub">3 PACKS · 6 CARDS EACH</div>
+  </div>
+  <div class="pack-select-grid" id="packSelectGrid">
+    <!-- Three pack choices rendered here by JS -->
+  </div>
+</div>
+
+<!-- Individual pack opening screen — reused for each of the 3 packs -->
 <div class="screen" id="packScreen" onclick="openPack()">
   <div class="foil-pack" id="foilPack">
-    <!-- Whole pack art, shown until the tear begins -->
     <div class="pack-whole" id="packWhole"></div>
-    <!-- Three jagged torn fragments — identical artwork underneath,
-         clipped into irregular shard shapes that fly apart independently -->
     <div class="pack-frag pack-frag-a" id="packFragA"></div>
     <div class="pack-frag pack-frag-b" id="packFragB"></div>
     <div class="pack-frag pack-frag-c" id="packFragC"></div>
-    <!-- Light burst + lens-flare core, fired at the tear's climax -->
     <div class="pack-burst" id="packBurst"></div>
   </div>
-  <div class="pack-prompt">TAP TO RIP OPEN</div>
+  <div class="pack-prompt" id="packPrompt">TAP TO RIP OPEN</div>
 </div>
 
 
 <!-- REVEAL SCREEN -->
 <div class="screen" id="revealScreen">
   <div class="reveal-stage">
-    <div class="card-counter" id="cardCounter">CARD 1 OF 12</div>
+    <div class="card-counter" id="cardCounter">CARD 1 OF 6</div>
     <div class="parallel-tag" id="parallelTag">BASE</div>
     <div class="card-holder" id="cardHolder">
       <div class="card-glow-ring" id="glowRing"></div>
@@ -626,6 +661,10 @@ window.addEventListener('error',function(e){
       </div>
       <button class="rv-btn" id="nextBtn" onclick="nextCard()">›</button>
     </div>
+    <!-- Shown after last card of a pack if more packs remain -->
+    <button class="open-another-btn" id="openAnotherBtn" onclick="goToPackSelect()" style="display:none">
+      OPEN ANOTHER PACK →
+    </button>
   </div>
 </div>
 
@@ -1055,33 +1094,50 @@ async function buildPack(){
     }
   });
 
-  // Shuffle the WHOLE pack (players + specials) into a fresh random order
-  // every time it's opened — no more fixed roster-then-specials sequence.
-  PACK = shuffleArray([...rosterCopy, ...montachusettCards, ...specials]);
+  // ── Second Cracked Ice: an unnumbered black-parallel ice card for a
+  // random OTHER player (not the link owner). Gives every pack an extra
+  // rare pull without giving the link owner two 1/1 cards.
+  const otherPlayers = rosterCopy.filter(c=>c.id!==myId);
+  if(otherPlayers.length){
+    const bonusIcePlayer = otherPlayers[Math.floor(Math.random()*otherPlayers.length)];
+    const bonusIce = {...bonusIcePlayer,
+      parallel:'black', cardType:'black',
+      numbered:false, serialNum:'', printRun:'',
+      _isBonusIce:true};
+    rosterCopy.push(bonusIce);
+  }
 
-  // Post-shuffle: avoid back-to-back same player id. Single pass — swap the
-  // duplicate with the next non-duplicate further ahead, or with the card
-  // two positions ahead if nothing better is found.
-  for(let i=0;i<PACK.length-1;i++){
-    if(PACK[i].id===PACK[i+1].id){
-      // Find the next card with a different id to swap with
+  // Build the full 18-card pool: roster (12) + montachusett inserts (4) +
+  // specials (2) = 18. Shuffle, fix back-to-back, keep own ice out of slot 0.
+  const allCards = shuffleArray([...rosterCopy, ...montachusettCards, ...specials]);
+
+  // Post-shuffle: avoid back-to-back same player id
+  for(let i=0;i<allCards.length-1;i++){
+    if(allCards[i].id===allCards[i+1].id){
       let swapIdx=-1;
-      for(let j=i+2;j<PACK.length;j++){
-        if(PACK[j].id!==PACK[i].id){swapIdx=j;break;}
+      for(let j=i+2;j<allCards.length;j++){
+        if(allCards[j].id!==allCards[i].id){swapIdx=j;break;}
       }
-      if(swapIdx>-1)[PACK[i+1],PACK[swapIdx]]=[PACK[swapIdx],PACK[i+1]];
+      if(swapIdx>-1)[allCards[i+1],allCards[swapIdx]]=[allCards[swapIdx],allCards[i+1]];
     }
   }
 
-  // Keep the kid's own Cracked Ice card out of the very first slot so the
-  // pack still has a few base cards' worth of build-up before the big pull.
-  // Must check cardType==='ice' too, not just id — a Montachusett insert
-  // card shares the same id as the player's regular card but is never the
-  // rare pull, so it shouldn't trigger this swap.
-  if(PACK.length>1 && PACK[0].id===myId && PACK[0].cardType==='ice'){
-    const swapWith = 1 + Math.floor(Math.random()*(PACK.length-1));
-    [PACK[0], PACK[swapWith]] = [PACK[swapWith], PACK[0]];
+  // Keep the kid's own Cracked Ice out of the very first slot of the whole pool
+  const myIceIdx = allCards.findIndex(c=>c.id===myId && c.cardType==='ice' && !c._isBonusIce);
+  if(myIceIdx===0){
+    const swapWith = 1 + Math.floor(Math.random()*(allCards.length-1));
+    [allCards[0],allCards[swapWith]]=[allCards[swapWith],allCards[0]];
   }
+
+  // Split into 3 packs of 6 — make sure each pack has exactly 6 cards.
+  // Pad or trim gracefully if total isn't exactly 18.
+  const packSize = 6;
+  PACKS = [[],[],[]];
+  for(let i=0;i<allCards.length && i<18;i++){
+    PACKS[Math.floor(i/packSize)].push(allCards[i]);
+  }
+  // PACK still points at the currently open pack (set in openPackAtIndex)
+  PACK = [];
 
   try{
     await Promise.race([
@@ -1104,10 +1160,10 @@ function shuffleArray(arr){
 
 function finishBuildPack(){
   window._packBrowsed=false;
-  // (pack mascot logo removed along with the old multi-layer pack design)
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('topbar').style.display='flex';
-  document.getElementById('packScreen').classList.add('active');
+  openedPacks=new Set();
+  showPackSelectScreen();
 }
 
 function preloadCardImages(card){
@@ -1124,7 +1180,11 @@ function preloadCardImages(card){
 // ═══════════════════════════════════════════
 // PACK OPENING ANIMATION
 // ═══════════════════════════════════════════
-let packOpened=false;
+// Multi-pack system: 18 cards split into 3 packs of 6
+let PACKS=[[],[],[]];        // [pack0, pack1, pack2], each array of 6 cards
+let currentPackIndex=-1;     // which of the 3 packs is open (-1 = none yet)
+let openedPacks=new Set();   // which pack indices have been opened
+let packOpened=false;        // whether the current pack's tear animation has fired
 // Spawns sparkle particles radiating outward from the pack's center at the
 // tear's climax, timed to roughly coincide with the light burst. Removed
 // after their animation completes so they don't accumulate in the DOM if
@@ -1149,24 +1209,88 @@ function packMakeSparkles(packEl){
   }
 }
 
+// ── Pack selection screen ──────────────────────────────────────────────────
+function showPackSelectScreen(){
+  // Hide all other screens
+  document.getElementById('packScreen').classList.remove('active');
+  document.getElementById('revealScreen').classList.remove('active');
+  const sel=document.getElementById('packSelectScreen');
+  sel.classList.add('active');
+
+  // Render pack choices
+  const grid=document.getElementById('packSelectGrid');
+  grid.innerHTML='';
+  PACKS.forEach((cards, idx)=>{
+    const div=document.createElement('div');
+    div.className='pack-choice' + (openedPacks.has(idx)?' opened':'');
+    div.onclick=()=>{ if(!openedPacks.has(idx)) openPackAtIndex(idx); };
+
+    // Mini foil pack visual — scaled-down version of the full pack art
+    const scale = idx===1 ? 1 : 0.82; // center pack slightly larger
+    const foilWrap=document.createElement('div');
+    foilWrap.className='pack-choice-foil';
+    foilWrap.style.cssText=`width:${Math.round(294*scale)}px;height:${Math.round(420*scale)}px;position:relative;border-radius:${Math.round(18*scale)}px;overflow:hidden`;
+    const pw=document.createElement('div');
+    pw.className='pack-whole';
+    pw.style.cssText=`position:absolute;inset:0;border-radius:${Math.round(18*scale)}px;overflow:hidden;background-size:${Math.round(294*scale)}px ${Math.round(420*scale)}px;background-position:0 0;background-repeat:no-repeat`;
+    // Share the same background-image CSS from .pack-whole (already baked in)
+    const wholeSrc=document.querySelector('.pack-whole');
+    if(wholeSrc) pw.style.backgroundImage=getComputedStyle(wholeSrc).backgroundImage;
+    foilWrap.appendChild(pw);
+
+    if(openedPacks.has(idx)){
+      const opened=document.createElement('div');
+      opened.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-family:"Michroma";font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.5)';
+      opened.textContent='OPENED';
+      foilWrap.appendChild(opened);
+    }
+
+    const lbl=document.createElement('div');lbl.className='pack-choice-label';
+    lbl.textContent='PACK';
+    const num=document.createElement('div');num.className='pack-choice-num';
+    num.textContent=idx+1;
+
+    div.appendChild(foilWrap);
+    div.appendChild(num);
+    div.appendChild(lbl);
+    grid.appendChild(div);
+  });
+}
+
+function goToPackSelect(){
+  document.getElementById('revealScreen').classList.remove('active');
+  showPackSelectScreen();
+}
+
+function openPackAtIndex(idx){
+  if(openedPacks.has(idx)) return;
+  currentPackIndex=idx;
+  PACK=PACKS[idx];
+  packOpened=false;
+  packIdx=0;
+
+  // Reset the tear animation so it fires fresh
+  const pack=document.getElementById('foilPack');
+  pack.classList.remove('tearing');
+  void pack.offsetWidth; // reflow
+
+  document.getElementById('packSelectScreen').classList.remove('active');
+  document.getElementById('packScreen').classList.add('active');
+}
+
 function openPack(){
   if(packOpened)return;packOpened=true;
   const pack=document.getElementById('foilPack');
-  const prompt=document.querySelector('#packScreen .pack-prompt');
-  // 1. Pack rips into three fragments that fly apart, light burst + sparkles
-  // fire at the climax (see .tearing CSS + packMakeSparkles above).
+  const prompt=document.getElementById('packPrompt');
   pack.classList.add('tearing');
   packMakeSparkles(pack);
   if(prompt){ prompt.style.transition='opacity .25s ease-out'; prompt.style.opacity='0'; }
-  // 2. Card reveal through a card-shaped white blast (not a full-screen flash)
-  // — delayed to 1450ms (was 950ms) so the longer tear+burst sequence has
-  // room to read before the reveal screen swaps in underneath it.
   setTimeout(()=>{
     document.getElementById('packScreen').classList.remove('active');
+    openedPacks.add(currentPackIndex);
     packIdx=0;
     showCard(0);
     document.getElementById('revealScreen').classList.add('active');
-    // blast
     const flash=document.createElement('div');
     flash.className='card-blast go';
     document.body.appendChild(flash);
@@ -1339,7 +1463,7 @@ function renderCardNow(i){
   window._activeCanvas='revealCanvas';
   drawCard();
   // Counter + parallel tag + glow
-  document.getElementById('cardCounter').textContent=`CARD ${i+1} OF ${PACK.length}`;
+  document.getElementById('cardCounter').textContent=`CARD ${i+1} OF ${PACK.length}  ·  PACK ${currentPackIndex+1}`;
   const par=PAR[CS.parallel]||PAR.base;
   const tag=document.getElementById('parallelTag');
   tag.textContent=par.name;
@@ -1362,7 +1486,13 @@ function renderCardNow(i){
   if(flipHint) flipHint.style.visibility=CS.isSpecial?'hidden':'visible';
   // Nav buttons
   document.getElementById('prevBtn').disabled=(i===0);
-  document.getElementById('nextBtn').disabled=(i===PACK.length-1);
+  const isLastCard=(i===PACK.length-1);
+  document.getElementById('nextBtn').disabled=isLastCard;
+  // "Open Another Pack" CTA: only show when on the last card AND at least
+  // one of the other packs hasn't been opened yet.
+  const morePacksLeft = PACKS.some((_,idx)=>idx!==currentPackIndex && !openedPacks.has(idx));
+  const oaBtn=document.getElementById('openAnotherBtn');
+  if(oaBtn) oaBtn.style.display=(isLastCard && morePacksLeft)?'':'none';
   // Save button state
   updateSaveBtn();
 }
@@ -3490,20 +3620,19 @@ function closeCase(){
   document.getElementById('caseScreen').classList.remove('active');
   const tb=document.getElementById('topbar');
   if(tb) tb.style.display='';
-  // Restore exactly where the user was before entering the case
   const s=window._preCaseState;
   if(s){
     PACK=s.pack; packIdx=s.packIdx;
     if(s.revealActive){
       document.getElementById('revealScreen').classList.add('active');
-      showCard(packIdx); // re-render the card they were on
+      showCard(packIdx);
     } else {
-      document.getElementById('packScreen').classList.add('active');
+      showPackSelectScreen();
     }
   } else if(PACK.length>0){
     document.getElementById('revealScreen').classList.add('active');
   } else {
-    document.getElementById('packScreen').classList.add('active');
+    showPackSelectScreen();
   }
 }
 
@@ -3557,7 +3686,7 @@ function showCase(){
     pack: PACK.slice(),
     packIdx: packIdx,
     revealActive: document.getElementById('revealScreen').classList.contains('active'),
-    packScreenActive: document.getElementById('packScreen').classList.contains('active'),
+    packScreenActive: document.getElementById('packSelectScreen').classList.contains('active'),
   };
   document.getElementById('packScreen').classList.remove('active');
   document.getElementById('revealScreen').classList.remove('active');
