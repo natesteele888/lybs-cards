@@ -246,96 +246,96 @@ body{position:fixed;inset:0}
 .card-holder.nav-in{animation:navIn .35s ease}
 @keyframes navIn{0%{opacity:.4;transform:scale(.96)}100%{opacity:1;transform:scale(1)}}
 
-/* ══════════════════════════════════════════════════════════════
-   SPECIAL PULL UNVEIL — Cracked Ice / Holo Foil only. Everything
-   here is inert (display:none / opacity:0) until JS adds .go to
-   #specialUnveil, which kicks off the whole sequence at once via
-   each child's own animation-delay. Big z-index so it sits above
-   the card, nav buttons, and bgGlow while it plays.
+/* ════════════════════════════════════════════════════════════════
+   SPECIAL PULL THEATRICAL UNVEIL — Cracked Ice / Holo Foil
+   Lightning bolts + scene darken + spotlights + big bold label.
    ══════════════════════════════════════════════════════════════ */
 #specialUnveil{position:fixed;inset:0;z-index:300;pointer-events:none;
   opacity:0;visibility:hidden;overflow:hidden}
 #specialUnveil.go{visibility:visible;opacity:1}
 
+/* Scene darken */
 .su-darken{position:absolute;inset:0;background:#000;opacity:0}
 #specialUnveil.go .su-darken{animation:suDarken 2.6s ease-in-out forwards}
 @keyframes suDarken{
-  0%{opacity:0}
-  16%{opacity:.94}
-  82%{opacity:.94}
+  0%  {opacity:0}
+  14% {opacity:.92}
+  80% {opacity:.88}
   100%{opacity:0}}
 
-/* Slow drifting smoke — three soft blurred blobs at different sizes/speeds/
-   delays so they don't look like one repeating shape. Pure CSS radial
-   gradients, no image assets. */
-.su-smoke{position:absolute;border-radius:50%;opacity:0;filter:blur(18px);
-  mix-blend-mode:screen}
-.su-smoke-a{width:340px;height:340px;left:8%;bottom:-10%;
-  background:radial-gradient(circle,rgba(210,220,235,.5),transparent 70%)}
-.su-smoke-b{width:260px;height:260px;right:5%;bottom:-15%;
-  background:radial-gradient(circle,rgba(190,205,225,.42),transparent 70%)}
-.su-smoke-c{width:300px;height:300px;left:32%;bottom:-20%;
-  background:radial-gradient(circle,rgba(200,210,230,.36),transparent 70%)}
-#specialUnveil.go .su-smoke-a{animation:suSmokeA 2.6s ease-out forwards}
-#specialUnveil.go .su-smoke-b{animation:suSmokeB 2.6s ease-out forwards .25s}
-#specialUnveil.go .su-smoke-c{animation:suSmokeC 2.6s ease-out forwards .5s}
-@keyframes suSmokeA{
-  0%{opacity:0;transform:translateY(0) scale(.8)}
-  20%{opacity:.8}
-  100%{opacity:0;transform:translateY(-420px) scale(1.3)}}
-@keyframes suSmokeB{
-  0%{opacity:0;transform:translateY(0) scale(.8)}
-  20%{opacity:.7}
-  100%{opacity:0;transform:translateY(-460px) scale(1.4)}}
-@keyframes suSmokeC{
-  0%{opacity:0;transform:translateY(0) scale(.8)}
-  20%{opacity:.65}
-  100%{opacity:0;transform:translateY(-500px) scale(1.5)}}
+/* Lightning bolts */
+.su-bolt{position:absolute;inset:0;opacity:0}
+#specialUnveil.go .su-bolt-a{animation:suBoltFlash 2.6s ease-out forwards}
+#specialUnveil.go .su-bolt-b{animation:suBoltFlash 2.6s ease-out forwards .18s}
+#specialUnveil.go .su-bolt-c{animation:suBoltFlash 2.6s ease-out forwards .38s}
+@keyframes suBoltFlash{
+  0%  {opacity:0}
+  4%  {opacity:1}
+  12% {opacity:.65}
+  22% {opacity:0}
+  32% {opacity:.9}
+  42% {opacity:0}
+  100%{opacity:0}}
 
-/* Sweeping light beams — thin bright wedges that slide across at an angle,
-   like stage spotlights crossing the card. */
-.su-beam{position:absolute;top:-20%;left:-20%;width:140px;height:160%;opacity:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
-  transform:rotate(18deg);mix-blend-mode:screen}
-#specialUnveil.go .su-beam-a{animation:suBeam 1.3s ease-in forwards .35s}
-#specialUnveil.go .su-beam-b{animation:suBeam 1.3s ease-in forwards .75s}
-#specialUnveil.go .su-beam-c{animation:suBeam 1.1s ease-in forwards 1.15s}
-@keyframes suBeam{
-  0%{opacity:0;left:-20%}
-  10%{opacity:.85}
-  55%{opacity:.55}
-  100%{opacity:0;left:120%}}
+/* Spotlight cones */
+.su-spot{position:absolute;top:0;left:50%;transform:translateX(-50%);
+  opacity:0;width:500px;height:100%;
+  clip-path:polygon(36% 0%,64% 0%,84% 100%,16% 100%)}
+.su-spot2{position:absolute;top:0;left:50%;transform:translateX(-50%);
+  opacity:0;width:300px;height:100%;
+  clip-path:polygon(40% 0%,60% 0%,76% 100%,24% 100%)}
+#specialUnveil.go .su-spot{animation:suSpot 2.6s ease-in-out forwards}
+#specialUnveil.go .su-spot2{animation:suSpot2 2.6s ease-in-out forwards}
+@keyframes suSpot{
+  0%  {opacity:0}
+  18% {opacity:0}
+  40% {opacity:.55}
+  75% {opacity:.42}
+  100%{opacity:0}}
+@keyframes suSpot2{
+  0%  {opacity:0}
+  28% {opacity:0}
+  50% {opacity:.72}
+  78% {opacity:.55}
+  100%{opacity:0}}
 
-/* Slow rotating ray burst behind the label/card — gives the dark moment a
-   sense of building energy rather than just sitting flat-black. */
-.su-rays{position:absolute;top:50%;left:50%;width:140vmax;height:140vmax;
-  margin:-70vmax 0 0 -70vmax;opacity:0;
-  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.07) 0deg,transparent 5deg,transparent 11deg,rgba(255,255,255,.07) 16deg)}
-#specialUnveil.go .su-rays{animation:suRays 2.6s linear forwards}
-@keyframes suRays{
-  0%{opacity:0;transform:rotate(0deg)}
-  18%{opacity:.7}
-  82%{opacity:.7}
-  100%{opacity:0;transform:rotate(45deg)}}
-
-.su-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.4);
-  font-family:"Anton",sans-serif;font-size:30px;letter-spacing:2px;
-  color:#fff;text-shadow:0 0 24px currentColor,0 0 50px currentColor;
-  white-space:nowrap;opacity:0;text-align:center}
-#specialUnveil.go .su-label{animation:suLabel 1.4s cubic-bezier(.2,1.4,.4,1) forwards .8s}
+/* BIG BOLD LABEL — slams in from below, hard bounce, color-matched glow */
+.su-label{
+  position:absolute;top:42%;left:50%;
+  transform:translate(-50%,-50%) translateY(60px) scale(.5);
+  font-family:"Anton",sans-serif;font-size:58px;letter-spacing:5px;
+  color:#fff;text-shadow:0 0 30px currentColor,0 0 80px currentColor,0 0 180px currentColor;
+  white-space:nowrap;opacity:0;text-align:center;line-height:1.1}
+#specialUnveil.go .su-label{animation:suLabel 1.6s cubic-bezier(.12,1.6,.3,1) forwards .62s}
 @keyframes suLabel{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}
-  55%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
-  75%{transform:translate(-50%,-50%) scale(.95)}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
+  0%  {opacity:0;transform:translate(-50%,-50%) translateY(80px) scale(.45)}
+  42% {opacity:1;transform:translate(-50%,-50%) translateY(-10px) scale(1.10)}
+  60% {transform:translate(-50%,-50%) translateY(3px) scale(.96)}
+  76% {transform:translate(-50%,-50%) translateY(-2px) scale(1.02)}
+  88% {opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) translateY(-8px) scale(1.03)}}
 
+/* Sub-label — "1 OF 1" or parallel name, smaller beneath */
+.su-sub{
+  position:absolute;top:calc(42% + 46px);left:50%;
+  transform:translate(-50%,-50%);
+  font-family:"Michroma",sans-serif;font-size:12px;letter-spacing:7px;
+  color:rgba(255,255,255,.75);white-space:nowrap;opacity:0;text-align:center}
+#specialUnveil.go .su-sub{animation:suSub 1.4s ease-out forwards .92s}
+@keyframes suSub{
+  0%  {opacity:0;transform:translate(-50%,-50%) translateY(14px)}
+  40% {opacity:1;transform:translate(-50%,-50%) translateY(0)}
+  85% {opacity:1}
+  100%{opacity:0}}
+
+/* Final white flash as the card is revealed */
 .su-flash{position:absolute;inset:0;
   background:radial-gradient(circle,rgba(255,255,255,1),rgba(255,255,255,.2) 45%,transparent 75%);
   opacity:0}
-#specialUnveil.go .su-flash{animation:suFlash .6s ease-out forwards 2.1s}
+#specialUnveil.go .su-flash{animation:suFlash .5s ease-out forwards 2.1s}
 @keyframes suFlash{
-  0%{opacity:0}
-  35%{opacity:1}
+  0%  {opacity:0}
+  30% {opacity:1}
   100%{opacity:0}}
 
 /* ── REVEAL / card viewer ── */
@@ -418,14 +418,15 @@ body{position:fixed;inset:0}
 
 /* Warm interior spotlight strip along the top — like a real display cabinet */
 .cabinet-light{
-  position:absolute;top:0;left:0;right:0;height:3px;z-index:3;pointer-events:none;
-  background:linear-gradient(90deg,transparent 5%,rgba(255,190,80,.7) 30%,rgba(255,210,110,.9) 50%,rgba(255,190,80,.7) 70%,transparent 95%);
-  box-shadow:0 0 30px 8px rgba(255,170,50,.35),0 0 80px 20px rgba(255,140,30,.15)}
+  position:absolute;top:0;left:0;right:0;height:4px;z-index:3;pointer-events:none;
+  background:linear-gradient(90deg,transparent 2%,rgba(255,190,80,.55) 20%,rgba(255,215,120,1) 50%,rgba(255,190,80,.55) 80%,transparent 98%);
+  box-shadow:0 0 18px 6px rgba(255,175,50,.55),0 0 60px 20px rgba(255,140,30,.25),0 0 120px 40px rgba(255,110,10,.12)}
 
 /* Velvet-effect back panel — dark warm burgundy with subtle texture */
 .cabinet-interior::before{
   content:'';position:absolute;inset:0;z-index:0;
   background:
+    linear-gradient(180deg,rgba(255,140,30,.08) 0%,rgba(255,100,20,.04) 15%,transparent 40%),
     repeating-linear-gradient(90deg,rgba(0,0,0,.03) 0px,transparent 1px,transparent 3px,rgba(0,0,0,.03) 4px),
     repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0px,transparent 1px,transparent 3px,rgba(0,0,0,.03) 4px),
     linear-gradient(160deg,#1a0e0a,#120a07 60%,#0e0806)}
@@ -534,14 +535,13 @@ body{position:fixed;inset:0}
      bright flash resolves into the normal card reveal underneath. -->
 <div id="specialUnveil">
   <div class="su-darken"></div>
-  <div class="su-smoke su-smoke-a"></div>
-  <div class="su-smoke su-smoke-b"></div>
-  <div class="su-smoke su-smoke-c"></div>
-  <div class="su-beam su-beam-a"></div>
-  <div class="su-beam su-beam-b"></div>
-  <div class="su-beam su-beam-c"></div>
-  <div class="su-rays"></div>
-  <div class="su-label" id="suLabel">HOLO FOIL PULL!</div>
+  <div class="su-bolt su-bolt-a" id="suBoltA"></div>
+  <div class="su-bolt su-bolt-b" id="suBoltB"></div>
+  <div class="su-bolt su-bolt-c" id="suBoltC"></div>
+  <div class="su-spot" id="suSpot"></div>
+  <div class="su-spot2" id="suSpot2"></div>
+  <div class="su-label" id="suLabel">CRACKED ICE</div>
+  <div class="su-sub" id="suSub">1 OF 1</div>
   <div class="su-flash"></div>
 </div>
 
@@ -895,7 +895,14 @@ let layersReady=false;
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',()=>{\n  // Restore saved collection from previous sessions\n  try{\n    const coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');\n    savedIds=new Set(coll.map(c=>c.id));\n    const navBtn=document.getElementById('collectionBtn');\n    if(navBtn && savedIds.size>0) navBtn.style.display='';\n  }catch(e){}
+document.addEventListener('DOMContentLoaded',()=>{
+  // Restore saved collection from previous sessions
+  try{
+    const coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
+    savedIds=new Set(coll.map(c=>c.id));
+    const navBtn=document.getElementById('collectionBtn');
+    if(navBtn && savedIds.size>0) navBtn.style.display='';
+  }catch(e){}
   // Preload template layers
   const keys=Object.keys(LAYER_SRCS);let done=0;
   keys.forEach(k=>{const img=new Image();
@@ -1214,42 +1221,77 @@ function playSpecialUnveil(i){
   const card=PACK[i];
   const overlay=document.getElementById('specialUnveil');
   const label=document.getElementById('suLabel');
+  const sub=document.getElementById('suSub');
   const parKey=card.parallel||card.rarity||'base';
   const par=PAR[parKey]||PAR.base;
   const g=par.glow||[255,255,255];
   const glowCss=`rgb(${g[0]},${g[1]},${g[2]})`;
+  const boltColor=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
+  const gc=`rgba(${g[0]},${g[1]},${g[2]},`;
 
-  // Hide the card itself for the dark portion of the sequence — nothing to
-  // peek at behind the smoke until the flash.
+  // Hide the card for the dark portion
   const holder=document.getElementById('cardHolder');
   if(holder) holder.style.visibility='hidden';
 
+  // Main label — big bold parallel name
   label.textContent = card.id==='special_allstar_trio'
-    ? 'ALL-STAR HOLO PULL!'
-    : (par.name + ' PULL!');
-  label.style.color = glowCss;
+    ? 'ALL-STAR HOLO'
+    : par.name==='CRACKED ICE' ? 'CRACKED ICE'
+    : par.name;
+  label.style.color=glowCss;
 
-  // Re-trigger animations cleanly even if a previous unveil's classes/timers
-  // are still settling (e.g. rapid-fire nav clicks landing on back-to-back
-  // special cards).
+  // Sub-label — serial for ice, parallel brand for holo
+  sub.textContent = card.serialNum
+    ? `${card.serialNum} OF ${card.printRun}`
+    : 'HOLO FOIL';
+  sub.style.color=`rgba(${g[0]},${g[1]},${g[2]},.75)`;
+
+  // Build SVG lightning bolts into the bolt divs
+  const W=window.innerWidth||400, H=window.innerHeight||800;
+  const boltDefs=[
+    {el:'suBoltA', x1:.25,y1:0, pts:[[.30,.16],[.22,.28],[.28,.42],[.18,.58],[.26,.74],[.16,1]]},
+    {el:'suBoltB', x1:.68,y1:0, pts:[[.72,.14],[.62,.26],[.70,.40],[.60,.55],[.68,.70],[.74,1]]},
+    {el:'suBoltC', x1:.48,y1:.04,pts:[[.52,.20],[.44,.34],[.50,.48],[.42,.64],[.50,.80],[.54,1]]},
+  ];
+  boltDefs.forEach(bd=>{
+    const div=document.getElementById(bd.el);
+    if(!div) return;
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible';
+    const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    const pts=[[bd.x1,bd.y1],...bd.pts].map(([px,py])=>`${px*W},${py*H}`).join(' ');
+    poly.setAttribute('points',pts);
+    poly.setAttribute('fill','none');
+    poly.setAttribute('stroke',boltColor);
+    poly.setAttribute('stroke-width','2.5');
+    poly.setAttribute('stroke-linecap','round');
+    poly.setAttribute('stroke-linejoin','round');
+    poly.style.filter=`drop-shadow(0 0 6px ${boltColor}) drop-shadow(0 0 16px ${boltColor})`;
+    svg.appendChild(poly);
+    div.innerHTML=''; div.appendChild(svg);
+  });
+
+  // Color the spotlights to the card's glow color
+  const spot=document.getElementById('suSpot');
+  const spot2=document.getElementById('suSpot2');
+  if(spot)  spot.style.background=`linear-gradient(180deg,${gc}.55) 0%,${gc}.28) 50%,transparent 100%)`;
+  if(spot2) spot2.style.background=`linear-gradient(180deg,${gc}.80) 0%,${gc}.40) 45%,transparent 100%)`;
+
+  // Re-trigger animations
   overlay.classList.remove('go'); void overlay.offsetWidth;
-  if(window._suTimer) clearTimeout(window._suTimer);
+  if(window._suTimer)  clearTimeout(window._suTimer);
   if(window._suTimer2) clearTimeout(window._suTimer2);
   overlay.classList.add('go');
 
-  // Reveal the real card right as the flash peaks (suFlash fires at 2.1s +
-  // ~35% into its own 0.6s animation \u2248 2.31s — render a touch before that
-  // so the flash's whiteout covers the instant the canvas redraws).
-  window._suTimer = setTimeout(()=>{
+  window._suTimer=setTimeout(()=>{
     if(holder) holder.style.visibility='visible';
     renderCardNow(i);
-  }, 2250);
+  },2250);
 
-  // Let the rest of the sequence (fade-out tail) finish, then drop .go so
-  // the overlay goes back to fully inert and ready for next time.
-  window._suTimer2 = setTimeout(()=>{
+  window._suTimer2=setTimeout(()=>{
     overlay.classList.remove('go');
-  }, 2750);
+  },2800);
 }
 
 // Actually loads + draws + displays the given pack index — shared by the
@@ -3416,7 +3458,8 @@ function updateSaveBtn(){
 
 function closeCase(){
   document.getElementById('caseScreen').classList.remove('active');
-  // Return to whichever screen was active before — default to reveal if pack was opened
+  const tb=document.getElementById('topbar');
+  if(tb) tb.style.display='';
   if(PACK.length>0){
     document.getElementById('revealScreen').classList.add('active');
   } else {
@@ -3472,6 +3515,8 @@ function showCase(){
   document.getElementById('packScreen').classList.remove('active');
   document.getElementById('revealScreen').classList.remove('active');
   document.getElementById('caseScreen').classList.add('active');
+  const tb=document.getElementById('topbar');
+  if(tb) tb.style.display='none';
   const grid=document.getElementById('caseGrid');
   grid.innerHTML='';
 
