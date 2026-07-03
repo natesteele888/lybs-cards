@@ -3774,26 +3774,38 @@ function viewCaseCard(card){
   document.getElementById('revealScreen').classList.add('active');
   showCard(0);
 
-  // Replace save button with "Remove from collection"
+  // Restore Save Photo button
   const btn=document.getElementById('saveBtn');
-  btn.textContent='✕ REMOVE FROM COLLECTION';
-  btn.classList.remove('saved'); btn.disabled=false;
-  btn.style.background='rgba(220,60,60,.18)';
-  btn.style.color='rgba(255,120,120,.9)';
-  btn.style.border='1px solid rgba(220,60,60,.4)';
-  btn.style.fontSize='11px';
-  btn.onclick=()=>removeFromCollection(card);
+  btn.textContent='📷 SAVE PHOTO'; btn.style=''; btn.disabled=false;
+  btn.onclick=savePhotoJPEG;
 
-  // Replace collect button with "← Back to Collection"
+  // Replace collect button with "✕ REMOVE FROM COLLECTION"
   const cBtn=document.getElementById('collectBtn');
   if(cBtn){
-    cBtn.textContent='← BACK TO COLLECTION';
+    cBtn.textContent='✕ REMOVE FROM COLLECTION';
     cBtn.style.display='';
+    cBtn.style.background='rgba(220,60,60,.18)';
+    cBtn.style.color='rgba(255,120,120,.9)';
+    cBtn.style.border='1px solid rgba(220,60,60,.4)';
     cBtn.classList.remove('in-collection');
-    cBtn.onclick=()=>backToCase();
+    cBtn.onclick=()=>removeFromCollection(card);
   }
 
-  // Store that we're in single-card view mode so back nav knows where to go
+  // Show "OPEN NEXT PACK" if packs remain, otherwise "← BACK TO COLLECTION"
+  const oaBtn=document.getElementById('openAnotherBtn');
+  if(oaBtn){
+    const morePacksLeft = PACKS.some((_,idx)=>!openedPacks.has(idx));
+    if(morePacksLeft){
+      oaBtn.textContent='OPEN NEXT PACK →';
+      oaBtn.style.display='';
+      oaBtn.onclick=goToNextPack;
+    } else {
+      oaBtn.textContent='← BACK TO COLLECTION';
+      oaBtn.style.display='';
+      oaBtn.onclick=backToCase;
+    }
+  }
+
   window._viewingCaseCard=true;
 }
 
@@ -3803,7 +3815,10 @@ function backToCase(){
   const btn=document.getElementById('saveBtn');
   btn.textContent='📷 SAVE PHOTO'; btn.style=''; btn.onclick=savePhotoJPEG;
   const cBtn=document.getElementById('collectBtn');
-  if(cBtn){ cBtn.style.display='none'; cBtn.onclick=saveToCollection; }
+  if(cBtn){ cBtn.style=''; cBtn.style.display='none'; cBtn.onclick=saveToCollection; }
+  // Reset openAnotherBtn to hidden so normal pack flow controls it
+  const oaBtn=document.getElementById('openAnotherBtn');
+  if(oaBtn){ oaBtn.style.display='none'; oaBtn.textContent='OPEN NEXT PACK →'; oaBtn.onclick=goToNextPack; }
   // Restore the pre-case PACK so collection renders correctly
   const s=window._preCaseState;
   if(s){ PACK=s.pack; packIdx=s.packIdx; }
