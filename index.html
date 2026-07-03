@@ -3716,8 +3716,19 @@ function showCase(){
   snaps.forEach(snap=>{
     const rosterCard=ROSTER_CARDS.find(c=>c.id===snap.id);
     if(!rosterCard) return;
-    const card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
-      serialNum:snap.serialNum, printRun:snap.printRun, savedAt:snap.savedAt};
+    // For Montachusett insert cards, merge the insert data on top of the roster card
+    // so the correct photo, position, stats, and frame are used.
+    let card;
+    if(snap.cardType==='montachusett_allstar' && MONTACHUSETT_INSERTS[snap.id]){
+      const insert=MONTACHUSETT_INSERTS[snap.id];
+      card={...rosterCard, ...insert, id:snap.id,
+        cardType:'montachusett_allstar', parallel:'montachusett_allstar',
+        accentColor:'#cc1122', outerColor:'#cc1122', showLybs:false,
+        serialNum:snap.serialNum, printRun:snap.printRun, savedAt:snap.savedAt};
+    } else {
+      card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
+        serialNum:snap.serialNum, printRun:snap.printRun, savedAt:snap.savedAt};
+    }
 
     const holder=document.createElement('div');holder.className='case-card';
     const acrylic=document.createElement('div');acrylic.className='case-acrylic';
@@ -3813,8 +3824,17 @@ function backToCase(){
   snaps.forEach(snap=>{
     const rosterCard=ROSTER_CARDS.find(c=>c.id===snap.id);
     if(!rosterCard) return;
-    const card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
-      serialNum:snap.serialNum, printRun:snap.printRun};
+    let card;
+    if(snap.cardType==='montachusett_allstar' && MONTACHUSETT_INSERTS[snap.id]){
+      const insert=MONTACHUSETT_INSERTS[snap.id];
+      card={...rosterCard, ...insert, id:snap.id,
+        cardType:'montachusett_allstar', parallel:'montachusett_allstar',
+        accentColor:'#cc1122', outerColor:'#cc1122', showLybs:false,
+        serialNum:snap.serialNum, printRun:snap.printRun};
+    } else {
+      card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
+        serialNum:snap.serialNum, printRun:snap.printRun};
+    }
     const holder=document.createElement('div');holder.className='case-card';
     const acrylic=document.createElement('div');acrylic.className='case-acrylic';
     const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
