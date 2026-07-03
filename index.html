@@ -150,7 +150,7 @@ body{position:fixed;inset:0}
 
 /* ── PACK ── */
 /* ── Pack Screen Atmosphere ─────────────────────────────────────── */
-#packAtmosphere{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+#packAtmosphere{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
 
 /* Pulsing radial vignette — darkens and brightens edges dramatically */
 .pack-vignette-pulse{
@@ -179,7 +179,7 @@ body{position:fixed;inset:0}
   85% {opacity:.4}
   100%{opacity:0;transform:translateY(-90vh) scale(1.8)}}
 
-#packScreen{cursor:pointer;flex-direction:column;align-items:center;justify-content:center;position:relative}
+#packScreen{cursor:pointer;flex-direction:column;align-items:center;justify-content:center}
 
 /* ── Pack Selection Screen ── */
 /* Pack remaining counter — inline in the topbar actions */
@@ -387,8 +387,14 @@ body{position:fixed;inset:0}
 .card-holder canvas.is-landscape{width:min(413px,98.7vw);height:min(294px,70vw)}
 .card-glow-ring{position:absolute;inset:-30px;border-radius:50%;z-index:-1;
   filter:blur(40px);opacity:.7;transition:background 1s ease}
-/* Nav arrows hidden — replaced by swipe gesture */
-.rv-btn{display:none!important}
+/* Nav arrows — slim bare arrows, visible but minimal so swipe gesture is primary */
+.rv-btn{
+  background:none;border:none;color:rgba(255,255,255,.35);
+  width:28px;height:60px;font-size:22px;cursor:pointer;transition:.18s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent}
+.rv-btn:hover{color:rgba(255,255,255,.8);transform:scale(1.15)}
+.rv-btn:disabled{opacity:.15;cursor:not-allowed;transform:none}
 /* Card row without visible arrows */
 .card-row{display:flex;align-items:center;width:100%;justify-content:center;position:relative}
 
@@ -521,30 +527,32 @@ body{position:fixed;inset:0}
 /* Card grid — wall-mount shelved rows of slabs */
 .case-grid{
   position:relative;z-index:2;
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(82px,1fr));
-  gap:0 5px;
-  padding:14px 8px 0;
+  display:flex;flex-direction:column;gap:0;
+  padding:10px 8px 12px;
   overflow-y:auto;height:100%;
-  scrollbar-width:none;
-  align-items:end}
+  scrollbar-width:none}
 .case-grid::-webkit-scrollbar{display:none}
 
-/* Card column — sits on a shelf ledge, slight lean */
-.case-card{
-  position:relative;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;
-  padding-bottom:6px;
-  border-bottom:3px solid rgba(160,120,60,.5);
-  box-shadow:0 3px 0 rgba(0,0,0,.45);
-  margin-bottom:16px;
-  transition:transform .18s, filter .18s}
-/* Subtle backward lean — like cards propped against the back of the case */
-.case-card{transform:perspective(300px) rotateX(4deg);transform-origin:bottom center}
-.case-card:hover{
-  transform:perspective(300px) rotateX(0deg) translateY(-7px) scale(1.07)!important;
-  filter:drop-shadow(0 18px 30px rgba(0,0,0,.75));z-index:10}
-.case-card:active{transform:scale(.97)!important}
+/* Shelf row — 5 slots across with visible ledge at the bottom */
+.shelf-row{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:0 4px;
+  align-items:end;
+  padding-bottom:5px;
+  border-bottom:4px solid rgba(140,100,40,.55);
+  box-shadow:0 4px 0 rgba(0,0,0,.5);
+  margin-bottom:14px;
+  min-height:120px}  /* ensures empty slots keep shelf height */
+
+/* Empty slot placeholder */
+.shelf-slot-empty{
+  position:relative;min-height:100px;
+  border:1px dashed rgba(255,255,255,.06);
+  border-radius:3px;margin-bottom:5px;
+  transition:background .15s}
+.shelf-slot-empty.drag-over{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2)}
+
+/* Card column — sits on shelf, backward lean */
+.case-card{\n  position:relative;cursor:grab;\n  display:flex;flex-direction:column;align-items:center;\n  padding-bottom:5px;\n  transition:transform .18s,filter .18s,opacity .15s;\n  transform:perspective(300px) rotateX(4deg);transform-origin:bottom center;\n  -webkit-tap-highlight-color:transparent}\n.case-card:hover{\n  transform:perspective(300px) rotateX(0deg) translateY(-7px) scale(1.07)!important;\n  filter:drop-shadow(0 18px 30px rgba(0,0,0,.75));z-index:10}\n.case-card:active{cursor:grabbing}\n.case-card.dragging{opacity:.35;transform:scale(.97)!important}
 
 /* Acrylic holder — just the card, no label inside */
 .case-acrylic{
@@ -3923,10 +3931,10 @@ function updateSaveBtn(){
   // Update collect button state
   const cBtn=document.getElementById('collectBtn');
   if(cBtn){
-    const cardKey=card.id+'|'+(card.parallel||'base'); const inColl=savedIds.has(cardKey)||card.isSpecial;
+    const cardKey=card.id+'|'+(card.parallel||'base'); const inColl=savedIds.has(cardKey);
     cBtn.textContent=inColl?'★ IN COLLECTION':'★ ADD TO COLLECTION';
     cBtn.classList.toggle('in-collection',!!inColl);
-    cBtn.style.display=card.isSpecial?'none':'';
+    cBtn.style.display='';
   }
   // Show the collection nav button once there's something saved
   const navBtn=document.getElementById('collectionBtn');
@@ -4038,7 +4046,7 @@ function checkForGiftParam(){
 }
 
 function saveToCollection(){
-  const card=PACK[packIdx];if(!card||card.isSpecial)return;
+  const card=PACK[packIdx]; if(!card) return;
   // Load existing collection from localStorage
   let coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
   // Deduplicate by card id — one copy of each card per collection
@@ -4095,53 +4103,143 @@ function showCase(){
   const tb=document.getElementById('topbar');
   if(tb) tb.style.display='none';
   const grid=document.getElementById('caseGrid');
-  grid.innerHTML='';
+  renderCaseGrid(grid);
+}
 
+// ── Shared helper: builds the 4-shelf × 5-slot display with drag-to-reorder ──
+function snapToCard(snap){
+  if(!snap) return null;
+  // Special full-image cards (team photo, all-star trio) have no roster entry
+  if(snap.cardType==='special_team_photo'||snap.id==='special_team_photo'){
+    // Find directly in all cards across all packs
+    const sc=PACKS.flat().find(c=>c.id==='special_team_photo');
+    return sc ? {...sc, savedAt:snap.savedAt} : null;
+  }
+  if(snap.cardType==='special_allstar_trio'||snap.id==='special_allstar_trio'){
+    const sc=PACKS.flat().find(c=>c.id==='special_allstar_trio');
+    return sc ? {...sc, savedAt:snap.savedAt} : null;
+  }
+  const rosterCard=ROSTER_CARDS.find(c=>c.id===snap.id);
+  if(!rosterCard) return null;
+  if(snap.cardType==='montachusett_allstar' && MONTACHUSETT_INSERTS[snap.id]){
+    const insert=MONTACHUSETT_INSERTS[snap.id];
+    return {...rosterCard,...insert,id:snap.id,
+      cardType:'montachusett_allstar',parallel:'montachusett_allstar',
+      accentColor:'#cc1122',outerColor:'#cc1122',showLybs:false,
+      serialNum:snap.serialNum,printRun:snap.printRun,savedAt:snap.savedAt};
+  }
+  return {...rosterCard,parallel:snap.parallel,cardType:snap.cardType,
+    serialNum:snap.serialNum,printRun:snap.printRun,savedAt:snap.savedAt};
+}
+
+function makeCaseCard(card, snapIndex){
+  const par=PAR[card.parallel||'base']||PAR.base;
+  const g=par.glow;
+  const holder=document.createElement('div');
+  holder.className='case-card';
+  holder.dataset.snapIndex=snapIndex;  // tracks position in the collection array
+  // PSA label
+  const tag=document.createElement('div');tag.className='cc-par';
+  if(par.name!=='BASE'){
+    tag.textContent=par.name;
+    if(par.name==='BLACK') tag.style.color='rgba(255,255,255,.7)';
+    else if(g) tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
+  }
+  holder.appendChild(tag);
+  const acrylic=document.createElement('div');acrylic.className='case-acrylic';
+  const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
+  acrylic.appendChild(cv);
+  holder.appendChild(acrylic);
+  // Click to view (only if not mid-drag)
+  holder.onclick=e=>{if(!holder._dragged)viewCaseCard(card);};
+  // Drag-to-reorder (HTML5 drag + touch fallback)
+  holder.draggable=true;
+  holder.addEventListener('dragstart',e=>{
+    holder._dragged=true;
+    e.dataTransfer.setData('text/plain',snapIndex);
+    e.dataTransfer.effectAllowed='move';
+    setTimeout(()=>holder.classList.add('dragging'),0);
+  });
+  holder.addEventListener('dragend',()=>{
+    holder.classList.remove('dragging');
+    setTimeout(()=>holder._dragged=false,200);
+  });
+  requestAnimationFrame(()=>renderCardTo(cv,card));
+  return holder;
+}
+
+function renderCaseGrid(grid){
   const snaps=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
   document.getElementById('caseCount').textContent=`${snaps.length} CARD${snaps.length!==1?'S':''}`;
+  grid.innerHTML='';
   if(snaps.length===0){
     grid.innerHTML='<div class="case-empty">No cards yet — open a pack and<br>tap ★ to save one!</div>';
     return;
   }
+  const COLS=5, ROWS=4, TOTAL=COLS*ROWS;
+  let dragSrcIdx=null;
 
-  // For each saved snapshot, find the live roster card and apply the saved parallel
-  snaps.forEach(snap=>{
-    const rosterCard=ROSTER_CARDS.find(c=>c.id===snap.id);
-    if(!rosterCard) return;
-    // For Montachusett insert cards, merge the insert data on top of the roster card
-    // so the correct photo, position, stats, and frame are used.
-    let card;
-    if(snap.cardType==='montachusett_allstar' && MONTACHUSETT_INSERTS[snap.id]){
-      const insert=MONTACHUSETT_INSERTS[snap.id];
-      card={...rosterCard, ...insert, id:snap.id,
-        cardType:'montachusett_allstar', parallel:'montachusett_allstar',
-        accentColor:'#cc1122', outerColor:'#cc1122', showLybs:false,
-        serialNum:snap.serialNum, printRun:snap.printRun, savedAt:snap.savedAt};
-    } else {
-      card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
-        serialNum:snap.serialNum, printRun:snap.printRun, savedAt:snap.savedAt};
-    }
+  function saveOrder(snaps){ localStorage.setItem('lybs_collection',JSON.stringify(snaps)); }
 
-    const holder=document.createElement('div');holder.className='case-card';
-    const par=PAR[card.parallel||'base']||PAR.base;
-    const g=par.glow;
-    // PSA slab label — always present (empty for BASE) so all slabs are equal height
-    const tag=document.createElement('div');tag.className='cc-par';
-    if(par.name!=='BASE'){
-      tag.textContent=par.name;
-      if(par.name==='BLACK') tag.style.color='rgba(255,255,255,.7)';
-      else if(g) tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
+  for(let row=0;row<ROWS;row++){
+    const shelf=document.createElement('div');
+    shelf.className='shelf-row';
+    for(let col=0;col<COLS;col++){
+      const slotIdx=row*COLS+col;
+      const snap=snaps[slotIdx];
+      if(snap){
+        const card=snapToCard(snap);
+        if(card){
+          const holder=makeCaseCard(card,slotIdx);
+          // Drag-over and drop handling
+          holder.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';});
+          holder.addEventListener('drop',e=>{
+            e.preventDefault();
+            const fromIdx=parseInt(e.dataTransfer.getData('text/plain'));
+            const toIdx=slotIdx;
+            if(fromIdx===toIdx) return;
+            const updated=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
+            const moved=updated.splice(fromIdx,1)[0];
+            updated.splice(toIdx,0,moved);
+            saveOrder(updated);
+            savedIds=new Set(updated.map(c=>c.id+'|'+(c.parallel||'base')));
+            renderCaseGrid(grid);
+          });
+          shelf.appendChild(holder);
+        } else {
+          shelf.appendChild(document.createElement('div')); // placeholder if card not found
+        }
+      } else if(slotIdx<TOTAL){
+        // Empty slot — drop target
+        const empty=document.createElement('div');
+        empty.className='shelf-slot-empty';
+        empty.addEventListener('dragover',e=>{e.preventDefault();empty.classList.add('drag-over');});
+        empty.addEventListener('dragleave',()=>empty.classList.remove('drag-over'));
+        empty.addEventListener('drop',e=>{
+          e.preventDefault();empty.classList.remove('drag-over');
+          const fromIdx=parseInt(e.dataTransfer.getData('text/plain'));
+          const updated=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
+          // Move card to this slot position
+          const moved=updated.splice(fromIdx,1)[0];
+          // Insert at slotIdx or at end if slotIdx > current length
+          const insertAt=Math.min(slotIdx,updated.length);
+          updated.splice(insertAt,0,moved);
+          saveOrder(updated);
+          savedIds=new Set(updated.map(c=>c.id+'|'+(c.parallel||'base')));
+          renderCaseGrid(grid);
+        });
+        shelf.appendChild(empty);
+      }
     }
-    holder.appendChild(tag);
-    const acrylic=document.createElement('div');acrylic.className='case-acrylic';
-    const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
-    acrylic.appendChild(cv);
-    holder.appendChild(acrylic);
-    holder.onclick=()=>viewCaseCard(card);
-    grid.appendChild(holder);
-    // Render after DOM settles
-    requestAnimationFrame(()=>renderCardTo(cv,card));
-  });
+    grid.appendChild(shelf);
+  }
+  // If more than TOTAL cards, show overflow count
+  if(snaps.length>TOTAL){
+    const overflow=document.createElement('div');
+    overflow.style.cssText='text-align:center;font-family:"Michroma";font-size:8px;letter-spacing:2px;color:rgba(255,200,120,.4);padding:6px';
+    overflow.textContent=`+${snaps.length-TOTAL} MORE CARDS`;
+    grid.appendChild(overflow);
+  }
 }
 
 function renderCardTo(canvas,card){
@@ -4237,48 +4335,9 @@ function backToCase(){
   document.getElementById('revealScreen').classList.remove('active');
   document.getElementById('caseScreen').classList.add('active');
   const tb=document.getElementById('topbar'); if(tb) tb.style.display='none';
-  // Refresh the grid
+  // Refresh the grid using the shared shelf renderer
   const grid=document.getElementById('caseGrid');
-  const snaps=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
-  document.getElementById('caseCount').textContent=`${snaps.length} CARD${snaps.length!==1?'S':''}`;
-  if(snaps.length===0){
-    grid.innerHTML='<div class="case-empty">No cards yet — open a pack and<br>tap ★ to save one!</div>';
-    return;
-  }
-  grid.innerHTML='';
-  snaps.forEach(snap=>{
-    const rosterCard=ROSTER_CARDS.find(c=>c.id===snap.id);
-    if(!rosterCard) return;
-    let card;
-    if(snap.cardType==='montachusett_allstar' && MONTACHUSETT_INSERTS[snap.id]){
-      const insert=MONTACHUSETT_INSERTS[snap.id];
-      card={...rosterCard, ...insert, id:snap.id,
-        cardType:'montachusett_allstar', parallel:'montachusett_allstar',
-        accentColor:'#cc1122', outerColor:'#cc1122', showLybs:false,
-        serialNum:snap.serialNum, printRun:snap.printRun};
-    } else {
-      card={...rosterCard, parallel:snap.parallel, cardType:snap.cardType,
-        serialNum:snap.serialNum, printRun:snap.printRun};
-    }
-    const holder=document.createElement('div');holder.className='case-card';
-    const par=PAR[card.parallel||'base']||PAR.base;
-    const g=par.glow;
-    // PSA slab label — always present (empty for BASE) so all slabs are equal height
-    const tag=document.createElement('div');tag.className='cc-par';
-    if(par.name!=='BASE'){
-      tag.textContent=par.name;
-      if(par.name==='BLACK') tag.style.color='rgba(255,255,255,.7)';
-      else if(g) tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
-    }
-    holder.appendChild(tag);
-    const acrylic=document.createElement('div');acrylic.className='case-acrylic';
-    const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
-    acrylic.appendChild(cv);
-    holder.appendChild(acrylic);
-    holder.onclick=()=>viewCaseCard(card);
-    grid.appendChild(holder);
-    requestAnimationFrame(()=>renderCardTo(cv,card));
-  });
+  renderCaseGrid(grid);
 }
 
 function removeFromCollection(card){
