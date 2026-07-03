@@ -163,8 +163,18 @@ body{position:fixed;inset:0}
   55% {opacity:.5}
   100%{opacity:.7}}
 
-/* Lightning canvas — JS draws SVG-style bolts onto it */
-.pack-lightning-canvas{position:absolute;inset:0;width:100%;height:100%}
+/* Top-of-screen white flash — fired by JS when a lightning bolt strikes */
+.pack-top-flash{
+  position:absolute;top:0;left:0;right:0;height:45%;
+  background:linear-gradient(180deg,rgba(255,255,255,.0) 0%,transparent 100%);
+  pointer-events:none;opacity:0;transition:none}
+.pack-top-flash.strike{
+  animation:topFlash .22s ease-out forwards}
+@keyframes topFlash{
+  0%  {opacity:0}
+  8%  {opacity:1;background:linear-gradient(180deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,.25) 55%,transparent 100%)}
+  35% {opacity:.6}
+  100%{opacity:0}}
 
 /* Smoke — multiple blurred rising blobs */
 .pack-smoke{position:absolute;inset:0}
@@ -261,17 +271,17 @@ body{position:fixed;inset:0}
   100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
 
 /* Big card reveal flash */
-.card-blast{position:fixed;top:50%;left:50%;
-  width:10px;height:10px;
-  margin-top:-5px;margin-left:-5px;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(255,255,255,.95) 0%,rgba(255,255,255,.5) 35%,rgba(220,230,255,0) 100%);
-  opacity:0;z-index:200;pointer-events:none;transform:none}
-.card-blast.go{animation:blastGo .75s cubic-bezier(.05,.9,.2,1)}
-@keyframes blastGo{
-  0%  {opacity:0;width:10px;height:10px;margin-top:-5px;margin-left:-5px;box-shadow:0 0 0 0 rgba(255,255,255,0)}
-  12% {opacity:.95;width:120px;height:120px;margin-top:-60px;margin-left:-60px;box-shadow:0 0 80px 50px rgba(255,255,255,.85)}
-  100%{opacity:0;width:600px;height:600px;margin-top:-300px;margin-left:-300px;box-shadow:0 0 260px 180px rgba(210,225,255,0)}}}}
+/* Pack-open burst: mini lightning bolts radiate outward — replaces the old circle */
+.card-blast{position:fixed;top:50%;left:50%;width:0;height:0;
+  opacity:0;z-index:200;pointer-events:none}
+.card-blast.go .bolt-frag{
+  position:absolute;top:0;left:0;pointer-events:none;
+  transform-origin:0 0}
+@keyframes boltFrag{
+  0%  {opacity:0;transform:rotate(var(--a)) scaleX(0) translateY(var(--startY))}
+  10% {opacity:1}
+  45% {opacity:.9;transform:rotate(var(--a)) scaleX(1) translateY(var(--startY))}
+  100%{opacity:0;transform:rotate(var(--a)) scaleX(1.4) translateY(var(--endY))}}}
 .card-holder.revealing{animation:cardReveal .8s cubic-bezier(.2,.8,.3,1)}
 @keyframes cardReveal{0%{transform:scale(.3) rotateY(180deg);opacity:0}
   55%{opacity:0}75%{opacity:1}100%{transform:scale(1) rotateY(0);opacity:1}}
@@ -706,6 +716,8 @@ window.addEventListener('error',function(e){
     <div class="pack-vignette-pulse" id="packVignette"></div>
     <canvas class="pack-lightning-canvas" id="packLightningCanvas"></canvas>
     <div class="pack-smoke" id="packSmoke"></div>
+    <!-- Top-of-screen white flash triggered by JS when lightning fires -->
+    <div class="pack-top-flash" id="packTopFlash"></div>
   </div>
   <div class="foil-pack" id="foilPack">
     <div class="pack-whole" id="packWhole"></div>
@@ -1376,10 +1388,8 @@ function openPack(){
     packIdx=0;
     showCard(0);
     document.getElementById('revealScreen').classList.add('active');
-    const flash=document.createElement('div');
-    flash.className='card-blast go';
-    document.body.appendChild(flash);
-    setTimeout(()=>flash.remove(),1000);
+    // Mini lightning bolt burst — radiates from center instead of circle
+    spawnPackOpenBolts();
   },900);
 }
 
@@ -1919,6 +1929,13 @@ function startPackAtmosphere(){
         nextBolt=BOLT_INTERVAL_MIN+Math.random()*(BOLT_INTERVAL_MAX-BOLT_INTERVAL_MIN);
         // Sometimes double-flash
         if(Math.random()>.6) nextBolt=80+Math.random()*120;
+        // Trigger the top white flash
+        const flashEl=document.getElementById('packTopFlash');
+        if(flashEl){
+          flashEl.classList.remove('strike');
+          void flashEl.offsetWidth; // reflow to restart animation
+          flashEl.classList.add('strike');
+        }
       }
     }
 
@@ -1932,6 +1949,81 @@ function stopPackAtmosphere(){
   if(_packAtmosphereRaf){ cancelAnimationFrame(_packAtmosphereRaf); _packAtmosphereRaf=null; }
   const canvas=document.getElementById('packLightningCanvas');
   if(canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+function spawnPackOpenBolts(){
+  // 8 mini lightning bolt fragments radiate from the center of the screen
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  const colors=[[120,180,255],[180,120,255],[255,220,100],[80,220,200]];
+  const COUNT=8;
+  const container=document.createElement('div');
+  container.style.cssText=`position:fixed;inset:0;z-index:200;pointer-events:none;overflow:hidden`;
+
+  for(let i=0;i<COUNT;i++){
+    const angle=(i/COUNT)*360+(Math.random()*20-10);
+    const [r,g,b]=colors[i%colors.length];
+    const boltColor=`rgb(${r},${g},${b})`;
+    const len=80+Math.random()*120;
+    const dur=0.45+Math.random()*0.25;
+
+    // Build a jagged mini-bolt as SVG
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.style.cssText=`position:absolute;left:${cx}px;top:${cy}px;overflow:visible;
+      transform-origin:0 0;
+      transform:rotate(${angle}deg);
+      animation:boltFragOut ${dur}s ease-out forwards`;
+    svg.setAttribute('width','200');
+    svg.setAttribute('height','20');
+
+    // Jagged bolt path
+    const pts=[[0,0]];
+    let bx=0;
+    for(let j=0;j<4;j++){
+      bx+=len/4+(Math.random()-0.4)*20;
+      pts.push([bx,(Math.random()-0.5)*14]);
+    }
+    const pstr=pts.map(([x,y])=>`${x},${y}`).join(' ');
+
+    // Glow layer
+    const gl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    gl.setAttribute('points',pstr);
+    gl.setAttribute('fill','none');
+    gl.setAttribute('stroke',`rgba(${r},${g},${b},.4)`);
+    gl.setAttribute('stroke-width','8');
+    gl.setAttribute('stroke-linecap','round');
+    gl.style.filter='blur(4px)';
+    svg.appendChild(gl);
+    // Mid
+    const md=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    md.setAttribute('points',pstr);
+    md.setAttribute('fill','none');
+    md.setAttribute('stroke',boltColor);
+    md.setAttribute('stroke-width','2.5');
+    md.setAttribute('stroke-linecap','round');
+    svg.appendChild(md);
+    // White core
+    const cr=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    cr.setAttribute('points',pstr);
+    cr.setAttribute('fill','none');
+    cr.setAttribute('stroke','rgba(255,255,255,.95)');
+    cr.setAttribute('stroke-width','1');
+    cr.setAttribute('stroke-linecap','round');
+    svg.appendChild(cr);
+
+    container.appendChild(svg);
+  }
+
+  // Style tag for boltFragOut — dynamic because we can't use CSS vars in the static sheet easily
+  const style=document.createElement('style');
+  style.textContent=`@keyframes boltFragOut{
+    0%  {opacity:0;transform:rotate(var(--a,0deg)) translateX(0) scale(.2)}
+    12% {opacity:1;transform:rotate(var(--a,0deg)) translateX(10px) scale(1)}
+    100%{opacity:0;transform:rotate(var(--a,0deg)) translateX(220px) scale(.8)}
+  }`;
+  // Set --a per svg via inline transform (already done above)
+  document.head.appendChild(style);
+  document.body.appendChild(container);
+  setTimeout(()=>{container.remove();style.remove();},900);
 }
 
 function setupSwipe(){
