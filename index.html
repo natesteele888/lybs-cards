@@ -482,12 +482,10 @@ body{position:fixed;inset:0}
   box-shadow:0 3px 0 rgba(0,0,0,.45);
   margin-bottom:16px;
   transition:transform .18s, filter .18s}
-.case-card:nth-child(4n+1){transform:rotate(-1.8deg);transform-origin:bottom center}
-.case-card:nth-child(4n+2){transform:rotate(0.6deg); transform-origin:bottom center}
-.case-card:nth-child(4n+3){transform:rotate(-0.8deg);transform-origin:bottom center}
-.case-card:nth-child(4n+4){transform:rotate(1.4deg); transform-origin:bottom center}
+/* Subtle backward lean — like cards propped against the back of the case */
+.case-card{transform:perspective(300px) rotateX(4deg);transform-origin:bottom center}
 .case-card:hover{
-  transform:translateY(-7px) rotate(0deg) scale(1.07)!important;
+  transform:perspective(300px) rotateX(0deg) translateY(-7px) scale(1.07)!important;
   filter:drop-shadow(0 18px 30px rgba(0,0,0,.75));z-index:10}
 .case-card:active{transform:scale(.97)!important}
 
@@ -506,13 +504,13 @@ body{position:fixed;inset:0}
   content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(135deg,rgba(255,255,255,.16) 0%,transparent 40%,rgba(255,255,255,.05) 100%)}
 
-/* Parallel badge — overlaid at bottom of the acrylic, inside */
+/* Parallel badge — overlaid at TOP of the acrylic like a PSA slab label */
 .case-card .cc-par{
-  position:absolute;bottom:0;left:0;right:0;
+  position:absolute;top:0;left:0;right:0;
   font-family:"Michroma";font-size:5px;letter-spacing:0.8px;
   padding:2px 3px;color:#fff;text-align:center;
   background:rgba(0,0,0,.58);backdrop-filter:blur(2px);
-  border-top:0.5px solid rgba(255,255,255,.15)}
+  border-bottom:0.5px solid rgba(255,255,255,.15)}
 
 .case-empty{
   position:relative;z-index:2;
@@ -533,6 +531,7 @@ body{position:fixed;inset:0}
   font-family:"Oswald";font-size:11px;letter-spacing:2px;padding:8px 22px;
   border-radius:20px;cursor:pointer;transition:.18s}
 .gift-btn:hover{background:rgba(100,200,140,.1);border-color:rgba(100,200,140,.7)}
+.collect-btn{
   background:transparent;border:1px solid rgba(255,210,80,.4);
   color:rgba(255,210,80,.85);
   font-family:"Oswald";font-size:11px;letter-spacing:2px;padding:6px 20px;
