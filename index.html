@@ -598,7 +598,7 @@ window.addEventListener('error',function(e){
 
 <!-- Top bar -->
 <div class="topbar" id="topbar" style="display:none">
-  <div class="tb-logo">LYBS <span>CARDS</span></div>
+  <div class="tb-logo">STEELE <span>CARDS</span></div>
   <div class="tb-actions">
     <div class="pack-remaining" id="packRemaining" style="display:none">
       <span class="pack-remaining-num" id="packRemainingNum">2</span> PACKS LEFT
@@ -886,6 +886,7 @@ const PAR = {
   holo:         {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
   auto:         {name:'CERTIFIED AUTO',sw:'#1546a0', tint:null,               glow:[100,130,200]},
   ice:          {name:'CRACKED ICE',   sw:'ice',     tint:null,               glow:[180,220,255]},
+  black_ice:    {name:'CRACKED ICE',   sw:'ice',     tint:[8,8,10,0.72],      glow:[18,18,22]},
   bubbles:      {name:'SPARKLE FOIL',  sw:'sparkle', tint:null,               glow:[200,180,120]},
   tie_dye:      {name:'TIE DYE',       sw:'#4a90d9', tint:null,               glow:[100,160,230]},
   montachusett_allstar: {name:'MONTACHUSETT ALL-STAR', sw:'#cc1122', tint:[200,15,35,0.32], glow:[204,17,34]},
@@ -1079,7 +1080,7 @@ async function buildPack(){
   if(otherPlayers.length){
     const bonusIcePlayer = otherPlayers[Math.floor(Math.random()*otherPlayers.length)];
     const bonusIce = {...bonusIcePlayer,
-      parallel:'black', cardType:'black',
+      parallel:'black_ice', cardType:'ice',
       numbered:false, serialNum:'', printRun:'',
       _isBonusIce:true};
     rosterCopy.push(bonusIce);
@@ -1326,7 +1327,7 @@ function playSpecialUnveil(i){
   const par=PAR[parKey]||PAR.base;
   const g=par.glow||[255,255,255];
   const glowCss=`rgb(${g[0]},${g[1]},${g[2]})`;
-  const boltColor=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
+  const boltColor=`rgb(${Math.min(255,g[0]+130)},${Math.min(255,g[1]+130)},${Math.min(255,g[2]+130)})`;
   const gc=`rgba(${g[0]},${g[1]},${g[2]},`;
 
   // Hide the card for the dark portion
@@ -1359,16 +1360,28 @@ function playSpecialUnveil(i){
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
     svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible';
-    const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
     const pts=[[bd.x1,bd.y1],...bd.pts].map(([px,py])=>`${px*W},${py*H}`).join(' ');
-    poly.setAttribute('points',pts);
-    poly.setAttribute('fill','none');
-    poly.setAttribute('stroke',boltColor);
-    poly.setAttribute('stroke-width','2.5');
-    poly.setAttribute('stroke-linecap','round');
-    poly.setAttribute('stroke-linejoin','round');
-    poly.style.filter=`drop-shadow(0 0 6px ${boltColor}) drop-shadow(0 0 16px ${boltColor})`;
-    svg.appendChild(poly);
+    // Outer glow layer
+    const glow2=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    glow2.setAttribute('points',pts); glow2.setAttribute('fill','none');
+    glow2.setAttribute('stroke',boltColor); glow2.setAttribute('stroke-width','12');
+    glow2.setAttribute('stroke-linecap','round'); glow2.setAttribute('stroke-linejoin','round');
+    glow2.style.filter='blur(5px)'; glow2.style.opacity='0.6';
+    svg.appendChild(glow2);
+    // Mid glow
+    const mid2=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    mid2.setAttribute('points',pts); mid2.setAttribute('fill','none');
+    mid2.setAttribute('stroke',boltColor); mid2.setAttribute('stroke-width','5');
+    mid2.setAttribute('stroke-linecap','round'); mid2.setAttribute('stroke-linejoin','round');
+    mid2.style.filter='blur(1.5px)';
+    svg.appendChild(mid2);
+    // White hot core
+    const core2=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    core2.setAttribute('points',pts); core2.setAttribute('fill','none');
+    core2.setAttribute('stroke','rgba(255,255,255,0.95)'); core2.setAttribute('stroke-width','1.4');
+    core2.setAttribute('stroke-linecap','round'); core2.setAttribute('stroke-linejoin','round');
+    svg.appendChild(core2);
+    svg.style.filter=`drop-shadow(0 0 10px ${boltColor}) drop-shadow(0 0 28px ${boltColor}) drop-shadow(0 0 50px ${boltColor})`;
     div.innerHTML=''; div.appendChild(svg);
   });
 
@@ -1537,7 +1550,7 @@ function fireRevealBurst(par){
   host.appendChild(darken);
 
   // 2. Lightning bolts — SVG polylines, jagged, glow-colored
-  const boltColor=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
+  const boltColor=`rgb(${Math.min(255,g[0]+130)},${Math.min(255,g[1]+130)},${Math.min(255,g[2]+130)})`;
   const boltDefs=[
     {x1:.28,y1:0,pts:[[.33,.18],[.24,.28],[.30,.45],[.20,.62],[.28,.78],[.18,1]],delay:60},
     {x1:.65,y1:0,pts:[[.70,.15],[.60,.27],[.68,.38],[.58,.55],[.65,.70],[.72,1]],delay:140},
@@ -1547,16 +1560,30 @@ function fireRevealBurst(par){
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
     svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible';
-    const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    const allPts=[[bd.x1,bd.y1],...bd.pts].map(([px,py])=>`${px*W},${py*H}`).join(' ');
-    poly.setAttribute('points',allPts);
-    poly.setAttribute('fill','none');
-    poly.setAttribute('stroke',boltColor);
-    poly.setAttribute('stroke-width','2.5');
-    poly.setAttribute('stroke-linecap','round');
-    poly.setAttribute('stroke-linejoin','round');
-    poly.style.filter=`drop-shadow(0 0 6px ${boltColor}) drop-shadow(0 0 14px ${boltColor})`;
-    svg.appendChild(poly);
+    const pts2=[[bd.x1,bd.y1],...bd.pts].map(([px,py])=>`${px*W},${py*H}`).join(' ');
+    // Outer glow layer — thick, heavily blurred in the card color
+    const glow=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    glow.setAttribute('points',pts2); glow.setAttribute('fill','none');
+    glow.setAttribute('stroke',boltColor); glow.setAttribute('stroke-width','10');
+    glow.setAttribute('stroke-linecap','round'); glow.setAttribute('stroke-linejoin','round');
+    glow.style.filter=`blur(4px)`;
+    glow.style.opacity='0.65';
+    svg.appendChild(glow);
+    // Mid glow — medium width
+    const mid=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    mid.setAttribute('points',pts2); mid.setAttribute('fill','none');
+    mid.setAttribute('stroke',boltColor); mid.setAttribute('stroke-width','4');
+    mid.setAttribute('stroke-linecap','round'); mid.setAttribute('stroke-linejoin','round');
+    mid.style.filter=`blur(1.5px)`;
+    svg.appendChild(mid);
+    // White hot core — thin, crisp
+    const core=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    core.setAttribute('points',pts2); core.setAttribute('fill','none');
+    core.setAttribute('stroke','rgba(255,255,255,0.92)'); core.setAttribute('stroke-width','1.2');
+    core.setAttribute('stroke-linecap','round'); core.setAttribute('stroke-linejoin','round');
+    svg.appendChild(core);
+    svg.style.filter=`drop-shadow(0 0 8px ${boltColor}) drop-shadow(0 0 22px ${boltColor}) drop-shadow(0 0 40px ${boltColor})`;
+    svg.appendChild(document.createComment(''));  // force reflow
     const wrapper=document.createElement('div');
     wrapper.className='rv-bolt';
     wrapper.style.cssText=`position:absolute;inset:0;animation:rvBolt ${SEQ}ms ease-out ${bd.delay}ms forwards`;
@@ -3143,7 +3170,7 @@ function drawBack(ctx){
   ctx.fillStyle=`rgb(${pr},${pg},${pb})`; ctx.fillRect(0,footY,LW,20);
   ctx.font='400 11px Oswald,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.7)';
   ctx.textAlign='center';
-  ctx.fillText('® & © 2026 LYBS CARD SERIES · OFFICIAL VIRTUAL TRADING CARD · SERIES ONE',LW/2,footY+13);
+  ctx.fillText('® & © 2026 STEELE CARDS · OFFICIAL VIRTUAL TRADING CARD · LYBS CARD SERIES 1',LW/2,footY+13);
   if(CS.numbered&&d.serialNum&&d.printRun){
     ctx.font='bold 11px Michroma,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.9)';
     ctx.textAlign='right'; ctx.fillText(`#${d.serialNum}/${d.printRun}`,LW-10,footY+13);
