@@ -140,9 +140,9 @@ body{position:fixed;inset:0}
 /* ── Top bar ── */
 .topbar{position:fixed;top:0;left:0;right:0;height:54px;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
   background:linear-gradient(180deg,rgba(0,0,0,.6),transparent)}
-.tb-logo{font-family:"Anton",sans-serif;font-size:20px;letter-spacing:3px}
+.tb-logo{font-family:"Anton",sans-serif;font-size:15px;letter-spacing:2px}
 .tb-logo span{color:var(--gold)}
-.tb-actions{display:flex;gap:8px;align-items:center}
+.tb-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}
 .tb-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;
   padding:7px 14px;border-radius:20px;font-family:"Oswald";font-size:11px;letter-spacing:1.5px;cursor:pointer;transition:.2s}
 .tb-btn:hover{background:rgba(255,255,255,.16)}
@@ -343,28 +343,41 @@ body{position:fixed;inset:0}
   100%{opacity:0}}
 
 /* ── REVEAL / card viewer ── */
-#revealScreen{justify-content:flex-start;gap:0;padding-top:62px;box-sizing:border-box}
-.reveal-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2;width:100%}
-.card-counter{font-family:"Michroma";font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.5)}
-.card-holder{position:relative;perspective:1200px;cursor:grab}
+#revealScreen{justify-content:flex-start;gap:0;padding-top:56px;
+  padding-bottom:max(env(safe-area-inset-bottom),10px);box-sizing:border-box}
+.reveal-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:2;width:100%}
+.card-counter{font-family:"Michroma";font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.5)}
+/* Card row — arrows flank the card horizontally */
+.card-row{display:flex;align-items:center;gap:8px;width:100%;justify-content:center}
+.card-holder{position:relative;perspective:1200px;cursor:grab;flex-shrink:0}
 .card-holder:active{cursor:grabbing}
-.card-holder canvas{display:block;width:300px;height:421px;
+/* ~2% smaller than before (294×413 vs 300×421) */
+.card-holder canvas{display:block;width:min(262px,65vw);height:min(368px,91vw);
   transition:transform .1s ease-out;will-change:transform}
-.card-holder canvas.is-landscape{width:421px;height:300px}
+.card-holder canvas.is-landscape{width:min(413px,98.7vw);height:min(294px,70vw)}
 .card-glow-ring{position:absolute;inset:-30px;border-radius:50%;z-index:-1;
   filter:blur(40px);opacity:.7;transition:background 1s ease}
-.reveal-actions{display:flex;gap:10px;align-items:center;margin-top:6px}
+/* Nav arrows — smaller, vertically centered beside the card */
 .rv-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;
-  width:52px;height:52px;border-radius:50%;font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
+  width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;transition:.2s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .rv-btn:hover{background:rgba(255,255,255,.2);transform:scale(1.08)}
 .rv-btn:disabled{opacity:.25;cursor:not-allowed;transform:none}
-.save-btn{background:linear-gradient(135deg,var(--gold),#e0b450);color:#000;border:none;
-  padding:14px 28px;border-radius:30px;font-family:"Oswald";font-weight:700;font-size:14px;letter-spacing:2px;
-  cursor:pointer;transition:.2s;box-shadow:0 8px 24px rgba(197,151,58,.4)}
-.save-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(197,151,58,.6)}
-.save-btn.saved{background:rgba(80,200,120,.25);color:#7fe;border:1px solid rgba(80,200,120,.5);box-shadow:none;cursor:default}
-.flip-hint{font-family:"Michroma";font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:2px}
-.parallel-tag{font-family:"Michroma";font-size:11px;letter-spacing:3px;padding:5px 14px;border-radius:4px;
+/* Bottom action area — stacked buttons */
+.reveal-bottom{display:flex;flex-direction:column;align-items:center;gap:10px;
+  margin-top:8px;padding-bottom:max(env(safe-area-inset-bottom),10px);width:100%;padding:0 20px 10px;box-sizing:border-box}
+/* Secondary row: two equal stroke buttons side by side */
+.reveal-actions{display:flex;flex-direction:row;align-items:center;gap:10px;width:100%;max-width:280px}
+/* Two-up stroke buttons */
+.stroke-btn{flex:1;background:transparent;border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.8);
+  font-family:"Oswald";font-size:11px;letter-spacing:1.5px;padding:9px 8px;
+  border-radius:20px;cursor:pointer;transition:.2s;text-align:center}
+.stroke-btn:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.4)}
+.stroke-btn.saved{color:rgba(80,220,120,.8);border-color:rgba(80,220,120,.4)}
+/* save-btn still referenced in code for state — keep as alias */
+.save-btn{display:none}
+.flip-hint{font-family:"Michroma";font-size:7px;letter-spacing:1.5px;color:rgba(255,255,255,.3);margin-top:0}
+.parallel-tag{font-family:"Michroma";font-size:9px;letter-spacing:2px;padding:3px 10px;border-radius:4px;
   border:1px solid rgba(255,255,255,.15);transition:.4s;text-align:center;
   text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 8px rgba(0,0,0,.6)}
 
@@ -505,11 +518,13 @@ body{position:fixed;inset:0}
   content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(135deg,rgba(255,255,255,.16) 0%,transparent 40%,rgba(255,255,255,.05) 100%)}
 
-/* PSA-style slab label — separate physical section above the acrylic */
+/* PSA-style slab label — separate physical section above the acrylic.
+   Always rendered (even empty for BASE) so all slabs are equal height. */
 .case-card .cc-par{
   width:100%;box-sizing:border-box;
   font-family:"Michroma";font-size:5.5px;letter-spacing:1px;
-  padding:4px 4px 3px;color:#fff;text-align:center;line-height:1.4;
+  padding:0 4px;height:16px;line-height:16px;
+  color:#fff;text-align:center;
   background:linear-gradient(180deg,rgba(40,40,50,.95),rgba(25,25,35,.98));
   border:1.5px solid rgba(255,255,255,.28);
   border-bottom:1px solid rgba(255,255,255,.1);
@@ -521,27 +536,29 @@ body{position:fixed;inset:0}
   text-align:center;color:rgba(255,200,120,.35);
   padding:60px 20px;font-family:"Michroma";font-size:11px;letter-spacing:2px;line-height:2}
 
-/* collect button — star/gold style below the save photo button */
-.open-another-btn{
-  margin-top:10px;background:linear-gradient(135deg,var(--gold),#cfc9bd);
-  color:#000;border:none;padding:12px 28px;border-radius:30px;
-  font-family:"Oswald";font-weight:700;font-size:13px;letter-spacing:3px;
-  cursor:pointer;transition:.2s;box-shadow:0 6px 20px rgba(240,237,230,.25)}
-.open-another-btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(240,237,230,.4)}
-
-.gift-btn{
-  margin-top:6px;background:transparent;
-  border:1px solid rgba(100,200,140,.4);color:rgba(100,200,140,.85);
-  font-family:"Oswald";font-size:11px;letter-spacing:2px;padding:8px 22px;
-  border-radius:20px;cursor:pointer;transition:.18s}
-.gift-btn:hover{background:rgba(100,200,140,.1);border-color:rgba(100,200,140,.7)}
+/* collect button — star/gold style */
 .collect-btn{
   background:transparent;border:1px solid rgba(255,210,80,.4);
   color:rgba(255,210,80,.85);
-  font-family:"Oswald";font-size:11px;letter-spacing:2px;padding:6px 20px;
-  border-radius:20px;cursor:pointer;transition:.2s}
+  font-family:"Oswald";font-size:11px;letter-spacing:2px;padding:7px 20px;
+  border-radius:18px;cursor:pointer;transition:.2s;width:100%;max-width:280px}
 .collect-btn:hover{background:rgba(255,210,80,.1);border-color:rgba(255,210,80,.7)}
 .collect-btn.in-collection{color:rgba(80,220,120,.8);border-color:rgba(80,220,120,.4)}
+
+.open-another-btn{
+  background:linear-gradient(135deg,var(--gold),#cfc9bd);
+  color:#000;border:none;padding:8px 28px;border-radius:28px;
+  font-family:"Oswald";font-weight:700;font-size:12px;letter-spacing:3px;
+  cursor:pointer;transition:.2s;box-shadow:0 5px 16px rgba(240,237,230,.25);
+  width:100%;max-width:280px}
+.open-another-btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(240,237,230,.4)}
+
+.gift-btn{
+  background:transparent;
+  border:1px solid rgba(100,200,140,.4);color:rgba(100,200,140,.85);
+  font-family:"Oswald";font-size:11px;letter-spacing:2px;padding:7px 22px;
+  border-radius:18px;cursor:pointer;transition:.18s;width:100%;max-width:280px}
+.gift-btn:hover{background:rgba(100,200,140,.1);border-color:rgba(100,200,140,.7)}
 
 /* ── Auth modal ── */
 .modal-ov{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
@@ -625,7 +642,7 @@ window.addEventListener('error',function(e){
     <div class="pack-remaining" id="packRemaining" style="display:none">
       <span class="pack-remaining-num" id="packRemainingNum">2</span> PACKS LEFT
     </div>
-    <button class="tb-btn" id="collectionBtn" onclick="showCase()" style="display:none">★ COLLECTION</button>
+    <button class="tb-btn" id="collectionBtn" onclick="showCase()" style="display:none;font-size:14px;padding:5px 9px" title="My Collection">★</button>
   </div>
 </div>
 
@@ -648,26 +665,30 @@ window.addEventListener('error',function(e){
   <div class="reveal-stage">
     <div class="card-counter" id="cardCounter">CARD 1 OF 6</div>
     <div class="parallel-tag" id="parallelTag">BASE</div>
-    <div class="card-holder" id="cardHolder">
-      <div class="card-glow-ring" id="glowRing"></div>
-      <canvas id="revealCanvas" width="712" height="1000"></canvas>
-    </div>
-    <div class="flip-hint" id="flipHint">TAP CARD TO FLIP · DRAG TO TILT</div>
-    <div class="reveal-actions">
+    <!-- Card with nav arrows flanking it -->
+    <div class="card-row">
       <button class="rv-btn" id="prevBtn" onclick="prevCard()">‹</button>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
-        <button class="save-btn" id="saveBtn" onclick="savePhotoJPEG()">📷 SAVE PHOTO</button>
-        <button class="collect-btn" id="collectBtn" onclick="saveToCollection()">★ ADD TO COLLECTION</button>
+      <div class="card-holder" id="cardHolder">
+        <div class="card-glow-ring" id="glowRing"></div>
+        <canvas id="revealCanvas" width="712" height="1000"></canvas>
       </div>
       <button class="rv-btn" id="nextBtn" onclick="nextCard()">›</button>
     </div>
-    <!-- Shown after last card of a pack if more packs remain -->
-    <button class="open-another-btn" id="openAnotherBtn" onclick="goToNextPack()" style="display:none">
-      OPEN NEXT PACK →
-    </button>
-    <button class="gift-btn" id="giftBtn" onclick="giftCard()" style="display:none">
-      🎁 SEND THIS CARD
-    </button>
+    <div class="flip-hint" id="flipHint">TAP CARD TO FLIP · DRAG TO TILT</div>
+    <!-- All action buttons stacked at the bottom -->
+    <div class="reveal-bottom">
+      <!-- Primary: Add to Collection -->
+      <button class="collect-btn" id="collectBtn" onclick="saveToCollection()">★ ADD TO COLLECTION</button>
+      <!-- Secondary row: Save Photo + Share Card -->
+      <div class="reveal-actions">
+        <button class="stroke-btn" id="saveBtn" onclick="savePhotoJPEG()">📷 SAVE</button>
+        <button class="stroke-btn" id="giftBtn" onclick="shareCard()" style="display:none">🔗 SHARE</button>
+      </div>
+      <!-- Last card CTA -->
+      <button class="open-another-btn" id="openAnotherBtn" onclick="goToNextPack()" style="display:none">
+        OPEN NEXT PACK →
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1505,6 +1526,9 @@ function renderCardNow(i){
   const morePacksLeft = PACKS.some((_,idx)=>idx!==currentPackIndex && !openedPacks.has(idx));
   const oaBtn=document.getElementById('openAnotherBtn');
   if(oaBtn) oaBtn.style.display=(isLastCard && morePacksLeft)?'':'none';
+  // Gift button — show on all non-special cards
+  const giftBtn=document.getElementById('giftBtn');
+  if(giftBtn) giftBtn.style.display=CS.isSpecial?'none':'';
   // Save button state
   updateSaveBtn();
 }
@@ -3658,7 +3682,7 @@ async function loadSavedIds(){
 function updateSaveBtn(){
   const btn=document.getElementById('saveBtn');
   const card=PACK[packIdx];if(!card||!btn){return;}
-  btn.textContent='📷 SAVE PHOTO';btn.classList.remove('saved');btn.disabled=false;
+  btn.classList.remove('saved');btn.disabled=false;
   // Update collect button state
   const cBtn=document.getElementById('collectBtn');
   if(cBtn){
@@ -3695,11 +3719,8 @@ function closeCase(){
   }
 }
 
-function giftCard(){
+function shareCard(){
   const card=PACK[packIdx]; if(!card) return;
-  // Encode the minimum card snapshot as a URL param — no photos, just the
-  // id + parallel so the receiver's browser rebuilds it from their own copy
-  // of the HTML (which has all the photos baked in).
   const payload={
     id:card.id,
     parallel:card.parallel||'base',
@@ -3709,28 +3730,34 @@ function giftCard(){
     from:window._myPlayerId||''
   };
   const encoded=btoa(JSON.stringify(payload));
-  const url=`${location.origin}${location.pathname}?gift=${encoded}`;
-  document.getElementById('giftLinkInput').value=url;
-
-  // Render a preview of the card into the modal
-  const preview=document.getElementById('giftCardPreview');
-  preview.innerHTML='';
-  const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
-  preview.appendChild(cv);
-  requestAnimationFrame(()=>renderCardTo(cv,card));
-
-  document.getElementById('giftModal').style.display='flex';
+  // Use the actual deployed URL so the link works when shared —
+  // location.origin fails when the file is opened locally as file://
+  const base = location.origin.startsWith('file')
+    ? 'https://natesteele888.github.io/lybs-cards/index.html'
+    : (location.origin + location.pathname);
+  const url = base + '?gift=' + encoded;
+  const playerName = card.firstName ? `${card.firstName} ${card.lastName}` : card.id;
+  const shareData = {
+    title: 'Steele Cards — ' + playerName,
+    text: `Check out this ${(PAR[card.parallel||'base']||PAR.base).name} card!`,
+    url
+  };
+  // navigator.share is the native iOS/Android share sheet
+  if(navigator.share){
+    navigator.share(shareData).catch(()=>{});
+  } else {
+    // Desktop fallback: copy to clipboard and show the gift modal
+    navigator.clipboard?.writeText(url).then(()=>{
+      showToast('Link copied! Share it with anyone.');
+    }).catch(()=>{
+      // Final fallback: show the modal with the link to copy manually
+      document.getElementById('giftLinkInput').value=url;
+      document.getElementById('giftModal').style.display='flex';
+    });
+  }
 }
-function closeGift(){
-  document.getElementById('giftModal').style.display='none';
-}
-function copyGiftLink(){
-  const inp=document.getElementById('giftLinkInput');
-  inp.select();
-  try{ document.execCommand('copy'); }catch(e){ navigator.clipboard?.writeText(inp.value); }
-  const btn=document.getElementById('giftCopyBtn');
-  btn.textContent='COPIED!'; setTimeout(()=>btn.textContent='COPY',2000);
-}
+// Keep giftCard as alias so any old references still work
+function giftCard(){ shareCard(); }
 
 // ── Gift-pack receiver — fires on page load if ?gift= param is in URL ──────
 function checkForGiftParam(){
@@ -3856,14 +3883,14 @@ function showCase(){
     const holder=document.createElement('div');holder.className='case-card';
     const par=PAR[card.parallel||'base']||PAR.base;
     const g=par.glow;
-    // PSA-style label above the acrylic
+    // PSA slab label — always present (empty for BASE) so all slabs are equal height
+    const tag=document.createElement('div');tag.className='cc-par';
     if(par.name!=='BASE'){
-      const tag=document.createElement('div');tag.className='cc-par';
       tag.textContent=par.name;
-      if(par.name==='BLACK'){tag.style.color='#fff';}
-      else if(g){tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;}
-      holder.appendChild(tag);
+      if(par.name==='BLACK') tag.style.color='rgba(255,255,255,.7)';
+      else if(g) tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
     }
+    holder.appendChild(tag);
     const acrylic=document.createElement('div');acrylic.className='case-acrylic';
     const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
     acrylic.appendChild(cv);
@@ -3895,20 +3922,18 @@ function viewCaseCard(card){
   document.getElementById('revealScreen').classList.add('active');
   showCard(0);
 
-  // Restore Save Photo button
+  // Save button stays as stroke-btn 📷 SAVE
   const btn=document.getElementById('saveBtn');
-  btn.textContent='📷 SAVE PHOTO'; btn.style=''; btn.disabled=false;
+  btn.style='';btn.classList.remove('saved');btn.disabled=false;
   btn.onclick=savePhotoJPEG;
 
-  // Replace collect button with "✕ REMOVE FROM COLLECTION"
+  // Collect button becomes remove button
   const cBtn=document.getElementById('collectBtn');
   if(cBtn){
     cBtn.textContent='✕ REMOVE FROM COLLECTION';
-    cBtn.style.display='';
-    cBtn.style.background='rgba(220,60,60,.18)';
+    cBtn.style.borderColor='rgba(220,60,60,.4)';
     cBtn.style.color='rgba(255,120,120,.9)';
-    cBtn.style.border='1px solid rgba(220,60,60,.4)';
-    cBtn.classList.remove('in-collection');
+    cBtn.style.background='rgba(220,60,60,.08)';
     cBtn.onclick=()=>removeFromCollection(card);
   }
 
@@ -3930,7 +3955,7 @@ function viewCaseCard(card){
   // Show ← COLLECTION in the topbar top-right corner
   const navBtn=document.getElementById('collectionBtn');
   if(navBtn){
-    navBtn.textContent='← COLLECTION';
+    navBtn.textContent='← ★';
     navBtn.style.display='';
     navBtn.onclick=backToCase;
   }
@@ -3946,9 +3971,9 @@ function backToCase(){
   window._viewingCaseCard=false;
   // Restore button styles and callbacks
   const btn=document.getElementById('saveBtn');
-  btn.textContent='📷 SAVE PHOTO'; btn.style=''; btn.onclick=savePhotoJPEG;
+  btn.style='';btn.onclick=savePhotoJPEG;btn.classList.remove('saved');
   const cBtn=document.getElementById('collectBtn');
-  if(cBtn){ cBtn.style=''; cBtn.style.display='none'; cBtn.onclick=saveToCollection; }
+  if(cBtn){ cBtn.style=''; cBtn.textContent='★ ADD TO COLLECTION'; cBtn.onclick=saveToCollection; }
   // Reset openAnotherBtn to hidden so normal pack flow controls it
   const oaBtn=document.getElementById('openAnotherBtn');
   if(oaBtn){ oaBtn.style.display='none'; oaBtn.textContent='OPEN NEXT PACK →'; oaBtn.onclick=goToNextPack; }
@@ -3957,7 +3982,7 @@ function backToCase(){
   // Restore collection button in topbar
   const navBtn=document.getElementById('collectionBtn');
   if(navBtn){
-    navBtn.textContent='★ COLLECTION';
+    navBtn.textContent='★';
     navBtn.onclick=showCase;
     // Keep visible only if there are saved cards
     navBtn.style.display=savedIds.size>0?'':'none';
@@ -3996,14 +4021,14 @@ function backToCase(){
     const holder=document.createElement('div');holder.className='case-card';
     const par=PAR[card.parallel||'base']||PAR.base;
     const g=par.glow;
-    // PSA-style label sits ABOVE the acrylic as a separate element
+    // PSA slab label — always present (empty for BASE) so all slabs are equal height
+    const tag=document.createElement('div');tag.className='cc-par';
     if(par.name!=='BASE'){
-      const tag=document.createElement('div');tag.className='cc-par';
       tag.textContent=par.name;
-      if(par.name==='BLACK'){tag.style.color='#fff';}
-      else if(g){tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;}
-      holder.appendChild(tag);
+      if(par.name==='BLACK') tag.style.color='rgba(255,255,255,.7)';
+      else if(g) tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
     }
+    holder.appendChild(tag);
     const acrylic=document.createElement('div');acrylic.className='case-acrylic';
     const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
     acrylic.appendChild(cv);
