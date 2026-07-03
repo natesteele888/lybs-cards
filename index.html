@@ -2856,13 +2856,13 @@ function drawBack(ctx){
     const scL=Math.max(((logoR-3)*2)/iw,((logoR-3)*2)/ih);
     ctx.drawImage(li,logoCX-iw*scL/2,logoCY-ih*scL/2,iw*scL,ih*scL);
     ctx.restore();
-  } else if(CS.logoImg||LAYERS.mac_logo){
+  } else if(CS.logoImg||LAYERS.logo){
     ctx.save();
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR,0,Math.PI*2);
     ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=10; ctx.fill();
     ctx.shadowBlur=0;
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR-3,0,Math.PI*2); ctx.clip();
-    const li=CS.logoImg||LAYERS.mac_logo;
+    const li=CS.logoImg||LAYERS.logo;
     const iw=li.naturalWidth||100, ih=li.naturalHeight||100;
     const scL=Math.max(((logoR-3)*2)/iw,((logoR-3)*2)/ih)*(CS.logoScale||1);
     ctx.drawImage(li,logoCX-iw*scL/2,logoCY-ih*scL/2,iw*scL,ih*scL);
