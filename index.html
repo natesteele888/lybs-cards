@@ -1527,10 +1527,10 @@ function renderCardNow(i){
   // one of the other packs hasn't been opened yet.
   const morePacksLeft = PACKS.some((_,idx)=>idx!==currentPackIndex && !openedPacks.has(idx));
   const oaBtn=document.getElementById('openAnotherBtn');
-  if(oaBtn) oaBtn.style.display=(isLastCard && morePacksLeft)?'':'none';
-  // Gift button — show on all non-special cards
+  if(oaBtn) oaBtn.style.display=(isLastCard && morePacksLeft && !window._isGiftView)?'':'none';
+  // Gift button — show on all non-special cards (but not in gift view — recipient uses collect)
   const giftBtn=document.getElementById('giftBtn');
-  if(giftBtn) giftBtn.style.display=CS.isSpecial?'none':'';
+  if(giftBtn) giftBtn.style.display=(CS.isSpecial||window._isGiftView)?'none':'';
   // Save button state
   updateSaveBtn();
 }
@@ -3782,16 +3782,20 @@ function checkForGiftParam(){
     }
     // Show a single-card gift reveal — skip the pack entirely
     PACK=[card]; packIdx=0; currentPackIndex=0;
+    window._isGiftView=true;  // flag to suppress pack CTAs in showCard
     preloadCardImages(card).then(()=>{
       document.getElementById('loadingScreen').style.display='none';
       document.getElementById('topbar').style.display='flex';
-      // Swap collect button label for the gift context
-      const cBtn=document.getElementById('collectBtn');
-      if(cBtn){ cBtn.textContent='★ KEEP THIS CARD'; cBtn.style.display=''; }
       // Show a gift greeting
       showToast(snap.from ? `🎁 A card from ${snap.from}!` : '🎁 You received a card!');
       document.getElementById('revealScreen').classList.add('active');
       showCard(0);
+      // After showCard runs (which may show unwanted CTAs), lock down to gift-only buttons
+      const cBtn=document.getElementById('collectBtn');
+      if(cBtn){ cBtn.textContent='★ KEEP THIS CARD'; }
+      // Hide pack CTAs — gift view has no packs
+      const oaBtn=document.getElementById('openAnotherBtn');
+      if(oaBtn) oaBtn.style.display='none';
     });
     return true;
   } catch(e){ return false; }
