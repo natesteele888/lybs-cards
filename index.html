@@ -489,11 +489,12 @@ body{position:fixed;inset:0}
   filter:drop-shadow(0 18px 30px rgba(0,0,0,.75));z-index:10}
 .case-card:active{transform:scale(.97)!important}
 
-/* Acrylic holder */
+/* Acrylic holder — just the card, no label inside */
 .case-acrylic{
   width:100%;aspect-ratio:712/1000;
-  position:relative;border-radius:3px;overflow:hidden;
+  position:relative;border-radius:0 0 3px 3px;overflow:hidden;
   border:1.5px solid rgba(255,255,255,.28);
+  border-top:none;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.3),
     0 0 0 0.5px rgba(255,255,255,.08),
@@ -504,13 +505,16 @@ body{position:fixed;inset:0}
   content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(135deg,rgba(255,255,255,.16) 0%,transparent 40%,rgba(255,255,255,.05) 100%)}
 
-/* Parallel badge — overlaid at TOP of the acrylic like a PSA slab label */
+/* PSA-style slab label — separate physical section above the acrylic */
 .case-card .cc-par{
-  position:absolute;top:0;left:0;right:0;
-  font-family:"Michroma";font-size:5px;letter-spacing:0.8px;
-  padding:2px 3px;color:#fff;text-align:center;
-  background:rgba(0,0,0,.58);backdrop-filter:blur(2px);
-  border-bottom:0.5px solid rgba(255,255,255,.15)}
+  width:100%;box-sizing:border-box;
+  font-family:"Michroma";font-size:5.5px;letter-spacing:1px;
+  padding:4px 4px 3px;color:#fff;text-align:center;line-height:1.4;
+  background:linear-gradient(180deg,rgba(40,40,50,.95),rgba(25,25,35,.98));
+  border:1.5px solid rgba(255,255,255,.28);
+  border-bottom:1px solid rgba(255,255,255,.1);
+  border-radius:3px 3px 0 0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 
 .case-empty{
   position:relative;z-index:2;
@@ -3850,22 +3854,20 @@ function showCase(){
     }
 
     const holder=document.createElement('div');holder.className='case-card';
+    const par=PAR[card.parallel||'base']||PAR.base;
+    const g=par.glow;
+    // PSA-style label above the acrylic
+    if(par.name!=='BASE'){
+      const tag=document.createElement('div');tag.className='cc-par';
+      tag.textContent=par.name;
+      if(par.name==='BLACK'){tag.style.color='#fff';}
+      else if(g){tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;}
+      holder.appendChild(tag);
+    }
     const acrylic=document.createElement('div');acrylic.className='case-acrylic';
     const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
     acrylic.appendChild(cv);
     holder.appendChild(acrylic);
-    const par=PAR[card.parallel||'base']||PAR.base;
-    const g=par.glow;
-    if(par.name!=='BASE'){
-      const tag=document.createElement('div');tag.className='cc-par';
-      tag.textContent=par.name;
-      if(par.name==='BLACK'){
-        tag.style.color='#fff';tag.style.background='rgba(0,0,0,.7)';
-      } else if(g){
-        tag.style.background=`rgba(${g[0]},${g[1]},${g[2]},.75)`;
-      }
-      acrylic.appendChild(tag);
-    }
     holder.onclick=()=>viewCaseCard(card);
     grid.appendChild(holder);
     // Render after DOM settles
@@ -3992,19 +3994,19 @@ function backToCase(){
         serialNum:snap.serialNum, printRun:snap.printRun};
     }
     const holder=document.createElement('div');holder.className='case-card';
-    const acrylic=document.createElement('div');acrylic.className='case-acrylic';
-    const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
-    acrylic.appendChild(cv);
-    // Badge inside the acrylic so position:absolute places it at the bottom of the holder
     const par=PAR[card.parallel||'base']||PAR.base;
     const g=par.glow;
+    // PSA-style label sits ABOVE the acrylic as a separate element
     if(par.name!=='BASE'){
       const tag=document.createElement('div');tag.className='cc-par';
       tag.textContent=par.name;
-      if(par.name==='BLACK'){tag.style.color='#fff';tag.style.background='rgba(0,0,0,.7)';}
-      else if(g){tag.style.background=`rgba(${g[0]},${g[1]},${g[2]},.75)`;}
-      acrylic.appendChild(tag);
+      if(par.name==='BLACK'){tag.style.color='#fff';}
+      else if(g){tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;}
+      holder.appendChild(tag);
     }
+    const acrylic=document.createElement('div');acrylic.className='case-acrylic';
+    const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
+    acrylic.appendChild(cv);
     holder.appendChild(acrylic);
     holder.onclick=()=>viewCaseCard(card);
     grid.appendChild(holder);
