@@ -1359,6 +1359,8 @@ function loadCardIntoCS(card){
     specialCaption:card.caption||'',specialIcon:card.icon||'\u2b50',specialImage:card.image||null,
     specialFit:card.fit||'cover',specialFullImage:!!card.fullImage,specialLandscape:!!card.landscape,
   };
+  CS.specialLandscape=!!card.landscape;
+  CS.specialFullImage=!!card.fullImage;
   CS.logoScale=card.logoScale||1;CS.logoOffsetX=card.logoOffsetX||0;CS.logoOffsetY=card.logoOffsetY||0;
   CS.imgScale=card.imgScale||1;CS.imgOffsetX=card.imgOffsetX||0;CS.imgOffsetY=card.imgOffsetY||0;
   CS.photoImg=card.photoURL?imgCache[card.photoURL]||null:null;
