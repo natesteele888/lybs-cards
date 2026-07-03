@@ -149,14 +149,13 @@ body{position:fixed;inset:0}
 .tb-btn.gold{background:var(--gold);border-color:var(--gold);color:#000;font-weight:600}
 
 /* ── PACK ── */
-#packScreen{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#packScreen{cursor:pointer;flex-direction:column;align-items:center;justify-content:center}
 
 /* ── Pack Selection Screen ── */
 /* Pack remaining counter — inline in the topbar actions */
-.pack-remaining{font-family:"Michroma";font-size:8px;letter-spacing:1.5px;
-  color:rgba(255,255,255,.55);text-align:center;line-height:1.3}
-.pack-remaining span{display:block;font-family:"Anton";font-size:16px;
-  letter-spacing:1px;color:#fff;line-height:1}
+.pack-remaining{font-family:"Michroma";font-size:8px;letter-spacing:1px;
+  color:rgba(255,255,255,.5);white-space:nowrap;line-height:1}
+.pack-remaining-num{font-family:"Anton";font-size:15px;color:#fff;margin-right:3px}
 .pack-prompt{position:absolute;bottom:14%;font-family:"Michroma";font-size:13px;letter-spacing:4px;
   color:rgba(255,255,255,.6);animation:pulse 2s ease-in-out infinite;text-align:center}
 @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
@@ -344,8 +343,8 @@ body{position:fixed;inset:0}
   100%{opacity:0}}
 
 /* ── REVEAL / card viewer ── */
-#revealScreen{justify-content:center;gap:0}
-.reveal-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;z-index:2}
+#revealScreen{justify-content:flex-start;gap:0;padding-top:62px;box-sizing:border-box}
+.reveal-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2;width:100%}
 .card-counter{font-family:"Michroma";font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.5)}
 .card-holder{position:relative;perspective:1200px;cursor:grab}
 .card-holder:active{cursor:grabbing}
@@ -602,7 +601,7 @@ window.addEventListener('error',function(e){
   <div class="tb-logo">LYBS <span>CARDS</span></div>
   <div class="tb-actions">
     <div class="pack-remaining" id="packRemaining" style="display:none">
-      <span id="packRemainingNum">3</span> LEFT
+      <span class="pack-remaining-num" id="packRemainingNum">2</span> PACKS LEFT
     </div>
     <button class="tb-btn" id="collectionBtn" onclick="showCase()" style="display:none">★ COLLECTION</button>
   </div>
@@ -1708,18 +1707,16 @@ function activeCtx(){
 function drawCard(){
   const cv=document.getElementById(window._activeCanvas||'revealCanvas'); if(!cv) return;
   const showBack=CS.flipT>0.5;
-  // Full-image special cards are landscape on BOTH faces (the photo itself is
-  // landscape) — unlike every other card, which is portrait-front/landscape-back.
+  // Always portrait — back face is drawn rotated 90° within the same portrait
+  // canvas so it reads sideways. No landscape canvas swap, no overflow on mobile.
   const alwaysLandscape = !!(CS.data && CS.data.specialLandscape);
-  const cw=(showBack||alwaysLandscape)?BPW:PW, ch=(showBack||alwaysLandscape)?BPH:PH;
+  const cw = alwaysLandscape ? BPW : PW;
+  const ch = alwaysLandscape ? BPH : PH;
 
-  // Resize the canvas (resolution + matching CSS box) only when the face actually
-  // changes, and only the canvas-element path that's user-visible (revealCanvas) needs
-  // a CSS size swap — offscreen/export canvases are sized explicitly by their callers.
   if(cv.width!==cw || cv.height!==ch){
     cv.width=cw; cv.height=ch;
     if(cv.id==='revealCanvas'){
-      cv.classList.toggle('is-landscape', showBack||alwaysLandscape);
+      cv.classList.remove('is-landscape');
     }
   }
 
@@ -1737,7 +1734,17 @@ function drawCard(){
   // as a hard-edged white box around the thin sliver of visible card.
   ctx.fillStyle='#eeece6';ctx.fillRect(0,0,cw,ch);
   if(showBack){
-    try{ drawBack(ctx); }
+    try{
+      // Rotate 90° so the landscape back (BPW×BPH = 1000×712) fits sideways
+      // into the portrait canvas (PW×PH = 712×1000). The user tilts their
+      // device or turns their head — no overflow, no landscape canvas swap.
+      ctx.save();
+      ctx.translate(cw/2, ch/2);
+      ctx.rotate(Math.PI/2);
+      ctx.translate(-BPW/2, -BPH/2);
+      drawBack(ctx);
+      ctx.restore();
+    }
     catch(e){
       ctx.fillStyle='#d2cec6'; ctx.fillRect(0,0,cw,ch);
       ctx.fillStyle='#333'; ctx.font='24px Oswald,sans-serif';
@@ -3434,10 +3441,12 @@ function drawIceOverlay(ctx){
 /* ── Download front/back ── */
 function downloadCard(side, format){
   format = format || 'png';
-  // Step 1: render to offscreen canvas — back face exports as a landscape card
+  // Step 1: render to offscreen canvas — back face exports as portrait (rotated)
+  // to match what the user sees on screen.
   const tmp=document.createElement('canvas');
   const isBack=side!=='front';
-  tmp.width=isBack?BPW:PW; tmp.height=isBack?BPH:PH;
+  // Back is portrait-sized (same as front) with content rotated 90° inside
+  tmp.width=PW; tmp.height=PH;
   const tctx=tmp.getContext('2d');
   // JPEG has no alpha channel — paint an opaque base first so transparent
   // pixels (if any) don't render as black.
@@ -3448,8 +3457,17 @@ function downloadCard(side, format){
   const mx0=CS.mx, my0=CS.my;
   CS.mx=0.5; CS.my=0.5;  // neutral gloss for export
   try {
-    if(side==='front') drawFront(tctx);
-    else               drawBack(tctx);
+    if(side==='front'){
+      drawFront(tctx);
+    } else {
+      // Rotate 90° to match the on-screen portrait rendering
+      tctx.save();
+      tctx.translate(PW/2, PH/2);
+      tctx.rotate(Math.PI/2);
+      tctx.translate(-BPW/2, -BPH/2);
+      drawBack(tctx);
+      tctx.restore();
+    }
   } catch(drawErr) {
     CS.mx=mx0; CS.my=my0;
     showToast('Render error: '+drawErr.message, true);
