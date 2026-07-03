@@ -930,7 +930,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Restore saved collection from previous sessions
   try{
     const coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
-    savedIds=new Set(coll.map(c=>c.id));
+    savedIds=new Set(coll.map(c=>c.id+'|'+(c.parallel||'base')));
     const navBtn=document.getElementById('collectionBtn');
     if(navBtn && savedIds.size>0) navBtn.style.display='';
   }catch(e){}
@@ -2872,8 +2872,7 @@ function drawBack(ctx){
   if(CS.cardType==='montachusett_allstar' && LAYERS.montachusett_m_logo){
     ctx.save();
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR,0,Math.PI*2);
-    ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=10; ctx.fill();
-    ctx.shadowBlur=0;
+    ctx.fillStyle='#ffffff'; ctx.fill();
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR-3,0,Math.PI*2); ctx.clip();
     const li=LAYERS.montachusett_m_logo;
     const iw=li.naturalWidth||100, ih=li.naturalHeight||100;
@@ -2882,10 +2881,9 @@ function drawBack(ctx){
     ctx.restore();
   } else if(CS.logoImg||LAYERS.logo){
     ctx.save();
-    // White circle background with shadow
+    // White circle background, no shadow
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR,0,Math.PI*2);
-    ctx.fillStyle='#ffffff'; ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=10; ctx.fill();
-    ctx.shadowBlur=0;
+    ctx.fillStyle='#ffffff'; ctx.fill();
     // Clip to the inner circle
     ctx.beginPath(); ctx.arc(logoCX,logoCY,logoR-3,0,Math.PI*2); ctx.clip();
     if(CS.logoImg){
@@ -2903,7 +2901,7 @@ function drawBack(ctx){
       off.width=d2; off.height=d2;
       const ox=off.getContext('2d');
       // Source rect in the portrait overlay: centered on (163,891) with radius 72
-      const lcx=163, lcy=891, lr=72;
+      const lcx=163, lcy=891, lr=88;  // actual logo radius in the layer PNG
       ox.drawImage(LAYERS.logo, lcx-lr, lcy-lr, lr*2, lr*2, 0, 0, d2, d2);
       ctx.drawImage(off, logoCX-d2/2, logoCY-d2/2, d2, d2);
     }
@@ -3603,7 +3601,7 @@ async function loadSavedIds(){
   if(!currentUser)return;
   try{
     const coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
-    savedIds=new Set(coll.map(c=>c.id));
+    savedIds=new Set(coll.map(c=>c.id+'|'+(c.parallel||'base')));
     updateSaveBtn();
   }catch(e){console.error(e);}
 }
@@ -3614,7 +3612,7 @@ function updateSaveBtn(){
   // Update collect button state
   const cBtn=document.getElementById('collectBtn');
   if(cBtn){
-    const inColl=savedIds.has(card.id)||card.isSpecial;
+    const cardKey=card.id+'|'+(card.parallel||'base'); const inColl=savedIds.has(cardKey)||card.isSpecial;
     cBtn.textContent=inColl?'★ IN COLLECTION':'★ ADD TO COLLECTION';
     cBtn.classList.toggle('in-collection',!!inColl);
     cBtn.style.display=card.isSpecial?'none':'';
@@ -3652,7 +3650,7 @@ function saveToCollection(){
   // Load existing collection from localStorage
   let coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
   // Deduplicate by card id — one copy of each card per collection
-  if(coll.some(c=>c.id===card.id)){showToast('Already in your collection');return;}
+  const saveKey=card.id+'|'+(card.parallel||'base'); if(coll.some(c=>(c.id+'|'+(c.parallel||'base'))===saveKey)){showToast('Already in your collection');return;}
   // Store a lightweight snapshot — no photoURL (too large); we re-render from
   // the live ROSTER_CARDS data on the case screen using the card id.
   const snap={
@@ -3662,7 +3660,7 @@ function saveToCollection(){
   };
   coll.unshift(snap);
   localStorage.setItem('lybs_collection',JSON.stringify(coll));
-  savedIds.add(card.id);
+  savedIds.add(saveKey);
   updateSaveBtn();
   playSlabAnimation(()=>{},card);
   showToast('★ Added to your collection');
@@ -3839,9 +3837,9 @@ function backToCase(){
 
 function removeFromCollection(card){
   let coll=JSON.parse(localStorage.getItem('lybs_collection')||'[]');
-  coll=coll.filter(c=>c.id!==card.id);
+  const rmKey=card.id+'|'+(card.parallel||'base'); coll=coll.filter(c=>(c.id+'|'+(c.parallel||'base'))!==rmKey);
   localStorage.setItem('lybs_collection',JSON.stringify(coll));
-  savedIds.delete(card.id);
+  savedIds.delete(rmKey);
   showToast('Removed from collection');
   backToCase();
 }
