@@ -429,6 +429,20 @@ body{position:fixed;inset:0}
 .card-holder canvas.is-landscape{width:min(413px,98.7vw);height:min(294px,70vw)}
 .card-glow-ring{position:absolute;inset:-30px;border-radius:50%;z-index:-1;
   filter:blur(40px);opacity:.7;transition:background 1s ease}
+
+/* One-time "tap & hold to zoom" hint — sits directly over the card itself
+   (not a generic bottom toast) so it's obviously pointing at the card. */
+.zoom-hint-overlay{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.92);
+  z-index:20;pointer-events:none;
+  background:rgba(10,14,24,.82);color:#fff;
+  font-family:"Michroma",sans-serif;font-size:11px;letter-spacing:1.2px;
+  padding:12px 16px;border-radius:8px;text-align:center;max-width:80%;
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  opacity:0;transition:opacity .35s ease, transform .35s ease}
+.zoom-hint-overlay.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
 /* Nav arrows — restored as circles, large tap targets */
 .rv-btn{
   background:rgba(255,255,255,.12);
@@ -850,6 +864,7 @@ window.addEventListener('error',function(e){
       <div class="card-holder" id="cardHolder">
         <div class="card-glow-ring" id="glowRing"></div>
         <canvas id="revealCanvas" width="712" height="1000"></canvas>
+        <div class="zoom-hint-overlay" id="zoomHintOverlay">👆 TAP &amp; HOLD TO ZOOM IN</div>
       </div>
       <button class="rv-btn" id="nextBtn" onclick="nextCard()">›</button>
     </div>
@@ -3088,7 +3103,7 @@ function setupTilt(){
 // canvas bitmap pixels so the zoomed crop matches exactly what's under the
 // finger, not just a naive screen-space guess.
 let _magLens=null, _magCtx=null, _magActive=false, _magHoldTimer=null;
-const MAG_ZOOM=2.3, MAG_SIZE=170;
+const MAG_ZOOM=1.9, MAG_SIZE=280;
 
 function backTouchToCanvasPixel(clientX, clientY){
   const cv=document.getElementById('revealCanvas');
@@ -3136,9 +3151,14 @@ function drawMagLens(clientX, clientY){
     _magCtx.drawImage(src, x-cropW/2, y-cropH/2, cropW, cropH, 0, 0, MAG_SIZE, MAG_SIZE);
   }catch(e){}
   _magCtx.restore();
-  // Position the lens above-left of the finger so it isn't covered by it
-  _magLens.style.left=(clientX-MAG_SIZE/2)+'px';
-  _magLens.style.top=(clientY-MAG_SIZE-36)+'px';
+  // Position the lens above the finger so it isn't covered by it, clamped to
+  // stay fully on-screen now that it's a lot bigger than a fingertip.
+  let lx=clientX-MAG_SIZE/2, ly=clientY-MAG_SIZE-36;
+  lx=Math.max(6, Math.min(window.innerWidth-MAG_SIZE-6, lx));
+  if(ly<6) ly=clientY+36; // flip below the finger if there's no room above
+  ly=Math.max(6, Math.min(window.innerHeight-MAG_SIZE-6, ly));
+  _magLens.style.left=lx+'px';
+  _magLens.style.top=ly+'px';
   _magLens.style.display='block';
 }
 
@@ -5633,12 +5653,20 @@ function showToast(msg, durationMs){
 
 // One-time hint shown the first time a card is flipped to its back, so
 // people discover the tap-and-hold zoom instead of never finding it.
+// Shown directly over the card itself (not the generic bottom toast) so
+// it's unmistakably pointing at what it's talking about.
 function maybeShowZoomHint(){
   try{
     if(localStorage.getItem('lybs_seen_zoom_hint')==='1') return;
     localStorage.setItem('lybs_seen_zoom_hint','1');
   }catch(e){}
-  setTimeout(()=>showToast('💡 Tap & hold anywhere on the back to zoom in', 4000), 500);
+  const el=document.getElementById('zoomHintOverlay');
+  if(!el) return;
+  setTimeout(()=>{
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t=setTimeout(()=>el.classList.remove('show'), 3200);
+  }, 500);
 }
 
 </script>
