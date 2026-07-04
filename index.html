@@ -68,7 +68,27 @@ body{position:fixed;inset:0}
 #bgVignette{position:fixed;inset:0;z-index:0;pointer-events:none;
   background:radial-gradient(ellipse at center, transparent 22%, rgba(0,0,0,.45) 55%, rgba(0,0,0,.82) 80%, rgba(0,0,0,.96) 100%)}
 
-/* Drifting sparks — small glowing motes rising slowly through the scene */
+
+/* Rain — thin streaks that fall from top to bottom */
+#bgRain{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.raindrop{
+  position:absolute;
+  width:1px;
+  background:linear-gradient(180deg,
+    rgba(160,210,255,0) 0%,
+    rgba(180,220,255,.3) 50%,
+    rgba(200,230,255,.45) 100%);
+  border-radius:0 0 1px 1px;
+  filter:blur(0.8px);
+  opacity:0;
+  animation:rainFall linear infinite}
+@keyframes rainFall{
+  0%  {opacity:0;transform:translateY(-10vh)}
+  6%  {opacity:1}
+  94% {opacity:.4}
+  100%{opacity:0;transform:translateY(110vh)}}
+
+/* Drifting sparks — small glowing motes falling through the scene */
 #bgSparks{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .spark{position:absolute;border-radius:50%;
   background:radial-gradient(circle, rgba(160,210,255,.95), rgba(120,180,255,0) 70%);
@@ -397,31 +417,20 @@ body{position:fixed;inset:0}
 .card-holder canvas.is-landscape{width:min(413px,98.7vw);height:min(294px,70vw)}
 .card-glow-ring{position:absolute;inset:-30px;border-radius:50%;z-index:-1;
   filter:blur(40px);opacity:.7;transition:background 1s ease}
-/* Nav arrows — slim bare arrows, visible but minimal so swipe gesture is primary */
+/* Nav arrows — restored as circles, large tap targets */
 .rv-btn{
-  background:none;border:none;color:rgba(255,255,255,.35);
-  width:28px;height:60px;font-size:22px;cursor:pointer;transition:.18s;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  -webkit-tap-highlight-color:transparent}
-.rv-btn:hover{color:rgba(255,255,255,.8);transform:scale(1.15)}
-.rv-btn:disabled{opacity:.15;cursor:not-allowed;transform:none}
-/* Card row without visible arrows */
-.card-row{display:flex;align-items:center;width:100%;justify-content:center;position:relative}
+  background:rgba(255,255,255,.12);
+  border:1.5px solid rgba(255,255,255,.25);
+  color:rgba(255,255,255,.9);
+  width:48px;height:48px;border-radius:50%;font-size:22px;
+  cursor:pointer;transition:.2s;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.rv-btn:hover{background:rgba(255,255,255,.22);transform:scale(1.08)}
+.rv-btn:active{transform:scale(.94)}
+.rv-btn:disabled{opacity:.2;cursor:not-allowed;transform:none}
 
-/* Swipe hint — fades in then out, shown once on first card */
-.swipe-hint{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  display:flex;align-items:center;gap:8px;
-  font-family:"Michroma";font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.9);
-  background:rgba(0,0,0,.6);padding:9px 18px;border-radius:20px;
-  backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.18);
-  pointer-events:none;z-index:20;white-space:nowrap;
-  animation:swipeHintFade 3s ease-out forwards 1.2s;opacity:0}
-@keyframes swipeHintFade{
-  0%  {opacity:0;transform:translate(-50%,-50%) scale(.9)}
-  18% {opacity:1;transform:translate(-50%,-50%) scale(1)}
-  72% {opacity:1}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(.95)}}
 
 /* Bottom action area — stacked buttons */
 .reveal-bottom{display:flex;flex-direction:column;align-items:center;gap:12px;
@@ -564,34 +573,98 @@ body{position:fixed;inset:0}
 /* Card column — sits on shelf, backward lean */
 .case-card{\n  position:relative;cursor:grab;\n  display:flex;flex-direction:column;align-items:center;\n  padding-bottom:5px;\n  transition:transform .18s,filter .18s,opacity .15s;\n  transform:perspective(300px) rotateX(4deg);transform-origin:bottom center;\n  -webkit-tap-highlight-color:transparent}\n.case-card:hover{\n  transform:perspective(300px) rotateX(0deg) translateY(-7px) scale(1.07)!important;\n  filter:drop-shadow(0 18px 30px rgba(0,0,0,.75));z-index:10}\n.case-card:active{cursor:grabbing}\n.case-card.dragging{opacity:.35;transform:scale(.97)!important}
 
-/* Acrylic holder — just the card, no label inside */
-.case-acrylic{
-  width:100%;aspect-ratio:712/1000;
-  position:relative;border-radius:0 0 3px 3px;overflow:hidden;
-  border:1.5px solid rgba(255,255,255,.28);
-  border-top:none;
+/* ── PSA Slab ───────────────────────────────────────────────────────────── */
+/* The whole slab — label compartment on top + acrylic body below */
+.case-card{
+  position:relative;cursor:grab;
+  display:flex;flex-direction:column;align-items:stretch;
+  border-radius:6px;
+  transition:transform .18s,filter .18s,opacity .15s;
+  transform:perspective(400px) rotateX(3deg);transform-origin:bottom center;
+  /* Outer slab shell — thick clear acrylic look */
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.3),
-    0 0 0 0.5px rgba(255,255,255,.08),
-    0 5px 16px rgba(0,0,0,.6),
-    0 2px 5px rgba(0,0,0,.4)}
-.case-acrylic canvas{width:100%;height:100%;display:block}
-.case-acrylic::after{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(135deg,rgba(255,255,255,.16) 0%,transparent 40%,rgba(255,255,255,.05) 100%)}
+    0 0 0 1.5px rgba(255,255,255,.55),   /* polished outer edge */
+    0 0 0 3px rgba(180,200,220,.18),      /* beveled shoulder */
+    0 8px 28px rgba(0,0,0,.7),
+    0 2px 8px rgba(0,0,0,.5),
+    inset 0 1px 0 rgba(255,255,255,.4);  /* top highlight */
+  filter:drop-shadow(0 12px 24px rgba(0,0,0,.5))}
 
-/* PSA-style slab label — separate physical section above the acrylic.
-   Always rendered (even empty for BASE) so all slabs are equal height. */
+.case-card:hover{
+  transform:perspective(400px) rotateX(0deg) translateY(-8px) scale(1.06)!important;
+  filter:drop-shadow(0 20px 36px rgba(0,0,0,.75));z-index:10}
+.case-card:active{cursor:grabbing}
+.case-card.dragging{opacity:.3;transform:scale(.96)!important}
+
+/* ── Label compartment — top section of the slab ── */
 .case-card .cc-par{
   width:100%;box-sizing:border-box;
-  font-family:"Michroma";font-size:5.5px;letter-spacing:1px;
-  padding:0 4px;height:16px;line-height:16px;
-  color:#fff;text-align:center;
-  background:linear-gradient(180deg,rgba(40,40,50,.95),rgba(25,25,35,.98));
-  border:1.5px solid rgba(255,255,255,.28);
-  border-bottom:1px solid rgba(255,255,255,.1);
-  border-radius:3px 3px 0 0;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  font-family:"Michroma";font-size:5px;letter-spacing:0.8px;
+  padding:0 5px;height:18px;line-height:18px;
+  color:rgba(255,255,255,.9);text-align:center;
+  /* Label is white/light grey like a real PSA label background */
+  background:linear-gradient(180deg,
+    rgba(235,240,248,1) 0%,
+    rgba(215,225,240,1) 100%);
+  color:#1a2540;  /* dark navy text on light label */
+  border-radius:5px 5px 0 0;
+  border-bottom:1px solid rgba(130,150,180,.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    inset 0 -1px 0 rgba(0,0,0,.08)}
+
+/* ── Acrylic body — lower section holding the card ── */
+.case-acrylic{
+  position:relative;
+  /* Slab body is thicker than just the card — adds the recessed-cavity look */
+  padding:4px 4px 5px;
+  background:
+    /* Main acrylic fill — near-clear with very slight blue tint */
+    linear-gradient(145deg,
+      rgba(220,235,255,.22) 0%,
+      rgba(240,248,255,.08) 40%,
+      rgba(200,220,245,.15) 100%);
+  border-radius:0 0 5px 5px;
+  /* Inner depth lines simulate the two acrylic halves fused together */
+  border:1.5px solid rgba(255,255,255,.5);
+  border-top:none;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,.35),    /* top inner light catch */
+    inset 0 -2px 4px rgba(0,0,30,.25),         /* bottom inner shadow */
+    inset 2px 0 3px rgba(255,255,255,.15),      /* left inner edge */
+    inset -2px 0 3px rgba(255,255,255,.15)}     /* right inner edge */
+
+/* Inner card sleeve/gasket — the recessed cavity the card sits in */
+.case-acrylic-inner{
+  position:relative;
+  background:rgba(245,250,255,.06);
+  border-radius:2px;
+  border:1px solid rgba(180,200,230,.25);
+  box-shadow:
+    inset 0 1px 3px rgba(0,0,0,.3),     /* top shadow into cavity */
+    inset 0 0 0 1px rgba(0,0,30,.12);   /* inner edge darkening */
+  overflow:hidden}
+
+.case-acrylic-inner canvas{width:100%;height:100%;display:block}
+
+/* Polished surface sheen — diagonal light catching the acrylic face */
+.case-acrylic::after{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:0 0 4px 4px;
+  background:
+    linear-gradient(135deg,
+      rgba(255,255,255,.28) 0%,
+      rgba(255,255,255,.08) 30%,
+      transparent 55%,
+      rgba(255,255,255,.04) 80%,
+      rgba(255,255,255,.12) 100%)}
+
+/* Bottom beveled edge — gives the slab thickness illusion */
+.case-acrylic-edge{
+  height:4px;
+  background:linear-gradient(180deg,rgba(160,185,215,.35),rgba(100,130,170,.15));
+  border-radius:0 0 5px 5px;
+  border:1px solid rgba(255,255,255,.2);
+  border-top:none}
 
 .case-empty{
   position:relative;z-index:2;
@@ -654,6 +727,7 @@ body{position:fixed;inset:0}
 <body>
 <div id="bgGlow"></div>
 <div id="bgVignette"></div>
+<div id="bgRain"></div>
 <div id="bgSparks"></div>
 <div id="revealBurst"></div>
 
@@ -735,14 +809,12 @@ window.addEventListener('error',function(e){
   <div class="reveal-stage">
     <div class="card-counter" id="cardCounter">CARD 1 OF 6</div>
     <div class="parallel-tag" id="parallelTag">BASE</div>
-    <!-- Card with swipe gesture — arrows kept in DOM for programmatic nav but visually hidden -->
+    <!-- Card with nav arrow circles on either side -->
     <div class="card-row">
       <button class="rv-btn" id="prevBtn" onclick="prevCard()">‹</button>
       <div class="card-holder" id="cardHolder">
         <div class="card-glow-ring" id="glowRing"></div>
         <canvas id="revealCanvas" width="712" height="1000"></canvas>
-        <!-- Swipe hint overlay — shown on first card only, auto-fades -->
-        <div class="swipe-hint" id="swipeHint">← SWIPE TO BROWSE →</div>
       </div>
       <button class="rv-btn" id="nextBtn" onclick="nextCard()">›</button>
     </div>
@@ -1084,10 +1156,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Card holder tilt
   setupTilt();
-  setupSwipe();
 
   // Ambient drifting sparks behind the pack/card
   initSparks();
+  spawnRain();
 
   // Build the pack & show
   buildPack();
@@ -1387,6 +1459,7 @@ function openPack(){
     packIdx=0;
     showCard(0);
     document.getElementById('revealScreen').classList.add('active');
+    startCardLightning();
     // Mini lightning bolt burst — radiates from center instead of circle
     spawnPackOpenBolts();
   },900);
@@ -1568,7 +1641,6 @@ function renderCardNow(i){
     holder.classList.add(isFirstReveal ? 'revealing' : 'nav-in');
     window._packBrowsed=true;
     // Hide the swipe hint once the user navigates past the first card
-    if(i>0){ const h=document.getElementById('swipeHint'); if(h) h.style.display='none'; }
   }
   // Bind canvas
   window._activeCanvas='revealCanvas';
@@ -1649,7 +1721,7 @@ function initSparks(){
 
     // Position: spread across full screen, slight bias toward center
     const left = 2+Math.random()*96;
-    const startY= 5+Math.random()*90; // % from top, so they're all over screen
+    const startY= -5+Math.random()*20; // start near/above top, fall downward
 
     // Rise distance and drift — bigger orbs move less
     const riseH = (H*(0.3+Math.random()*0.5));
@@ -1667,7 +1739,7 @@ function initSparks(){
     s.style.top    = startY+'%';
     s.style.setProperty('--blur', blur+'px');
     s.style.setProperty('--sx',   drift+'px');
-    s.style.setProperty('--sy',   `-${riseH.toFixed(0)}px`);
+    s.style.setProperty('--sy',   `${riseH.toFixed(0)}px`);  // positive = fall down
     s.style.setProperty('--pk',   pk);
     s.style.setProperty('--pk2',  pk2);
     s.style.setProperty('--sc0',  (0.4+Math.random()*0.3).toFixed(2));
@@ -1676,6 +1748,121 @@ function initSparks(){
     s.style.animationDuration = duration+'s';
     s.style.animationDelay    = delay+'s';
     host.appendChild(s);
+  }
+}
+
+// ── Ambient card-screen lightning ────────────────────────────────────────────
+// Fires occasional lightning bolts across the reveal screen background
+// (reuses #revealBurst which is always present and fixed-position).
+// Bolts are dimmer/rarer than the pack screen — atmospheric rather than dramatic.
+let _cardLightningTimer = null;
+
+function startCardLightning(){
+  if(_cardLightningTimer) return;
+  function scheduleNext(){
+    const delay = 3500 + Math.random() * 7000; // every 3.5–10.5s
+    _cardLightningTimer = setTimeout(()=>{
+      if(!document.getElementById('revealScreen')?.classList.contains('active')){
+        _cardLightningTimer=null; return;
+      }
+      fireCardAmbientBolt();
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+}
+
+function stopCardLightning(){
+  if(_cardLightningTimer){ clearTimeout(_cardLightningTimer); _cardLightningTimer=null; }
+}
+
+function fireCardAmbientBolt(){
+  const host=document.getElementById('revealBurst');
+  if(!host) return;
+  const W=window.innerWidth, H=window.innerHeight;
+  // Dim bluish color — card bolts are subtle, not pack-screen-bright
+  const colors=[[60,120,220],[80,100,200],[100,140,255]];
+  const [r,g,b]=colors[Math.floor(Math.random()*colors.length)];
+  const boltColor=`rgba(${r+60},${g+60},${b+60},0.7)`;
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.style.cssText=`position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;
+    opacity:0;transition:opacity 0.04s`;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+
+  // Build one jagged bolt
+  const sx = Math.random()*W;
+  const fromTop = Math.random()>0.4;
+  const sx2= fromTop ? sx : (Math.random()>0.5 ? 0 : W);
+  const sy2= fromTop ? 0 : Math.random()*H*0.4;
+  const pts=[[sx2,sy2]];
+  let cx=sx2,cy=sy2;
+  const steps=5+Math.floor(Math.random()*4);
+  for(let i=0;i<steps;i++){
+    cx+=((Math.random()-.4)*90);
+    cy+=H/steps*(.7+Math.random()*.5);
+    pts.push([cx,cy]);
+  }
+  const pstr=pts.map(([x,y])=>`${x},${y}`).join(' ');
+
+  // Glow
+  const gl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  gl.setAttribute('points',pstr); gl.setAttribute('fill','none');
+  gl.setAttribute('stroke',`rgba(${r},${g},${b},0.25)`);
+  gl.setAttribute('stroke-width','8'); gl.setAttribute('stroke-linecap','round');
+  gl.style.filter='blur(5px)'; svg.appendChild(gl);
+  // Mid
+  const md=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  md.setAttribute('points',pstr); md.setAttribute('fill','none');
+  md.setAttribute('stroke',boltColor); md.setAttribute('stroke-width','2');
+  md.setAttribute('stroke-linecap','round');
+  md.style.filter='blur(1px)'; svg.appendChild(md);
+  // White core
+  const cr=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  cr.setAttribute('points',pstr); cr.setAttribute('fill','none');
+  cr.setAttribute('stroke','rgba(255,255,255,.6)'); cr.setAttribute('stroke-width','0.8');
+  cr.setAttribute('stroke-linecap','round'); svg.appendChild(cr);
+
+  host.appendChild(svg);
+
+  // Flash on then off
+  requestAnimationFrame(()=>{
+    svg.style.opacity='1';
+    // Also flash the top of screen very softly
+    const flashEl=document.getElementById('packTopFlash');
+    if(flashEl){
+      flashEl.style.background='linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.04) 35%,transparent 100%)';
+      flashEl.classList.remove('strike'); void flashEl.offsetWidth; flashEl.classList.add('strike');
+    }
+    setTimeout(()=>{
+      svg.style.transition='opacity 0.12s';
+      svg.style.opacity='0';
+      setTimeout(()=>svg.remove(), 200);
+    }, 60+Math.random()*80);
+  });
+}
+
+function spawnRain(){
+  const host = document.getElementById('bgRain');
+  if(!host) return;
+  const COUNT = 120;  // number of rain streaks
+  for(let i=0; i<COUNT; i++){
+    const drop = document.createElement('div');
+    drop.className = 'raindrop';
+    const left = Math.random() * 102;       // % across screen
+    const len  = 12 + Math.random() * 28;   // streak length px
+    const dur  = 0.5 + Math.random() * 0.8; // fall speed
+    const delay = -(Math.random() * dur * 4); // stagger start
+    const opacity = 0.15 + Math.random() * 0.3;
+    const angle = -5 + Math.random() * 10;  // slight diagonal
+    drop.style.cssText = `
+      left:${left}%;top:-5%;
+      height:${len}px;
+      opacity:${opacity};
+      transform:rotate(${angle}deg);
+      animation-duration:${dur}s;
+      animation-delay:${delay}s`;
+    host.appendChild(drop);
   }
 }
 
@@ -2029,67 +2216,6 @@ function spawnPackOpenBolts(){
   document.head.appendChild(style);
   document.body.appendChild(container);
   setTimeout(()=>{container.remove();style.remove();},900);
-}
-
-function setupSwipe(){
-  const holder=document.getElementById('cardHolder');
-  if(!holder) return;
-  let startX=0, startY=0, dx=0, swiping=false, swipeDone=false;
-  const THRESHOLD=45; // px to count as a swipe
-
-  holder.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1) return;
-    startX=e.touches[0].clientX;
-    startY=e.touches[0].clientY;
-    dx=0; swiping=true;
-  },{passive:true});
-
-  holder.addEventListener('touchmove',e=>{
-    if(!swiping||e.touches.length!==1) return;
-    dx=e.touches[0].clientX-startX;
-    const dy=e.touches[0].clientY-startY;
-    // Only hijack horizontal swipes; let vertical scroll through
-    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>8){
-      e.preventDefault();
-      // Slight visual drag feedback
-      const cv=holder.querySelector('canvas');
-      if(cv) cv.style.transform=`translateX(${dx*0.25}px)`;
-    }
-  },{passive:false});
-
-  holder.addEventListener('touchend',e=>{
-    swiping=false;
-    const cv=holder.querySelector('canvas');
-    if(cv) cv.style.transform='';
-    if(Math.abs(dx)>=THRESHOLD){
-      if(!swipeDone){
-        // Hide the swipe hint after first successful swipe
-        const hint=document.getElementById('swipeHint');
-        if(hint) hint.style.display='none';
-        swipeDone=true;
-      }
-  if(dx<0) nextCard(); else prevCard();
-    }
-    dx=0;
-  },{passive:true});
-
-  // Mouse drag fallback for desktop testing
-  let mdown=false, mstartX=0;
-  holder.addEventListener('mousedown',e=>{mdown=true;mstartX=e.clientX;dx=0;});
-  holder.addEventListener('mousemove',e=>{
-    if(!mdown) return;
-    dx=e.clientX-mstartX;
-    const cv=holder.querySelector('canvas');
-    if(cv) cv.style.transform=`translateX(${dx*0.2}px)`;
-  });
-  holder.addEventListener('mouseup',()=>{
-    mdown=false;
-    const cv=holder.querySelector('canvas');
-    if(cv) cv.style.transform='';
-    if(Math.abs(dx)>=THRESHOLD){
-  if(dx<0) nextCard(); else prevCard(); }
-    dx=0;
-  });
 }
 
 function setupTilt(){
@@ -4049,6 +4175,7 @@ function closeCase(){
     PACK=s.pack; packIdx=s.packIdx;
     if(s.revealActive){
       document.getElementById('revealScreen').classList.add('active');
+    startCardLightning();
       showCard(packIdx);
     } else {
       document.getElementById('packScreen').classList.add('active');
@@ -4235,19 +4362,32 @@ function makeCaseCard(card, snapIndex){
   const g=par.glow;
   const holder=document.createElement('div');
   holder.className='case-card';
-  holder.dataset.snapIndex=snapIndex;  // tracks position in the collection array
-  // PSA label
+  holder.dataset.snapIndex=snapIndex;
+
+  // ── Label compartment — light PSA-style tag at top ──
   const tag=document.createElement('div');tag.className='cc-par';
   if(par.name!=='BASE'){
     tag.textContent=par.name;
-    if(par.name==='BLACK') tag.style.color='rgba(255,255,255,.7)';
-    else if(g) tag.style.color=`rgb(${Math.min(255,g[0]+80)},${Math.min(255,g[1]+80)},${Math.min(255,g[2]+80)})`;
+    // Colored text for non-BASE parallels, on the light label bg
+    if(g) tag.style.color=`rgb(${Math.max(0,g[0]-40)},${Math.max(0,g[1]-40)},${Math.max(0,g[2]-40)})`;
+  } else {
+    tag.style.color='rgba(60,80,110,.5)';
   }
   holder.appendChild(tag);
+
+  // ── Acrylic slab body ──
   const acrylic=document.createElement('div');acrylic.className='case-acrylic';
+  // Inner recessed cavity / gasket
+  const inner=document.createElement('div');inner.className='case-acrylic-inner';
+  inner.style.cssText='aspect-ratio:712/1000';
   const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
-  acrylic.appendChild(cv);
+  inner.appendChild(cv);
+  acrylic.appendChild(inner);
   holder.appendChild(acrylic);
+  // Bottom beveled edge (slab thickness illusion)
+  const edge=document.createElement('div');edge.className='case-acrylic-edge';
+  holder.appendChild(edge);
+
   // Click to view (only if not mid-drag)
   holder.onclick=e=>{if(!holder._dragged)viewCaseCard(card);};
   // Drag-to-reorder (HTML5 drag + touch fallback)
@@ -4431,6 +4571,7 @@ function backToCase(){
   // Go directly to case grid WITHOUT calling showCase() to avoid overwriting
   // _preCaseState — so the outer ← BACK still knows where to return to.
   document.getElementById('revealScreen').classList.remove('active');
+  stopCardLightning();
   document.getElementById('caseScreen').classList.add('active');
   const tb=document.getElementById('topbar'); if(tb) tb.style.display='none';
   // Refresh the grid using the shared shelf renderer
