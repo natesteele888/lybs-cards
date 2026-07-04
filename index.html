@@ -2193,8 +2193,8 @@ document.getElementById('cardHolder').addEventListener('click',()=>{
 });
 function animFlip(){
   const t=CS.flipped?1:0,d=t-CS.flipT;
-  if(Math.abs(d)<.008){CS.flipT=t;drawCard();return;}
-  CS.flipT+=d*.16;drawCard();requestAnimationFrame(animFlip);
+  if(Math.abs(d)<.008){CS.flipT=t;drawCard();applyTilt();return;}
+  CS.flipT+=d*.16;drawCard();applyTilt();requestAnimationFrame(animFlip);
 }
 
 // ═══════════════════════════════════════════
@@ -3028,12 +3028,15 @@ function setupTilt(){
   const canvas=document.getElementById('revealCanvas');
   let dragging=false,sx=0,sy=0,srx=0,sry=0;
 
-  function down(e){dragging=true;wasDragging=false;const t=e.touches?e.touches[0]:e;sx=t.clientX;sy=t.clientY;srx=CS.rotX;sry=CS.rotY;
+  function down(e){
+    if(CS.flipped){ magnifierDown(e); return; } // back: magnifier instead of tilt
+    dragging=true;wasDragging=false;const t=e.touches?e.touches[0]:e;sx=t.clientX;sy=t.clientY;srx=CS.rotX;sry=CS.rotY;
     // Subtle shimmer as the person starts tilting the card — quiet and brief,
     // just a hint of light catching the foil, not a loud effect.
     playSound('tiltShine', {volume: 0.16, fadeOutAt: 1.1, fadeOutDur: 0.4});
   }
   function move(e){
+    if(CS.flipped){ magnifierMove(e); return; } // back: magnifier instead of tilt
     const t=e.touches?e.touches[0]:e;
     if(dragging){
       const dx=t.clientX-sx,dy=t.clientY-sy;
@@ -3049,22 +3052,126 @@ function setupTilt(){
     CS.mx=.5+CS.rotY/22*.5;CS.my=.5-CS.rotX/16*.5;
     applyTilt();drawCard();
   }
-  function up(){dragging=false;animTiltReturn();}
+  function up(e){
+    if(CS.flipped){ magnifierUp(e); return; }
+    dragging=false;animTiltReturn();
+  }
   holder.addEventListener('mousedown',down);
-  window.addEventListener('mousemove',e=>{if(dragging)move(e);});
-  holder.addEventListener('mousemove',e=>{if(!dragging)move(e);});
+  window.addEventListener('mousemove',e=>{if(dragging||CS.flipped)move(e);});
+  holder.addEventListener('mousemove',e=>{if(!dragging&&!CS.flipped)move(e);});
   window.addEventListener('mouseup',up);
-  holder.addEventListener('mouseleave',()=>{if(!dragging)animTiltReturn();});
+  holder.addEventListener('mouseleave',()=>{if(!dragging&&!CS.flipped)animTiltReturn();});
   holder.addEventListener('mouseenter',()=>{
-    if(!dragging) playSound('tiltShine', {volume: 0.16, fadeOutAt: 1.1, fadeOutDur: 0.4});
+    if(!dragging&&!CS.flipped) playSound('tiltShine', {volume: 0.16, fadeOutAt: 1.1, fadeOutDur: 0.4});
   });
   holder.addEventListener('touchstart',down,{passive:true});
   holder.addEventListener('touchmove',e=>{move(e);},{passive:true});
   holder.addEventListener('touchend',up);
 }
+
+// ── Back-of-card magnifier — press and hold anywhere on the back to zoom
+// into that spot (stats tables can be small even in the landscape layout).
+// Replaces tilt entirely on the back; maps the touch point through the
+// canvas's rotate(-90deg) scale(1.32) display transform back into actual
+// canvas bitmap pixels so the zoomed crop matches exactly what's under the
+// finger, not just a naive screen-space guess.
+let _magLens=null, _magCtx=null, _magActive=false, _magHoldTimer=null;
+const MAG_ZOOM=2.3, MAG_SIZE=136;
+
+function backTouchToCanvasPixel(clientX, clientY){
+  const cv=document.getElementById('revealCanvas');
+  const rect=cv.getBoundingClientRect(); // post-transform (rotated+scaled) box
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  const dx=clientX-cx, dy=clientY-cy;
+  const scale=1.32; // matches applyTilt's resting back scale
+  // Inverse of "rotate(-90deg) then scale(S)":
+  const localDx=-dy/scale, localDy=dx/scale;
+  const w=cv.clientWidth||1, h=cv.clientHeight||1; // layout size, unaffected by transform
+  return { x: PW/2 + localDx*(PW/w), y: PH/2 + localDy*(PH/h) };
+}
+
+function ensureMagLens(){
+  if(_magLens) return;
+  _magLens=document.createElement('div');
+  _magLens.style.cssText=`position:fixed;width:${MAG_SIZE}px;height:${MAG_SIZE}px;
+    border-radius:50%;border:2.5px solid rgba(255,255,255,.85);
+    box-shadow:0 6px 20px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.3);
+    pointer-events:none;z-index:160;overflow:hidden;display:none;background:#000`;
+  const cv=document.createElement('canvas');
+  cv.width=MAG_SIZE; cv.height=MAG_SIZE;
+  cv.style.cssText='width:100%;height:100%;display:block';
+  _magLens.appendChild(cv);
+  document.body.appendChild(_magLens);
+  _magCtx=cv.getContext('2d');
+}
+
+function drawMagLens(clientX, clientY){
+  ensureMagLens();
+  const src=document.getElementById('revealCanvas');
+  const {x,y}=backTouchToCanvasPixel(clientX, clientY);
+  const cropW=MAG_SIZE/MAG_ZOOM, cropH=MAG_SIZE/MAG_ZOOM;
+  _magCtx.clearRect(0,0,MAG_SIZE,MAG_SIZE);
+  _magCtx.save();
+  _magCtx.beginPath(); _magCtx.arc(MAG_SIZE/2,MAG_SIZE/2,MAG_SIZE/2,0,Math.PI*2); _magCtx.clip();
+  try{
+    _magCtx.drawImage(src, x-cropW/2, y-cropH/2, cropW, cropH, 0, 0, MAG_SIZE, MAG_SIZE);
+  }catch(e){}
+  _magCtx.restore();
+  // Position the lens above-left of the finger so it isn't covered by it
+  _magLens.style.left=(clientX-MAG_SIZE/2)+'px';
+  _magLens.style.top=(clientY-MAG_SIZE-36)+'px';
+  _magLens.style.display='block';
+}
+
+function magnifierDown(e){
+  if(CS.flipT<0.99) return; // only once the flip has fully settled on the back
+  const t=e.touches?e.touches[0]:e;
+  const startX=t.clientX, startY=t.clientY;
+  // Wait a beat before engaging the magnifier — a quick tap should still flip
+  // the card back to front; only a genuine press-and-hold zooms in.
+  _magHoldTimer=setTimeout(()=>{
+    _magHoldTimer=null;
+    _magActive=true; wasDragging=true; // suppress the tap-to-flip click once engaged
+    drawMagLens(startX, startY);
+  }, 180);
+}
+function magnifierMove(e){
+  const t=e.touches?e.touches[0]:e;
+  if(_magActive){
+    drawMagLens(t.clientX, t.clientY);
+  } else if(_magHoldTimer){
+    // Finger moved before the hold-delay fired — treat that as hold intent too
+    clearTimeout(_magHoldTimer); _magHoldTimer=null;
+    _magActive=true; wasDragging=true;
+    drawMagLens(t.clientX, t.clientY);
+  }
+}
+function magnifierUp(){
+  if(_magHoldTimer){ clearTimeout(_magHoldTimer); _magHoldTimer=null; }
+  if(_magActive){
+    _magActive=false;
+    if(_magLens) _magLens.style.display='none';
+    setTimeout(()=>{wasDragging=false;},50);
+  }
+  // else: it was just a quick tap — wasDragging was never touched, so the
+  // click handler still flips the card back to front normally.
+}
 function applyTilt(){
   const cv=document.getElementById('revealCanvas');
-  cv.style.transform=`rotateX(${CS.rotX}deg) rotateY(${CS.rotY}deg)`;
+  // Once past the halfway point of the flip (the moment the back face
+  // actually becomes visible), rotate the whole canvas -90° and grow it a
+  // bit — the back content is already internally laid out and drawn in
+  // landscape (see drawCard's ctx.rotate for the back face), so rotating the
+  // DISPLAYED canvas to match makes the stats read normally without turning
+  // your head, while the front's tilt behavior is completely unaffected.
+  const backProgress=Math.min(1,Math.max(0,(CS.flipT-0.5)*2));
+  if(backProgress>0){
+    const rot=-90*backProgress;
+    const scale=1+0.32*backProgress;
+    cv.style.transform=`rotate(${rot}deg) scale(${scale})`;
+  } else {
+    cv.style.transform=`rotateX(${CS.rotX}deg) rotateY(${CS.rotY}deg)`;
+  }
 }
 let _traf;
 function animTiltReturn(){
