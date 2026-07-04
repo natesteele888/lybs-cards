@@ -2178,8 +2178,14 @@ function setBgGlow(par){
   });
 }
 
-function nextCard(){if(packIdx<PACK.length-1){playSound('swipeNav');playSound('swipeThunder', {volume: 0.14, fadeOutAt: 0.6, fadeOutDur: 0.25});_suppressFlyInSound=true;packIdx++;showCard(packIdx);}}
-function prevCard(){if(packIdx>0){playSound('swipeNav');playSound('swipeThunder', {volume: 0.14, fadeOutAt: 0.6, fadeOutDur: 0.25});_suppressFlyInSound=true;packIdx--;showCard(packIdx);}}
+function nextCard(){
+  if(CS.flipped){ showToast('Flip the card back over first'); return; }
+  if(packIdx<PACK.length-1){playSound('swipeNav');playSound('swipeThunder', {volume: 0.14, fadeOutAt: 0.6, fadeOutDur: 0.25});_suppressFlyInSound=true;packIdx++;showCard(packIdx);}
+}
+function prevCard(){
+  if(CS.flipped){ showToast('Flip the card back over first'); return; }
+  if(packIdx>0){playSound('swipeNav');playSound('swipeThunder', {volume: 0.14, fadeOutAt: 0.6, fadeOutDur: 0.25});_suppressFlyInSound=true;packIdx--;showCard(packIdx);}
+}
 
 // Flip on tap (if not dragging)
 let wasDragging=false;
@@ -2190,6 +2196,12 @@ document.getElementById('cardHolder').addEventListener('click',()=>{
   if(CS.isSpecial) return;
   CS.flipped=!CS.flipped;animFlip();
   playSound('flip', {volume: 0.45});
+  const prevBtn=document.getElementById('prevBtn'), nextBtnEl=document.getElementById('nextBtn');
+  if(prevBtn) prevBtn.disabled=CS.flipped;
+  if(nextBtnEl) nextBtnEl.disabled=CS.flipped;
+  // First time the person flips to the back, show a one-time hint about the
+  // tap-and-hold zoom — same pattern as the swipe-to-browse hint.
+  if(CS.flipped) maybeShowZoomHint();
 });
 function animFlip(){
   const t=CS.flipped?1:0,d=t-CS.flipT;
@@ -3076,14 +3088,14 @@ function setupTilt(){
 // canvas bitmap pixels so the zoomed crop matches exactly what's under the
 // finger, not just a naive screen-space guess.
 let _magLens=null, _magCtx=null, _magActive=false, _magHoldTimer=null;
-const MAG_ZOOM=2.3, MAG_SIZE=136;
+const MAG_ZOOM=2.3, MAG_SIZE=170;
 
 function backTouchToCanvasPixel(clientX, clientY){
   const cv=document.getElementById('revealCanvas');
   const rect=cv.getBoundingClientRect(); // post-transform (rotated+scaled) box
   const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
   const dx=clientX-cx, dy=clientY-cy;
-  const scale=1.32; // matches applyTilt's resting back scale
+  const scale=getBackLandscapeScale(1); // must match applyTilt's actual resting scale
   // Inverse of "rotate(-90deg) then scale(S)":
   const localDx=-dy/scale, localDy=dx/scale;
   const w=cv.clientWidth||1, h=cv.clientHeight||1; // layout size, unaffected by transform
@@ -3113,6 +3125,13 @@ function drawMagLens(clientX, clientY){
   _magCtx.clearRect(0,0,MAG_SIZE,MAG_SIZE);
   _magCtx.save();
   _magCtx.beginPath(); _magCtx.arc(MAG_SIZE/2,MAG_SIZE/2,MAG_SIZE/2,0,Math.PI*2); _magCtx.clip();
+  // The source canvas's bitmap has the back content drawn "sideways" (it's
+  // only ever rotated for DISPLAY via CSS transform) — so the sampled crop
+  // has to be rotated the same -90° here, or the lens shows the raw sideways
+  // pixels instead of matching the landscape view the person is looking at.
+  _magCtx.translate(MAG_SIZE/2, MAG_SIZE/2);
+  _magCtx.rotate(-Math.PI/2);
+  _magCtx.translate(-MAG_SIZE/2, -MAG_SIZE/2);
   try{
     _magCtx.drawImage(src, x-cropW/2, y-cropH/2, cropW, cropH, 0, 0, MAG_SIZE, MAG_SIZE);
   }catch(e){}
@@ -3156,6 +3175,17 @@ function magnifierUp(){
   // else: it was just a quick tap — wasDragging was never touched, so the
   // click handler still flips the card back to front normally.
 }
+// Shared by applyTilt (display) and backTouchToCanvasPixel (magnifier hit-testing)
+// so the two never drift out of sync with each other.
+function getBackLandscapeScale(backProgress){
+  const cv=document.getElementById('revealCanvas');
+  const row=document.querySelector('.card-row');
+  const rowW=row?row.clientWidth:cv.clientWidth;
+  const maxScale=cv.clientHeight>0 ? (rowW*0.96)/cv.clientHeight : 1.32;
+  const desiredScale=1+0.32*(typeof backProgress==='number'?backProgress:1);
+  return Math.min(desiredScale, Math.max(1, maxScale));
+}
+
 function applyTilt(){
   const cv=document.getElementById('revealCanvas');
   // Once past the halfway point of the flip (the moment the back face
@@ -3167,7 +3197,10 @@ function applyTilt(){
   const backProgress=Math.min(1,Math.max(0,(CS.flipT-0.5)*2));
   if(backProgress>0){
     const rot=-90*backProgress;
-    const scale=1+0.32*backProgress;
+    // Cap growth so the rotated card never exceeds the width the card-row
+    // (card + nav arrows) already occupies — critical on mobile, where a
+    // flat 1.32x could otherwise push it wider than the screen.
+    const scale=getBackLandscapeScale(backProgress);
     cv.style.transform=`rotate(${rot}deg) scale(${scale})`;
   } else {
     cv.style.transform=`rotateX(${CS.rotX}deg) rotateY(${CS.rotY}deg)`;
@@ -5593,9 +5626,19 @@ async function initiateTrade(card){
 // ═══════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════
-function showToast(msg){
+function showToast(msg, durationMs){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),(typeof durationMs==='number')?durationMs:3000);
+}
+
+// One-time hint shown the first time a card is flipped to its back, so
+// people discover the tap-and-hold zoom instead of never finding it.
+function maybeShowZoomHint(){
+  try{
+    if(localStorage.getItem('lybs_seen_zoom_hint')==='1') return;
+    localStorage.setItem('lybs_seen_zoom_hint','1');
+  }catch(e){}
+  setTimeout(()=>showToast('💡 Tap & hold anywhere on the back to zoom in', 4000), 500);
 }
 
 </script>
