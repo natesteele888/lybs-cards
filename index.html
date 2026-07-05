@@ -654,7 +654,7 @@ body{position:fixed;inset:0}
 .cc-label-right{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:.2em;padding-left:.3em}
 
 .cc-label-year{font-family:"Courier New",Courier,monospace;font-size:.78em;letter-spacing:0;color:#1a2540;white-space:nowrap;overflow:hidden}
-.cc-label-name{font-family:"Courier New",Courier,monospace;font-size:1em;font-weight:bold;letter-spacing:0;color:#0d1626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-label-name{font-family:"Courier New",Courier,monospace;font-size:1em;letter-spacing:0;color:#0d1626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc-label-variant{font-family:"Courier New",Courier,monospace;font-size:.82em;letter-spacing:0;color:#1a2540;white-space:nowrap;overflow:hidden}
 .cc-barcode{
   height:.35em;margin-top:.15em;width:1.6em;
@@ -666,9 +666,9 @@ body{position:fixed;inset:0}
     #111 42%,#111 58%, transparent 58%,transparent 68%,
     #111 68%,#111 82%, transparent 82%,transparent 100%)}
 
-.cc-label-num{font-family:"Courier New",Courier,monospace;font-size:1.05em;font-weight:bold;color:#0d1626;white-space:nowrap}
+.cc-label-num{font-family:"Courier New",Courier,monospace;font-size:1.05em;color:#0d1626;white-space:nowrap}
 .cc-label-quality{font-family:"Courier New",Courier,monospace;font-size:.82em;letter-spacing:0;color:#1a2540;white-space:nowrap}
-.cc-label-grade{font-family:"Courier New",Courier,monospace;font-size:1.05em;font-weight:bold;color:#0d1626;white-space:nowrap}
+.cc-label-grade{font-family:"Courier New",Courier,monospace;font-size:1.05em;color:#0d1626;white-space:nowrap}
 .cc-label-cert{font-family:"Courier New",Courier,monospace;font-size:.72em;color:#1a2540;white-space:nowrap}
 
 /* Hologram sticker — centered at the bottom of the label, like a real slab's
@@ -5472,7 +5472,9 @@ function makeCaseCard(card, snapIndex){
   const nameLine=document.createElement('div'); nameLine.className='cc-label-name';
   nameLine.textContent=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
   const variantLine=document.createElement('div'); variantLine.className='cc-label-variant';
-  variantLine.textContent=par.name!=='BASE' ? par.name : 'BASE';
+  const LABEL_NAME_OVERRIDES = { 'MONTACHUSETT ALL-STAR': 'MONT. ALL-STAR' };
+  const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
+  variantLine.textContent=displayVariantName;
   const barcode=document.createElement('div'); barcode.className='cc-barcode';
   left.appendChild(yearLine); left.appendChild(nameLine); left.appendChild(variantLine); left.appendChild(barcode);
 
