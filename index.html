@@ -627,25 +627,49 @@ body{position:fixed;inset:0}
 .case-card:active{cursor:grabbing}
 .case-card.dragging{opacity:.3;transform:scale(.96)!important}
 
-/* ── Label compartment — top section of the slab ── */
-.case-card .cc-par{
+/* ── PSA-style slab label — top section of the slab ──
+   Fixed height regardless of content (overflow:hidden on every line) so no
+   card can ever grow taller than another. The wording is deliberately tiny
+   script — at real thumbnail size in the collection grid it isn't meant to
+   be legible, the border ring color (set inline per-card to the variant's
+   own glow color) is the actual signal that reads at a glance. */
+.case-card .cc-slab-label{
   width:100%;box-sizing:border-box;
-  font-family:"Michroma";font-size:5px;letter-spacing:0.8px;
-  padding:0 4px;height:18px;line-height:18px;
-  text-align:center;
-  /* Fixed single-line height regardless of label length — this is what
-     was letting long labels (e.g. "MONTACHUSETT ALL-STAR") wrap onto a
-     second line and inflate that one card's height in the grid. */
-  overflow:hidden;white-space:nowrap;
-  color:#fff;
-  /* Colored to the variant itself (set inline per-card via par.glow),
-     white lettering on top — falls back to a neutral navy/grey for BASE */
-  background:linear-gradient(180deg, rgba(70,85,110,1) 0%, rgba(45,55,75,1) 100%);
+  height:30px;padding:2px 5px;
+  display:flex;align-items:stretch;justify-content:space-between;
+  position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#eef2f8 0%,#dbe3ef 100%);
+  border:2px solid rgba(180,180,190,.9); /* overridden inline per-card */
+  border-bottom-width:1px;
   border-radius:5px 5px 0 0;
-  border-bottom:1px solid rgba(0,0,0,.35);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.25),
-    inset 0 -1px 0 rgba(0,0,0,.2)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(0,0,0,.08)}
+
+.cc-label-left{display:flex;flex-direction:column;justify-content:center;gap:.6px;flex:1;min-width:0;overflow:hidden}
+.cc-label-right{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:.6px;padding-left:3px}
+
+.cc-label-year{font-family:"Michroma";font-size:2.1px;letter-spacing:.3px;color:#1a2540;white-space:nowrap;overflow:hidden}
+.cc-label-name{font-family:"Michroma";font-size:2.9px;font-weight:bold;letter-spacing:.2px;color:#0d1626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-label-variant{font-family:"Michroma";font-size:2.3px;letter-spacing:.3px;color:#3a4a66;white-space:nowrap;overflow:hidden}
+.cc-barcode{
+  height:3.2px;width:85%;margin-top:.8px;
+  background:repeating-linear-gradient(90deg,
+    #111 0px,#111 .4px, transparent .4px,transparent .7px,
+    #111 .7px,#111 .8px, transparent .8px,transparent 1.3px,
+    #111 1.3px,#111 1.9px, transparent 1.9px,transparent 2.2px)}
+
+.cc-label-num{font-family:"Michroma";font-size:3px;font-weight:bold;color:#0d1626;white-space:nowrap}
+.cc-label-quality{font-family:"Michroma";font-size:2px;letter-spacing:.2px;color:#3a4a66;white-space:nowrap}
+.cc-label-grade{font-family:"Michroma";font-size:3.2px;font-weight:bold;color:#0d1626;white-space:nowrap}
+.cc-label-cert{font-family:"Michroma";font-size:1.7px;color:#5a6a86;white-space:nowrap}
+
+/* Hologram sticker — centered at the bottom of the label, like a real slab's
+   authenticity seal. Pure CSS conic-gradient shimmer, no image needed. */
+.cc-hologram{
+  position:absolute;bottom:.5px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;
+  background:conic-gradient(from 0deg,#f0f,#0ff,#ff0,#f80,#f0f);
+  box-shadow:0 0 1px rgba(255,255,255,.8);
+  opacity:.9}
 
 /* ── Acrylic body — lower section holding the card ── */
 .case-acrylic{
@@ -5423,22 +5447,42 @@ function makeCaseCard(card, snapIndex){
   holder.className='case-card';
   holder.dataset.snapIndex=snapIndex;
 
-  // ── Label compartment — top table area, colored to the variant, white lettering ──
-  const tag=document.createElement('div');tag.className='cc-par';
-  tag.textContent = (par.name!=='BASE') ? par.name : 'BASE';
-  tag.style.color='#fff';
-  if(par.glow){
-    const [r,g,b]=par.glow;
-    // Darken slightly for contrast so white text stays readable on lighter glows
-    const d=(v)=>Math.max(0,Math.round(v*0.55));
-    tag.style.background=`linear-gradient(180deg, rgb(${r},${g},${b}) 0%, rgb(${d(r)},${d(g)},${d(b)}) 100%)`;
-  }
-  // Auto-shrink long labels (e.g. "MONTACHUSETT ALL-STAR") so they stay on
-  // one line instead of wrapping — wrapping is what made that card taller
-  // than every other card in the grid.
-  const len=tag.textContent.length;
-  if(len>13) tag.style.fontSize=(len>18?'3.6px':'4.2px');
-  holder.appendChild(tag);
+  // ── PSA-style slab label — two columns of tiny script + barcode + hologram.
+  // The wording itself barely reads at this thumbnail size (by design — see
+  // note below), so the important visual signal is the border ring color,
+  // which follows the card's own variant instead of always being the same.
+  const ringColor = g ? `rgb(${g[0]},${g[1]},${g[2]})` : 'rgba(180,180,190,.9)';
+  const label=document.createElement('div');
+  label.className='cc-slab-label';
+  label.style.borderColor=ringColor;
+
+  const left=document.createElement('div'); left.className='cc-label-left';
+  const yearLine=document.createElement('div'); yearLine.className='cc-label-year';
+  yearLine.textContent='2026 STEELE CARDS';
+  const nameLine=document.createElement('div'); nameLine.className='cc-label-name';
+  nameLine.textContent=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
+  const variantLine=document.createElement('div'); variantLine.className='cc-label-variant';
+  variantLine.textContent=par.name!=='BASE' ? par.name : 'BASE';
+  const barcode=document.createElement('div'); barcode.className='cc-barcode';
+  left.appendChild(yearLine); left.appendChild(nameLine); left.appendChild(variantLine); left.appendChild(barcode);
+
+  const right=document.createElement('div'); right.className='cc-label-right';
+  const numLine=document.createElement('div'); numLine.className='cc-label-num';
+  numLine.textContent='#'+(card.cardNum||card.jerseyNum||'—');
+  const qualityLine=document.createElement('div'); qualityLine.className='cc-label-quality';
+  qualityLine.textContent='GEM MINT';
+  const gradeLine=document.createElement('div'); gradeLine.className='cc-label-grade';
+  gradeLine.textContent='10';
+  const certLine=document.createElement('div'); certLine.className='cc-label-cert';
+  // 9-digit "cert number" derived from when the card was added to the collection
+  const savedMs = card.savedAt ? new Date(card.savedAt).getTime() : Date.now();
+  certLine.textContent = String(Math.abs(savedMs)).slice(-9).padStart(9,'0');
+  right.appendChild(numLine); right.appendChild(qualityLine); right.appendChild(gradeLine); right.appendChild(certLine);
+
+  const holo=document.createElement('div'); holo.className='cc-hologram';
+
+  label.appendChild(left); label.appendChild(right); label.appendChild(holo);
+  holder.appendChild(label);
 
   // ── Acrylic slab body ──
   const acrylic=document.createElement('div');acrylic.className='case-acrylic';
@@ -5541,6 +5585,54 @@ function renderCaseGrid(grid){
     overflow.style.cssText='text-align:center;font-family:"Michroma";font-size:8px;letter-spacing:2px;color:rgba(255,200,120,.4);padding:6px';
     overflow.textContent=`+${snaps.length-TOTAL} MORE CARDS`;
     grid.appendChild(overflow);
+  }
+
+  // ── Explicit pixel width lock ──────────────────────────────────────────
+  // CSS Grid 1fr columns *should* give every card the same width on their
+  // own, but that's only as reliable as the browser's grid/aspect-ratio
+  // support — which varies enough across mobile webviews that cards were
+  // showing up different sizes anyway. This sidesteps that entirely: measure
+  // the actual rendered row width once, compute one exact pixel width, and
+  // apply it explicitly to every single card and its inner cavity — so
+  // sizing can't drift no matter what the browser does with the CSS alone.
+  // Also caps against viewport HEIGHT so landscape (wide/short) doesn't
+  // blow cards up past the point where rows overlap.
+  function lockCardSizes(){
+    const firstRow=grid.querySelector('.shelf-row');
+    if(!firstRow) return;
+    const rowW=firstRow.clientWidth;
+    if(!rowW) return;
+    const GAP=4, COLS=5;
+    let cardW=(rowW-(GAP*(COLS-1)))/COLS;
+    const maxW=window.innerHeight*0.30*0.712; // same landscape safety cap as the CSS max-width
+    cardW=Math.min(cardW,maxW);
+    const cardH=Math.round(cardW*1000/712);
+    grid.querySelectorAll('.case-card').forEach(card=>{
+      card.style.width=cardW+'px';
+      card.style.flexShrink='0';
+      const inner=card.querySelector('.case-acrylic-inner');
+      if(inner){
+        inner.style.height=cardH+'px';
+        inner.style.paddingTop='0'; // explicit height replaces the padding-top fallback once measured
+      }
+    });
+  }
+  requestAnimationFrame(lockCardSizes);
+  if(!window._caseGridResizeBound){
+    window._caseGridResizeBound=true;
+    let resizeDebounce=null;
+    const reflowCaseGrid=()=>{
+      clearTimeout(resizeDebounce);
+      resizeDebounce=setTimeout(()=>{
+        const activeGrid=document.getElementById('caseGrid');
+        const caseScreenEl=document.getElementById('caseScreen');
+        if(activeGrid && caseScreenEl && caseScreenEl.classList.contains('active')){
+          renderCaseGrid(activeGrid);
+        }
+      },150);
+    };
+    window.addEventListener('resize',reflowCaseGrid);
+    window.addEventListener('orientationchange',reflowCaseGrid);
   }
 }
 
