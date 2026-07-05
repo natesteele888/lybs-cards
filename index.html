@@ -2983,13 +2983,21 @@ function startLightRays(holder){
   const rect=holder.getBoundingClientRect();
   const el=document.createElement('div');
   el.id='holoLightRays';
-  el.style.cssText=`position:fixed;width:900px;height:900px;z-index:1;pointer-events:none;
+  // z-index:0 is the important fix here — #revealScreen itself is
+  // position:fixed with z-index:1, so a sibling body-level element ALSO at
+  // z-index:1 was tying with it and winning on DOM order (painted later),
+  // covering the whole screen including the card. z-index:0 unambiguously
+  // loses that comparison and sits behind the entire screen, card included.
+  el.style.cssText=`position:fixed;width:1100px;height:1100px;z-index:0;pointer-events:none;
     left:${rect.left+rect.width/2}px;top:${rect.top+rect.height/2}px;
-    margin:-450px 0 0 -450px;
+    margin:-550px 0 0 -550px;
     background:repeating-conic-gradient(from 0deg,
-      rgba(255,250,215,.28) 0deg 5deg, rgba(255,250,215,0) 5deg 17deg);
+      rgba(255,250,215,.95) 0deg 4deg, rgba(255,250,215,0) 4deg 20deg);
+    filter:blur(55px);
+    -webkit-mask-image:radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,.75) 32%, rgba(0,0,0,0) 68%);
+    mask-image:radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,.75) 32%, rgba(0,0,0,0) 68%);
     mix-blend-mode:screen;border-radius:50%;
-    animation:holoRaysSpin 16s linear infinite, holoRaysPulse 3.2s ease-in-out infinite`;
+    animation:holoRaysSpin 20s linear infinite, holoRaysPulse 3.2s ease-in-out infinite`;
   document.body.appendChild(el);
   _lightRaysEl=el;
 }
