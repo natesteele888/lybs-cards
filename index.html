@@ -1887,7 +1887,8 @@ function renderCardNow(i){
   } else {
     tag.style.color='rgba(255,255,255,.6)';tag.style.borderColor='rgba(255,255,255,.15)';tag.style.background='transparent';
   }
-  setBgGlow(par);
+  const isGuaranteedSpecialCard = (card.id==='special_allstar_trio' || card.id==='special_team_photo');
+  setBgGlow(par, isGuaranteedSpecialCard);
   fireRevealBurst(par);
   const flipHint=document.getElementById('flipHint');
   if(flipHint) flipHint.style.visibility=CS.isSpecial?'hidden':'visible';
@@ -2191,11 +2192,14 @@ function fireRevealBurst(par){
   setTimeout(()=>{ if(host) host.innerHTML=''; }, SEQ+700);
 }
 
-function setBgGlow(par){
+function setBgGlow(par, isGuaranteedSpecialCard){
   const bg=document.getElementById('bgGlow');
   const ring=document.getElementById('glowRing');
   const g=par.glow||[60,90,160];
-  const premium=['HOLO FOIL','CRACKED ICE','SPARKLE FOIL','TIE DYE'];
+  // Team photo / All-Star trio are tagged Holo Foil for the label/frame, but
+  // they don't get the intense "premium" background glow treatment — that's
+  // the persistent light-burst look that doesn't belong on these two.
+  const premium=isGuaranteedSpecialCard ? [] : ['HOLO FOIL','CRACKED ICE','SPARKLE FOIL','TIE DYE'];
   const heavyColor=['RED','PURPLE','BLUE','BLACK','GOLD','MONTACHUSETT ALL-STAR'];
   // Suppress the always-on animated blue blobs for BLACK — they'd bleed
   // through and ruin the all-dark aesthetic.
@@ -3652,20 +3656,26 @@ function drawSpecialCard(ctx, W, H, isFront){
             ctx.save(); ctx.drawImage(LAYERS.mac_logo, rightX-mw-2, 52, mw, mh); ctx.restore();
           }
         }
-        // "2026 MAC NORTH ALL-STARS" — same right-justified, auto-shrinking,
-        // italic Anton treatment as the player name on a normal card front.
-        // Trio card only — see note above.
+        // "2026 MAC NORTH ALL-STARS" — deliberately breaks from the normal
+        // name-slot sizing/position used everywhere else. This is the one
+        // card allowed to go big: huge bold stamp across the bottom of the
+        // photo itself, not a small corner label.
         if(d.id==='special_allstar_trio'){
           ctx.save();
           const titleText='2026 MAC NORTH ALL-STARS';
-          let tfs=58;
-          ctx.font=`italic ${tfs}px Anton,sans-serif`;
-          while(ctx.measureText(titleText).width>NAME_MAXW && tfs>14){ tfs-=2; ctx.font=`italic ${tfs}px Anton,sans-serif`; }
-          ctx.textAlign='right'; ctx.lineJoin='round';
-          ctx.shadowColor='rgba(0,0,0,0.75)';
-          ctx.shadowBlur=8; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2;
+          const maxTextW=W*0.92;
+          let tfs=Math.round(H*0.115);
+          ctx.font=`italic 900 ${tfs}px Anton,sans-serif`;
+          while(ctx.measureText(titleText).width>maxTextW && tfs>24){ tfs-=2; ctx.font=`italic 900 ${tfs}px Anton,sans-serif`; }
+          ctx.textAlign='center'; ctx.lineJoin='round';
+          const ty=H*0.90;
+          ctx.shadowColor='rgba(0,0,0,0.85)';
+          ctx.shadowBlur=Math.round(tfs*0.22);
+          ctx.shadowOffsetX=3; ctx.shadowOffsetY=3;
+          ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=Math.max(2,tfs*0.05);
+          ctx.strokeText(titleText, W/2, ty);
           ctx.fillStyle='#ffffff';
-          ctx.fillText(titleText, NAME_RIGHT, NAME_Y);
+          ctx.fillText(titleText, W/2, ty);
           ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
           ctx.restore();
         }
