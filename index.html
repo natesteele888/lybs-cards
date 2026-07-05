@@ -183,6 +183,17 @@ body.slab-view-active #bgSparks{opacity:0}
 #revealScreen.slab-view-mode .card-holder canvas{
   border:4px solid rgba(180,180,190,.9);border-top:1.5px solid rgba(255,255,255,.5);
   border-radius:0 0 6px 6px}
+/* Outer acrylic-case ring wrapping the WHOLE slab (label + card together) —
+   same box-shadow the collection grid's .case-card uses, so "one case with
+   acrylic all the way around" matches between the shelf and this zoomed view. */
+#revealScreen.slab-view-mode .card-holder{
+  border-radius:6px;
+  box-shadow:
+    0 0 0 1.5px rgba(255,255,255,.55),
+    0 0 0 3px rgba(180,200,220,.18),
+    0 8px 28px rgba(0,0,0,.7),
+    0 2px 8px rgba(0,0,0,.5);
+  filter:drop-shadow(0 12px 24px rgba(0,0,0,.5))}
 .screen.active{display:flex}
 
 /* ── Top bar ── */
@@ -449,11 +460,11 @@ body.slab-view-active #bgSparks{opacity:0}
 .card-counter{font-family:"Michroma";font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.5);margin-bottom:2px}
 /* Card row — arrows flank the card horizontally */
 .card-row{display:flex;align-items:center;gap:8px;width:100%;justify-content:center}
-.card-holder{position:relative;perspective:1200px;cursor:grab;flex-shrink:0}
+.card-holder{position:relative;perspective:1200px;cursor:grab;flex-shrink:0;
+  transition:transform .1s ease-out;will-change:transform}
 .card-holder:active{cursor:grabbing}
 /* ~2% smaller than before (294×413 vs 300×421) */
-.card-holder canvas{display:block;width:min(262px,65vw);height:min(368px,91vw);
-  transition:transform .1s ease-out;will-change:transform}
+.card-holder canvas{display:block;width:min(262px,65vw);height:min(368px,91vw)}
 .card-holder canvas.is-landscape{width:min(413px,98.7vw);height:min(294px,70vw)}
 .card-glow-ring{position:absolute;inset:-30px;border-radius:50%;z-index:-1;
   filter:blur(40px);opacity:.7;transition:background 1s ease}
@@ -708,6 +719,22 @@ body.slab-view-active #bgSparks{opacity:0}
   background-size:cover;background-position:center;
   box-shadow:0 0 .5px rgba(255,255,255,.6);
   opacity:.95}
+
+/* Back of the detail-view slab label — solid panel with the "STEELE CARDS"
+   wordmark where a real PSA slab has its authenticator text, and the same
+   hologram sticker moved to the right side, matching the reference slab's
+   back (solid color + wordmark + hologram, no card info). */
+.reveal-slab-label.cc-slab-label-back{
+  background:linear-gradient(160deg,#0e2f72 0%,#04173f 100%);
+  align-items:center}
+.cc-label-back-wordmark{
+  font-family:"Michroma",sans-serif;font-size:1.3em;font-weight:bold;
+  color:#fff;letter-spacing:.04em;line-height:1.15;text-align:left}
+.cc-hologram-back{
+  position:static;transform:none;flex-shrink:0;
+  width:2.6em;height:2.6em;border-radius:15%;
+  background-size:cover;background-position:center;
+  box-shadow:0 0 1px rgba(255,255,255,.7);opacity:.95}
 
 /* ── Acrylic body — lower section holding the card ── */
 .case-acrylic{
@@ -2341,10 +2368,19 @@ document.getElementById('cardHolder').addEventListener('click',()=>{
   // tap-and-hold zoom — same pattern as the swipe-to-browse hint.
   if(CS.flipped) maybeShowZoomHint();
 });
+let _lastLabelShowBack=false;
+function syncSlabLabelFace(){
+  if(!window._viewingCaseCard) return;
+  const showBack=CS.flipT>0.5;
+  if(showBack===_lastLabelShowBack) return;
+  _lastLabelShowBack=showBack;
+  const card=PACK[0];
+  if(card) updateRevealSlabLabel(card, showBack);
+}
 function animFlip(){
   const t=CS.flipped?1:0,d=t-CS.flipT;
-  if(Math.abs(d)<.008){CS.flipT=t;drawCard();applyTilt();return;}
-  CS.flipT+=d*.16;drawCard();applyTilt();requestAnimationFrame(animFlip);
+  if(Math.abs(d)<.008){CS.flipT=t;drawCard();applyTilt();syncSlabLabelFace();return;}
+  CS.flipT+=d*.16;drawCard();applyTilt();syncSlabLabelFace();requestAnimationFrame(animFlip);
 }
 
 // ═══════════════════════════════════════════
@@ -3332,13 +3368,17 @@ function getBackLandscapeScale(backProgress){
 }
 
 function applyTilt(){
-  const cv=document.getElementById('revealCanvas');
+  const holder=document.getElementById('cardHolder');
+  if(!holder) return;
   // Once past the halfway point of the flip (the moment the back face
-  // actually becomes visible), rotate the whole canvas -90° and grow it a
+  // actually becomes visible), rotate the whole holder -90° and grow it a
   // bit — the back content is already internally laid out and drawn in
   // landscape (see drawCard's ctx.rotate for the back face), so rotating the
-  // DISPLAYED canvas to match makes the stats read normally without turning
+  // DISPLAYED holder to match makes the stats read normally without turning
   // your head, while the front's tilt behavior is completely unaffected.
+  // Transforming the HOLDER (not just the canvas inside it) is what keeps
+  // the slab label and the card moving together as one rigid object instead
+  // of visually detaching from each other mid-tilt or mid-flip.
   const backProgress=Math.min(1,Math.max(0,(CS.flipT-0.5)*2));
   if(backProgress>0){
     const rot=-90*backProgress;
@@ -3346,9 +3386,9 @@ function applyTilt(){
     // (card + nav arrows) already occupies — critical on mobile, where a
     // flat 1.32x could otherwise push it wider than the screen.
     const scale=getBackLandscapeScale(backProgress);
-    cv.style.transform=`rotate(${rot}deg) scale(${scale})`;
+    holder.style.transform=`rotate(${rot}deg) scale(${scale})`;
   } else {
-    cv.style.transform=`rotateX(${CS.rotX}deg) rotateY(${CS.rotY}deg)`;
+    holder.style.transform=`rotateX(${CS.rotX}deg) rotateY(${CS.rotY}deg)`;
   }
 }
 let _traf;
@@ -3755,7 +3795,7 @@ function drawSpecialCard(ctx, W, H, isFront){
         // photo itself, not a small corner label.
         if(d.id==='special_allstar_trio'){
           ctx.save();
-          const titleText='2026 MAC NORTH ALL-STARS';
+          const titleText='2026 BLUE MAC ALL-STARS';
           const maxTextW=W*0.92;
           let tfs=Math.round(H*0.115);
           ctx.font=`italic 900 ${tfs}px Anton,sans-serif`;
@@ -5731,7 +5771,8 @@ function viewCaseCard(card){
   document.body.classList.add('slab-view-active');
   const tb=document.getElementById('topbar'); if(tb) tb.style.display='flex'; // keep visible for ← COLLECTION button
   revealScreenEl.classList.add('active');
-  updateRevealSlabLabel(card);
+  _lastLabelShowBack=false;
+  updateRevealSlabLabel(card, false);
   showCard(0);
 
   // Save button stays as stroke-btn 📷 SAVE
@@ -5772,13 +5813,26 @@ function viewCaseCard(card){
 
 // Fills in the PSA-style label bar shown above the card in slab-view mode —
 // same fields/logic as the collection grid's own slab label.
-function updateRevealSlabLabel(card){
+function updateRevealSlabLabel(card, showBack){
   const el=document.getElementById('revealSlabLabel');
   if(!el) return;
   const par=PAR[card.parallel||'base']||PAR.base;
   const g=par.glow;
   const ringColor = g ? `rgb(${g[0]},${g[1]},${g[2]})` : 'rgba(180,180,190,.9)';
   el.style.borderColor=ringColor;
+
+  if(showBack){
+    // Back of the label — solid panel, "STEELE CARDS" wordmark where a real
+    // PSA slab has its authenticator text, hologram sticker on the right
+    // (moved here from the front, matching the reference slab's back).
+    el.classList.add('cc-slab-label-back');
+    el.innerHTML=`
+      <div class="cc-label-back-wordmark">STEELE<br>CARDS</div>
+      <div class="cc-hologram cc-hologram-back"></div>`;
+    return;
+  }
+  el.classList.remove('cc-slab-label-back');
+
   const LABEL_NAME_OVERRIDES = { 'MONTACHUSETT ALL-STAR': 'MONT. ALL-STAR' };
   const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
   const nameText=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
@@ -5796,8 +5850,9 @@ function updateRevealSlabLabel(card){
       <div class="cc-label-quality">GEM MINT</div>
       <div class="cc-label-grade">10</div>
       <div class="cc-label-cert">${certText}</div>
-    </div>
-    <div class="cc-hologram"></div>`;
+    </div>`;
+  // Note: no hologram here anymore on the front — it's on the back now,
+  // matching the real PSA slab reference (front=info, back=hologram seal).
 }
 
 // Press-and-hold on the card (slab-view only) deliberately replays the
