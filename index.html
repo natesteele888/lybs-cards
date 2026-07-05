@@ -1869,7 +1869,12 @@ function playSpecialUnveil(i){
   const parKey=card.parallel||card.rarity||'base';
   const par=PAR[parKey]||PAR.base;
   const g=par.glow||[255,255,255];
-  const glowCss=`rgb(${g[0]},${g[1]},${g[2]})`;
+  // Same luminance check as the parallel tag — Black Cracked Ice's glow is
+  // near-black ([18,18,22]), which made this label unreadable against the
+  // dark unveil background. Force white whenever the glow is too dark to read.
+  const gLumaUnveil = 0.299*g[0]+0.587*g[1]+0.114*g[2];
+  const isDarkGlow = gLumaUnveil<60;
+  const glowCss = isDarkGlow ? 'rgb(255,255,255)' : `rgb(${g[0]},${g[1]},${g[2]})`;
   const boltColor=`rgb(${Math.min(255,g[0]+130)},${Math.min(255,g[1]+130)},${Math.min(255,g[2]+130)})`;
   const gc=`rgba(${g[0]},${g[1]},${g[2]},`;
 
@@ -1888,7 +1893,7 @@ function playSpecialUnveil(i){
   sub.textContent = card.serialNum
     ? `${card.serialNum} OF ${card.printRun}`
     : 'HOLO FOIL';
-  sub.style.color=`rgba(${g[0]},${g[1]},${g[2]},.75)`;
+  sub.style.color = isDarkGlow ? 'rgba(255,255,255,.75)' : `rgba(${g[0]},${g[1]},${g[2]},.75)`;
 
   // Build SVG lightning bolts into the bolt divs — same randomized jagged-
   // segment technique used by the pack-break and card-spark effects, instead
