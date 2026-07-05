@@ -195,14 +195,6 @@ body{position:fixed;inset:0}
   45% {opacity:.6}
   100%{opacity:.7}}
 
-/* Persistent light-ray halo behind the guaranteed Holo Foil specials —
-   a slow-spinning sunburst plus a gentle breathing pulse. */
-@keyframes holoRaysSpin{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-@keyframes holoRaysPulse{
-  0%  {opacity:.55}
-  50% {opacity:.95}
-  100%{opacity:.55}}
-
 /* Top-of-screen white flash — fired by JS when a lightning bolt strikes */
 .pack-top-flash{
   position:absolute;top:0;left:0;right:0;height:45%;
@@ -1602,7 +1594,6 @@ function openPackAtIndex(idx){
   startPackAtmosphere();
   startAmbientAudio();
   switchBgMusic(BG_TRACK_DEFAULT, BG_VOL_LOUD, 0.7);
-  stopLightRays();
   stopIceLoop(0.2);
 }
 
@@ -1739,12 +1730,14 @@ function playSpecialUnveil(i){
     : 'HOLO FOIL';
   sub.style.color=`rgba(${g[0]},${g[1]},${g[2]},.75)`;
 
-  // Build SVG lightning bolts into the bolt divs
+  // Build SVG lightning bolts into the bolt divs — same randomized jagged-
+  // segment technique used by the pack-break and card-spark effects, instead
+  // of the old smooth predetermined diagonal paths.
   const W=window.innerWidth||400, H=window.innerHeight||800;
   const boltDefs=[
-    {el:'suBoltA', x1:.25,y1:0, pts:[[.30,.16],[.22,.28],[.28,.42],[.18,.58],[.26,.74],[.16,1]]},
-    {el:'suBoltB', x1:.68,y1:0, pts:[[.72,.14],[.62,.26],[.70,.40],[.60,.55],[.68,.70],[.74,1]]},
-    {el:'suBoltC', x1:.48,y1:.04,pts:[[.52,.20],[.44,.34],[.50,.48],[.42,.64],[.50,.80],[.54,1]]},
+    {el:'suBoltA', x0:.25},
+    {el:'suBoltB', x0:.68},
+    {el:'suBoltC', x0:.48},
   ];
   boltDefs.forEach(bd=>{
     const div=document.getElementById(bd.el);
@@ -1752,36 +1745,52 @@ function playSpecialUnveil(i){
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
     svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;overflow:visible';
-    const pts=[[bd.x1,bd.y1],...bd.pts].map(([px,py])=>`${px*W},${py*H}`).join(' ');
+    // Randomized jagged path from top to bottom, drifting around the base x
+    const steps=7;
+    let px=bd.x0*W;
+    const pts=[`${px},0`];
+    for(let j=1;j<=steps;j++){
+      const py=(j/steps)*H;
+      px += (Math.random()-0.45)*W*0.09;
+      pts.push(`${px},${py}`);
+    }
+    const ptsStr=pts.join(' ');
     // Outer glow layer
     const glow2=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    glow2.setAttribute('points',pts); glow2.setAttribute('fill','none');
-    glow2.setAttribute('stroke',boltColor); glow2.setAttribute('stroke-width','12');
+    glow2.setAttribute('points',ptsStr); glow2.setAttribute('fill','none');
+    glow2.setAttribute('stroke',boltColor); glow2.setAttribute('stroke-width','14');
     glow2.setAttribute('stroke-linecap','round'); glow2.setAttribute('stroke-linejoin','round');
-    glow2.style.filter='blur(5px)'; glow2.style.opacity='0.6';
+    glow2.style.filter='blur(6px)'; glow2.style.opacity='0.6';
     svg.appendChild(glow2);
     // Mid glow
     const mid2=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    mid2.setAttribute('points',pts); mid2.setAttribute('fill','none');
-    mid2.setAttribute('stroke',boltColor); mid2.setAttribute('stroke-width','5');
+    mid2.setAttribute('points',ptsStr); mid2.setAttribute('fill','none');
+    mid2.setAttribute('stroke',boltColor); mid2.setAttribute('stroke-width','5.5');
     mid2.setAttribute('stroke-linecap','round'); mid2.setAttribute('stroke-linejoin','round');
     mid2.style.filter='blur(1.5px)';
     svg.appendChild(mid2);
     // White hot core
     const core2=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    core2.setAttribute('points',pts); core2.setAttribute('fill','none');
-    core2.setAttribute('stroke','rgba(255,255,255,0.95)'); core2.setAttribute('stroke-width','1.4');
+    core2.setAttribute('points',ptsStr); core2.setAttribute('fill','none');
+    core2.setAttribute('stroke','rgba(255,255,255,0.95)'); core2.setAttribute('stroke-width','1.6');
     core2.setAttribute('stroke-linecap','round'); core2.setAttribute('stroke-linejoin','round');
     svg.appendChild(core2);
     svg.style.filter=`drop-shadow(0 0 10px ${boltColor}) drop-shadow(0 0 28px ${boltColor}) drop-shadow(0 0 50px ${boltColor})`;
     div.innerHTML=''; div.appendChild(svg);
   });
 
-  // Color the spotlights to the card's glow color
+  // Spotlights — softened with blur so the cone edges feel like actual light
+  // rather than a hard-edged trapezoid, plus a richer multi-stop gradient.
   const spot=document.getElementById('suSpot');
   const spot2=document.getElementById('suSpot2');
-  if(spot)  spot.style.background=`linear-gradient(180deg,${gc}.55) 0%,${gc}.28) 50%,transparent 100%)`;
-  if(spot2) spot2.style.background=`linear-gradient(180deg,${gc}.80) 0%,${gc}.40) 45%,transparent 100%)`;
+  if(spot){
+    spot.style.background=`linear-gradient(180deg,${gc}.6) 0%,${gc}.32) 35%,${gc}.12) 65%,transparent 100%)`;
+    spot.style.filter='blur(22px)';
+  }
+  if(spot2){
+    spot2.style.background=`linear-gradient(180deg,${gc}.85) 0%,${gc}.45) 30%,${gc}.15) 60%,transparent 100%)`;
+    spot2.style.filter='blur(14px)';
+  }
 
   // Re-trigger animations — remove, force layout, re-add on next frame
   overlay.classList.remove('go');
@@ -1850,15 +1859,10 @@ function renderCardNow(i){
     }
 
     // Guaranteed Holo Foil specials (team photo, All-Star trio) skip the
-    // theatrical unveil entirely, so they get their own quieter treatment
-    // instead: a level-up sound plus a persistent light-ray halo that stays
-    // as long as the card is on screen, making it feel angelic/elevated
-    // without a big screen-darkening production.
+    // theatrical unveil entirely, so they get a level-up sound as their
+    // own quieter acknowledgement instead.
     if(isGuaranteedSpecial){
       playSound('holoNoIntro', {fadeOutAt: 2.6, fadeOutDur: 0.4});
-      startLightRays(holder);
-    } else {
-      stopLightRays();
     }
     // Hide the swipe hint once the user navigates past the first card
   }
@@ -2973,37 +2977,6 @@ function spawnPackOpenBolts(){
 // that fly out in random directions and fizzle out, colored to the card's
 // parallel (Ice = icy blue, Holo = electric blue, Red/Blue/Purple/etc. tinted
 // to match). Paired with a quick-fading electric sound.
-// Persistent light-ray halo behind the guaranteed Holo Foil specials (team
-// photo, All-Star trio) — these don't get the theatrical unveil, so this
-// gives them their own "sitting there being special" ambient treatment
-// instead, unlike the one-shot spark burst used for other non-base cards.
-let _lightRaysEl=null;
-function startLightRays(holder){
-  if(_lightRaysEl || !holder) return;
-  const rect=holder.getBoundingClientRect();
-  const el=document.createElement('div');
-  el.id='holoLightRays';
-  // z-index:0 is the important fix here — #revealScreen itself is
-  // position:fixed with z-index:1, so a sibling body-level element ALSO at
-  // z-index:1 was tying with it and winning on DOM order (painted later),
-  // covering the whole screen including the card. z-index:0 unambiguously
-  // loses that comparison and sits behind the entire screen, card included.
-  el.style.cssText=`position:fixed;width:1100px;height:1100px;z-index:0;pointer-events:none;
-    left:${rect.left+rect.width/2}px;top:${rect.top+rect.height/2}px;
-    margin:-550px 0 0 -550px;
-    background:repeating-conic-gradient(from 0deg,
-      rgba(255,250,215,.95) 0deg 4deg, rgba(255,250,215,0) 4deg 20deg);
-    filter:blur(55px);
-    -webkit-mask-image:radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,.75) 32%, rgba(0,0,0,0) 68%);
-    mask-image:radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,.75) 32%, rgba(0,0,0,0) 68%);
-    mix-blend-mode:screen;border-radius:50%;
-    animation:holoRaysSpin 20s linear infinite, holoRaysPulse 3.2s ease-in-out infinite`;
-  document.body.appendChild(el);
-  _lightRaysEl=el;
-}
-function stopLightRays(){
-  if(_lightRaysEl){ _lightRaysEl.remove(); _lightRaysEl=null; }
-}
 
 function spawnCardSparkBurst(holder, parKey){
   if(!holder) return;
@@ -5378,7 +5351,6 @@ function playSlabAnimation(cb,card){
 function showCase(){
   playSound('collectionView');
   stopIceLoop(0.3);
-  stopLightRays();
   // Save where we were so ← BACK can restore it exactly
   window._preCaseState = {
     pack: PACK.slice(),
