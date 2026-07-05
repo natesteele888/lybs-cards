@@ -607,16 +607,13 @@ body.slab-view-active #bgSparks{opacity:0}
   background:linear-gradient(90deg,transparent,rgba(255,200,100,.5) 25%,rgba(255,215,150,1) 50%,rgba(255,200,100,.5) 75%,transparent);
   box-shadow:0 0 12px 4px rgba(255,180,60,.6),0 0 40px 14px rgba(255,150,30,.3),0 0 90px 30px rgba(255,120,20,.12)}
 
-/* Shelf dividers — horizontal lines between card rows */
+/* Glass sheen overlay — the actual shelf dividers are the real borders on
+   each .shelf-row (which sit at the real, dynamically-computed row
+   boundaries). This used to ALSO draw fake divider lines at a hardcoded 48%
+   interval, which had no way of matching the real (JS-computed) row height
+   and was cutting a line straight through the middle of actual card rows. */
 .cabinet-glass{
-  position:absolute;inset:0;z-index:10;pointer-events:none;
-  background:
-    repeating-linear-gradient(180deg,
-      transparent 0px,
-      transparent calc(var(--row-h, 48%) - 3px),
-      rgba(60,40,15,.8) calc(var(--row-h, 48%) - 3px),
-      rgba(80,55,20,.4) calc(var(--row-h, 48%) - 1px),
-      transparent var(--row-h, 48%))}
+  position:absolute;inset:0;z-index:10;pointer-events:none}
 .cabinet-glass::after{
   content:'';position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(255,180,60,.04) 0%,transparent 30%,transparent 70%,rgba(0,0,0,.3) 100%)}
@@ -3824,7 +3821,7 @@ function drawSpecialCard(ctx, W, H, isFront){
         // photo itself, not a small corner label.
         if(d.id==='special_allstar_trio'){
           ctx.save();
-          const titleText='2026 BLUE MAC ALL-STARS';
+          const titleText="26' BLUE ALL-STARS";
           const maxTextW=W*0.92;
           let tfs=Math.round(H*0.115);
           ctx.font=`italic 900 ${tfs}px Anton,sans-serif`;
@@ -5264,7 +5261,7 @@ function drawSlabLabelToCanvas(ctx, x, y, w, h, card, showBack, ringColor, holoI
     const par=PAR[card.parallel||'base']||PAR.base;
     const LABEL_NAME_OVERRIDES={'MONTACHUSETT ALL-STAR':'MONT. ALL-STAR'};
     const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
-    const nameText=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
+    const nameText=getLabelNameText(card);
     const savedMs = card.savedAt ? new Date(card.savedAt).getTime() : Date.now();
     const certText = String(Math.abs(savedMs)).slice(-9).padStart(9,'0');
     const fsSmall=Math.round(h*0.15), fsName=Math.round(h*0.20), fsBig=Math.round(h*0.17);
@@ -5285,7 +5282,7 @@ function drawSlabLabelToCanvas(ctx, x, y, w, h, card, showBack, ringColor, holoI
     // Right column
     ctx.fillStyle='#0d1626'; ctx.textAlign='right';
     ctx.font=`bold ${fsBig}px "Courier New", monospace`;
-    ctx.fillText('#'+(card.cardNum||card.jerseyNum||'—'), w*0.955, h*0.28);
+    ctx.fillText(getLabelNumberText(card, card.parallel||'base'), w*0.955, h*0.28);
     ctx.fillStyle='#1a2540';
     ctx.font=`bold ${fsSmall}px "Courier New", monospace`;
     ctx.fillText('GEM MINT', w*0.955, h*0.48);
@@ -5744,7 +5741,7 @@ function makeCaseCard(card, snapIndex){
   const yearLine=document.createElement('div'); yearLine.className='cc-label-year';
   yearLine.textContent='2026 STEELE CARDS';
   const nameLine=document.createElement('div'); nameLine.className='cc-label-name';
-  nameLine.textContent=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
+  nameLine.textContent=getLabelNameText(card);
   const variantLine=document.createElement('div'); variantLine.className='cc-label-variant';
   const LABEL_NAME_OVERRIDES = { 'MONTACHUSETT ALL-STAR': 'MONT. ALL-STAR' };
   const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
@@ -5754,7 +5751,7 @@ function makeCaseCard(card, snapIndex){
 
   const right=document.createElement('div'); right.className='cc-label-right';
   const numLine=document.createElement('div'); numLine.className='cc-label-num';
-  numLine.textContent='#'+(card.cardNum||card.jerseyNum||'—');
+  numLine.textContent=getLabelNumberText(card, card.parallel||'base');
   const qualityLine=document.createElement('div'); qualityLine.className='cc-label-quality';
   qualityLine.textContent='GEM MINT';
   const gradeLine=document.createElement('div'); gradeLine.className='cc-label-grade';
@@ -6027,6 +6024,25 @@ function viewCaseCard(card){
 
 // Fills in the PSA-style label bar shown above the card in slab-view mode —
 // same fields/logic as the collection grid's own slab label.
+// Shared by every place that builds a slab label (collection thumbnail,
+// detail view, save-to-collection popup, and the canvas export) — one
+// source of truth so the displayed name/number can't drift between them.
+const SPECIAL_CARD_TITLES = {
+  'special_allstar_trio': "26' Blue All-Stars",
+  'special_team_photo': "26' Mac North Champs",
+};
+function getLabelNameText(card){
+  if(card.firstName && card.lastName) return `${card.firstName} ${card.lastName}`.toUpperCase();
+  return (SPECIAL_CARD_TITLES[card.id] || card.specialTitle || card.id || '').toUpperCase();
+}
+function getLabelNumberText(card, parKey){
+  // The personal Cracked Ice pull is always a true 1-of-1.
+  if(parKey==='ice') return '1/1';
+  // All-Star trio — 3 All-Stars picked out of the 11-player roster.
+  if(card.id==='special_allstar_trio') return '3/11';
+  return '#'+(card.cardNum||card.jerseyNum||'—');
+}
+
 function updateRevealSlabLabel(card, showBack, elId){
   const el=document.getElementById(elId||'revealSlabLabel');
   if(!el) return;
@@ -6056,7 +6072,7 @@ function updateRevealSlabLabel(card, showBack, elId){
 
   const LABEL_NAME_OVERRIDES = { 'MONTACHUSETT ALL-STAR': 'MONT. ALL-STAR' };
   const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
-  const nameText=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
+  const nameText=getLabelNameText(card);
   const savedMs = card.savedAt ? new Date(card.savedAt).getTime() : Date.now();
   const certText = String(Math.abs(savedMs)).slice(-9).padStart(9,'0');
   el.innerHTML=`
@@ -6067,7 +6083,7 @@ function updateRevealSlabLabel(card, showBack, elId){
       <div class="cc-barcode"></div>
     </div>
     <div class="cc-label-right">
-      <div class="cc-label-num">#${card.cardNum||card.jerseyNum||'—'}</div>
+      <div class="cc-label-num">${getLabelNumberText(card, card.parallel||'base')}</div>
       <div class="cc-label-quality">GEM MINT</div>
       <div class="cc-label-grade">10</div>
       <div class="cc-label-cert">${certText}</div>
