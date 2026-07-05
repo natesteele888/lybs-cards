@@ -1387,7 +1387,7 @@ const PAR = {
   holo:         {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
   auto:         {name:'CERTIFIED AUTO',sw:'#1546a0', tint:null,               glow:[100,130,200]},
   ice:          {name:'CRACKED ICE',   sw:'ice',     tint:null,               glow:[180,220,255]},
-  black_ice:    {name:'CRACKED ICE',   sw:'ice',     tint:[8,8,10,0.72],      glow:[18,18,22]},
+  black_ice:    {name:'BLACK CRACKED ICE', sw:'ice',     tint:[8,8,10,0.72],      glow:[18,18,22]},
   bubbles:      {name:'SPARKLE FOIL',  sw:'sparkle', tint:null,               glow:[200,180,120]},
   tie_dye:      {name:'TIE DYE',       sw:'#4a90d9', tint:null,               glow:[100,160,230]},
   montachusett_allstar: {name:'MONTACHUSETT ALL-STAR', sw:'#cc1122', tint:[200,15,35,0.32], glow:[204,17,34]},
@@ -5814,7 +5814,7 @@ function snapToCard(snap){
       serialNum:snap.serialNum,printRun:snap.printRun,savedAt:snap.savedAt};
   }
   return {...rosterCard,parallel:snap.parallel,cardType:snap.cardType,
-    numbered:(snap.parallel==='ice'||snap.parallel==='black_ice')||rosterCard.numbered,
+    numbered:(snap.parallel==='ice')||rosterCard.numbered,
     serialNum:snap.serialNum,printRun:snap.printRun,savedAt:snap.savedAt};
 }
 
