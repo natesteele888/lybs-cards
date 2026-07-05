@@ -171,15 +171,9 @@ body{position:fixed;inset:0}
 body.slab-view-active #bgGlow,
 body.slab-view-active #bgVignette,
 body.slab-view-active #bgSparks{opacity:0}
-.reveal-slab-label{
-  display:none;box-sizing:border-box;
-  padding:6px 10px;
-  align-items:stretch;justify-content:space-between;position:relative;
-  background:linear-gradient(180deg,#eef2f8 0%,#dbe3ef 100%);
-  border:4px solid rgba(180,180,190,.9);border-bottom:none;
-  border-radius:6px 6px 0 0;font-size:11px;font-weight:700}
+.reveal-slab-label{display:none}
 #revealScreen.slab-view-mode .reveal-slab-label{
-  display:flex;width:min(320px,88vw)}
+  display:flex;width:min(320px,88vw,calc(var(--slab-max-h,450px) * 0.712))}
 #revealScreen.slab-view-mode .card-holder canvas{
   border:4px solid rgba(180,180,190,.9);border-top:1.5px solid rgba(255,255,255,.5);
   border-radius:0 0 6px 6px}
@@ -200,7 +194,8 @@ body.slab-view-active #bgSparks{opacity:0}
 #revealScreen.slab-view-mode #prevBtn,
 #revealScreen.slab-view-mode #nextBtn{display:none}
 #revealScreen.slab-view-mode .card-holder canvas{
-  width:min(320px,88vw);height:min(450px,123.6vw)}
+  width:min(320px,88vw,calc(var(--slab-max-h,450px) * 0.712));
+  height:min(450px,123.6vw,var(--slab-max-h,450px))}
 .screen.active{display:flex}
 
 /* ── Top bar ── */
@@ -632,7 +627,8 @@ body.slab-view-active #bgSparks{opacity:0}
   scrollbar-width:none}
 .case-grid::-webkit-scrollbar{display:none}
 
-/* Shelf row — 5 slots across with visible ledge at the bottom */
+/* Shelf row — 4 slots across in portrait (bigger slabs), 5 across in
+   landscape (more width available, so it can fit one more per row) */
 .shelf-row{
   display:grid;grid-template-columns:repeat(4,1fr);gap:0 4px;
   align-items:end;
@@ -641,6 +637,9 @@ body.slab-view-active #bgSparks{opacity:0}
   box-shadow:0 4px 0 rgba(0,0,0,.5);
   margin-bottom:14px;
   min-height:120px}  /* ensures empty slots keep shelf height */
+@media (orientation:landscape){
+  .shelf-row{grid-template-columns:repeat(5,1fr)}
+}
 
 /* Empty slot placeholder */
 .shelf-slot-empty{
@@ -687,7 +686,7 @@ body.slab-view-active #bgSparks{opacity:0}
    script — at real thumbnail size in the collection grid it isn't meant to
    be legible, the border ring color (set inline per-card to the variant's
    own glow color) is the actual signal that reads at a glance. */
-.case-card .cc-slab-label{
+.cc-slab-label{
   width:100%;box-sizing:border-box;
   padding:2% 4%;
   display:flex;align-items:stretch;justify-content:space-between;
@@ -697,11 +696,14 @@ body.slab-view-active #bgSparks{opacity:0}
   border-bottom-width:2px;
   border-radius:5px 5px 0 0;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(0,0,0,.08);
-  /* Base font-size is set INLINE per-card (in lockCardSizes) proportional to
-     the card's actual rendered width — every line below uses em so the
-     whole label scales with the card instead of staying a fixed pixel size
-     that reads fine on a small phone thumbnail but becomes illegible once
-     the card renders bigger (wide screens, zoomed views, etc). */
+  /* Base font-size is set INLINE per-card (in lockCardSizes, or the matching
+     detail-view logic) proportional to the card's actual rendered width —
+     every line below uses em so the whole label scales with the card
+     instead of staying a fixed pixel size that reads fine on a small phone
+     thumbnail but becomes illegible once the card renders bigger (wide
+     screens, zoomed views, etc). This is the SAME rule used by the
+     collection grid, the detail view, and the save-to-collection popup —
+     one recipe, so they stay pixel-for-pixel identical instead of drifting. */
   font-size:3px}
 
 .cc-label-left{display:flex;flex-direction:column;justify-content:center;gap:.2em;flex:1;min-width:0;overflow:hidden}
@@ -978,7 +980,7 @@ window.addEventListener('error',function(e){
     <div class="card-row">
       <button class="rv-btn" id="prevBtn" onclick="prevCard()">‹</button>
       <div class="card-holder" id="cardHolder">
-        <div class="reveal-slab-label" id="revealSlabLabel"></div>
+        <div class="cc-slab-label reveal-slab-label" id="revealSlabLabel"></div>
         <div class="card-glow-ring" id="glowRing"></div>
         <canvas id="revealCanvas" width="712" height="1000"></canvas>
         <div class="zoom-hint-overlay" id="zoomHintOverlay">👆 TAP &amp; HOLD TO ZOOM IN</div>
@@ -1006,7 +1008,7 @@ window.addEventListener('error',function(e){
 <!-- SLAB SAVE OVERLAY -->
 <div id="slabOverlay">
   <div class="slab" id="slab">
-    <div class="reveal-slab-label" id="slabPopupLabel" style="display:flex"></div>
+    <div class="cc-slab-label reveal-slab-label" id="slabPopupLabel" style="display:flex"></div>
     <canvas id="slabCanvas" width="712" height="1000"></canvas>
   </div>
 </div>
@@ -5803,7 +5805,8 @@ function renderCaseGrid(grid){
     grid.innerHTML='<div class="case-empty">No cards yet — open a pack and<br>tap ★ to save one!</div>';
     return;
   }
-  const COLS=4, ROWS=4, TOTAL=COLS*ROWS;
+  const isLandscape = window.innerWidth > window.innerHeight;
+  const COLS=isLandscape?5:4, ROWS=4, TOTAL=COLS*ROWS;
   let dragSrcIdx=null;
 
   function saveOrder(snaps){ localStorage.setItem('lybs_collection',JSON.stringify(snaps)); }
@@ -5883,7 +5886,8 @@ function renderCaseGrid(grid){
     if(!firstRow) return;
     const rowW=firstRow.clientWidth;
     if(!rowW) return;
-    const GAP=4, COLS=4;
+    const isLandscapeNow = window.innerWidth > window.innerHeight;
+    const GAP=4, COLS=isLandscapeNow?5:4;
     let cardW=(rowW-(GAP*(COLS-1)))/COLS;
     const maxW=window.innerHeight*0.30*0.712; // same landscape safety cap as the CSS max-width
     cardW=Math.min(cardW,maxW);
@@ -5938,6 +5942,25 @@ function renderCardTo(canvas,card){
   Object.assign(CS,saved);
 }
 
+// Caps the slab's size to whatever vertical space is actually left after the
+// topbar, the flip-hint line, and the button stack below — without this the
+// slab (bigger now that the counter/arrows are gone) could grow tall enough
+// to push Save/Share/Remove off the bottom of the screen entirely.
+function updateSlabMaxHeight(){
+  const reservedPx = 54 + 56 + 26 + 46 + 44 + 30; // topbar, padding-top, flip-hint, collect-btn, save/share row, margins
+  const maxH = Math.max(220, window.innerHeight - reservedPx);
+  document.documentElement.style.setProperty('--slab-max-h', maxH+'px');
+}
+if(!window._slabMaxHResizeBound){
+  window._slabMaxHResizeBound=true;
+  window.addEventListener('resize',()=>{
+    if(window._viewingCaseCard) updateSlabMaxHeight();
+  });
+  window.addEventListener('orientationchange',()=>{
+    setTimeout(()=>{ if(window._viewingCaseCard) updateSlabMaxHeight(); },200);
+  });
+}
+
 function viewCaseCard(card){
   // Set BEFORE showCard/renderCardNow run, so the "don't replay pack-opening
   // effects" gating actually applies to this very first render too.
@@ -5953,6 +5976,7 @@ function viewCaseCard(card){
   document.body.classList.add('slab-view-active');
   const tb=document.getElementById('topbar'); if(tb) tb.style.display='flex'; // keep visible for ← COLLECTION button
   revealScreenEl.classList.add('active');
+  updateSlabMaxHeight();
   _lastLabelShowBack=false;
   updateRevealSlabLabel(card, false);
   showCard(0);
@@ -6003,10 +6027,17 @@ function updateRevealSlabLabel(card, showBack, elId){
   const ringColor = g ? `rgb(${g[0]},${g[1]},${g[2]})` : 'rgba(180,180,190,.9)';
   el.style.borderColor=ringColor;
 
+  // Same proportional font-size formula the collection grid uses
+  // (cardW * 0.048) — computed from THIS element's own actual rendered
+  // width, so it's pixel-for-pixel the same recipe, not a separately
+  // tuned static size that can drift out of sync.
+  const measuredW = el.clientWidth || el.getBoundingClientRect().width || 262;
+  el.style.fontSize = Math.max(3, measuredW*0.048)+'px';
+
   if(showBack){
     // Back of the label — solid panel, "STEELE CARDS" wordmark where a real
     // PSA slab has its authenticator text, hologram sticker on the right
-    // (moved here from the front, matching the reference slab's back).
+    // (matching the reference slab's back).
     el.classList.add('cc-slab-label-back');
     el.innerHTML=`
       <div class="cc-label-back-wordmark">STEELE<br>CARDS</div>
@@ -6032,9 +6063,9 @@ function updateRevealSlabLabel(card, showBack, elId){
       <div class="cc-label-quality">GEM MINT</div>
       <div class="cc-label-grade">10</div>
       <div class="cc-label-cert">${certText}</div>
-    </div>`;
-  // Note: no hologram here anymore on the front — it's on the back now,
-  // matching the real PSA slab reference (front=info, back=hologram seal).
+    </div>
+    <div class="cc-hologram"></div>`;
+  // Front now matches the collection thumbnail exactly, hologram included.
 }
 
 // Press-and-hold on the card (slab-view only) deliberately replays the
