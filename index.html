@@ -173,7 +173,7 @@ body.slab-view-active #bgVignette,
 body.slab-view-active #bgSparks{opacity:0}
 .reveal-slab-label{display:none}
 #revealScreen.slab-view-mode .reveal-slab-label{
-  display:flex;width:min(320px,88vw,calc(var(--slab-max-h,450px) * 0.712))}
+  display:flex;width:min(300px,84vw,calc(var(--slab-max-h,420px) * 0.712))}
 #revealScreen.slab-view-mode .card-holder canvas{
   border:4px solid rgba(180,180,190,.9);border-top:1.5px solid rgba(255,255,255,.5);
   border-radius:0 0 6px 6px}
@@ -188,14 +188,17 @@ body.slab-view-active #bgSparks{opacity:0}
     0 8px 28px rgba(0,0,0,.7),
     0 2px 8px rgba(0,0,0,.5);
   filter:drop-shadow(0 12px 24px rgba(0,0,0,.5))}
-/* No "CARD 1 OF 6" counter or nav arrows needed for a single saved card —
-   dropping them frees up real estate so the slab itself can render bigger. */
+/* No "CARD 1 OF 6" counter, nav arrows, or "TAP TO FLIP" hint needed for a
+   single saved card someone already knows how to use — dropping them frees
+   up real estate so the slab itself can render bigger while still leaving
+   room for the buttons below. */
 #revealScreen.slab-view-mode #cardCounter,
 #revealScreen.slab-view-mode #prevBtn,
-#revealScreen.slab-view-mode #nextBtn{display:none}
+#revealScreen.slab-view-mode #nextBtn,
+#revealScreen.slab-view-mode #flipHint{display:none}
 #revealScreen.slab-view-mode .card-holder canvas{
-  width:min(320px,88vw,calc(var(--slab-max-h,450px) * 0.712));
-  height:min(450px,123.6vw,var(--slab-max-h,450px))}
+  width:min(300px,84vw,calc(var(--slab-max-h,420px) * 0.712));
+  height:min(421px,118vw,var(--slab-max-h,420px))}
 .screen.active{display:flex}
 
 /* ── Top bar ── */
@@ -5947,8 +5950,13 @@ function renderCardTo(canvas,card){
 // slab (bigger now that the counter/arrows are gone) could grow tall enough
 // to push Save/Share/Remove off the bottom of the screen entirely.
 function updateSlabMaxHeight(){
-  const reservedPx = 54 + 56 + 26 + 46 + 44 + 30; // topbar, padding-top, flip-hint, collect-btn, save/share row, margins
-  const maxH = Math.max(220, window.innerHeight - reservedPx);
+  // Generous budget: topbar, #revealScreen's own top padding, the collect
+  // button, the save/share row, safe-area bottom inset (iPhone home
+  // indicator etc.), and margins/gaps between everything. The previous,
+  // tighter estimate still left Save/Share cut off on real phones, so this
+  // errs on the side of shrinking the card a bit more rather than risk it again.
+  const reservedPx = 54 + 56 + 46 + 44 + 40 + 40;
+  const maxH = Math.max(200, window.innerHeight - reservedPx);
   document.documentElement.style.setProperty('--slab-max-h', maxH+'px');
 }
 if(!window._slabMaxHResizeBound){
@@ -6078,6 +6086,11 @@ function setupRelivePressHold(card){
   holder._reliveWired=true;
   const start=(e)=>{
     if(!window._viewingCaseCard) return;
+    // The magnifier owns press-and-hold while the back is showing — letting
+    // this timer also run was firing relivePull() mid-zoom, which calls
+    // showCard() and resets CS.flipped back to false via loadCardIntoCS,
+    // snapping the card back to front while the zoom lens was still open.
+    if(CS.flipped) return;
     clearTimeout(_reliveHoldTimer);
     _reliveHoldTimer=setTimeout(()=>{ relivePull(); }, 550);
   };
@@ -6090,7 +6103,7 @@ function setupRelivePressHold(card){
   holder.addEventListener('mouseleave', cancel);
 }
 function relivePull(){
-  if(!window._viewingCaseCard) return;
+  if(!window._viewingCaseCard || CS.flipped) return;
   const card=PACK[0];
   if(!card) return;
   const wasViewing=window._viewingCaseCard;
