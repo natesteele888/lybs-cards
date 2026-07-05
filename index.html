@@ -173,13 +173,13 @@ body.slab-view-active #bgVignette,
 body.slab-view-active #bgSparks{opacity:0}
 .reveal-slab-label{
   display:none;box-sizing:border-box;
-  padding:5px 9px;
+  padding:6px 10px;
   align-items:stretch;justify-content:space-between;position:relative;
   background:linear-gradient(180deg,#eef2f8 0%,#dbe3ef 100%);
   border:4px solid rgba(180,180,190,.9);border-bottom:none;
-  border-radius:6px 6px 0 0;font-size:7px}
+  border-radius:6px 6px 0 0;font-size:11px;font-weight:700}
 #revealScreen.slab-view-mode .reveal-slab-label{
-  display:flex;width:min(262px,65vw)}
+  display:flex;width:min(320px,88vw)}
 #revealScreen.slab-view-mode .card-holder canvas{
   border:4px solid rgba(180,180,190,.9);border-top:1.5px solid rgba(255,255,255,.5);
   border-radius:0 0 6px 6px}
@@ -194,6 +194,13 @@ body.slab-view-active #bgSparks{opacity:0}
     0 8px 28px rgba(0,0,0,.7),
     0 2px 8px rgba(0,0,0,.5);
   filter:drop-shadow(0 12px 24px rgba(0,0,0,.5))}
+/* No "CARD 1 OF 6" counter or nav arrows needed for a single saved card —
+   dropping them frees up real estate so the slab itself can render bigger. */
+#revealScreen.slab-view-mode #cardCounter,
+#revealScreen.slab-view-mode #prevBtn,
+#revealScreen.slab-view-mode #nextBtn{display:none}
+#revealScreen.slab-view-mode .card-holder canvas{
+  width:min(320px,88vw);height:min(450px,123.6vw)}
 .screen.active{display:flex}
 
 /* ── Top bar ── */
@@ -2354,7 +2361,17 @@ function prevCard(){
 
 // Flip on tap (if not dragging)
 let wasDragging=false;
+let _lastFlipClickTime=0;
 document.getElementById('cardHolder').addEventListener('click',()=>{
+  // Touch devices can fire a duplicate/ghost "click" shortly after the real
+  // one (since our touch handlers are passive and never call
+  // preventDefault) — that ghost click was arriving AFTER wasDragging had
+  // already reset from a tap-and-hold zoom session, and slipping through to
+  // flip the card back over mid-zoom. A real second intentional flip within
+  // half a second isn't a real use case worth supporting, so just debounce.
+  const nowClick=Date.now();
+  if(nowClick-_lastFlipClickTime<500) return;
+  _lastFlipClickTime=nowClick;
   if(wasDragging){wasDragging=false;return;}
   // Special full-image cards (team photo, all-star trio) have no stats
   // back — tapping them does nothing rather than flipping to a blank face.
@@ -5190,8 +5207,99 @@ function drawIceOverlay(ctx){
 }
 
 /* ── Download front/back ── */
+// Pulls the hologram PNG out of the CSS (.cc-hologram's background-image) so
+// it can be drawn onto an export canvas too — avoids duplicating that base64
+// data a second time just for canvas use.
+let _hologramImgCache=null;
+function getHologramImage(cb){
+  if(_hologramImgCache){ cb(_hologramImgCache); return; }
+  const probe=document.createElement('div');
+  probe.className='cc-hologram';
+  probe.style.cssText='position:absolute;visibility:hidden;top:-999px;left:-999px;';
+  document.body.appendChild(probe);
+  const bg=getComputedStyle(probe).backgroundImage;
+  document.body.removeChild(probe);
+  const match=bg.match(/url\(["']?(.+?)["']?\)/);
+  if(!match){ cb(null); return; }
+  const img=new Image();
+  img.onload=()=>{ _hologramImgCache=img; cb(img); };
+  img.onerror=()=>cb(null);
+  img.src=match[1];
+}
+
+// Canvas recreation of the PSA-style slab label (front or back), matching
+// the DOM version used in the collection/detail views — used so the SAVED
+// image includes the slab framing, not just the bare card underneath it.
+function drawSlabLabelToCanvas(ctx, x, y, w, h, card, showBack, ringColor, holoImg){
+  ctx.save();
+  ctx.translate(x,y);
+  if(showBack){
+    const grad=ctx.createLinearGradient(0,0,w*0.4,h);
+    grad.addColorStop(0,'#0e2f72'); grad.addColorStop(1,'#04173f');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#fff'; ctx.textBaseline='middle'; ctx.textAlign='left';
+    ctx.font=`bold ${Math.round(h*0.32)}px Michroma, sans-serif`;
+    ctx.fillText('STEELE', w*0.06, h*0.34);
+    ctx.fillText('CARDS', w*0.06, h*0.72);
+    if(holoImg){
+      const hs=h*0.66;
+      ctx.drawImage(holoImg, w-hs-w*0.06, (h-hs)/2, hs, hs);
+    }
+  } else {
+    const grad=ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'#eef2f8'); grad.addColorStop(1,'#dbe3ef');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
+    const par=PAR[card.parallel||'base']||PAR.base;
+    const LABEL_NAME_OVERRIDES={'MONTACHUSETT ALL-STAR':'MONT. ALL-STAR'};
+    const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
+    const nameText=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
+    const savedMs = card.savedAt ? new Date(card.savedAt).getTime() : Date.now();
+    const certText = String(Math.abs(savedMs)).slice(-9).padStart(9,'0');
+    const fsSmall=Math.round(h*0.15), fsName=Math.round(h*0.20), fsBig=Math.round(h*0.17);
+    ctx.fillStyle='#1a2540'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.font=`bold ${fsSmall}px "Courier New", monospace`;
+    ctx.fillText('2026 STEELE CARDS', w*0.045, h*0.28);
+    ctx.fillStyle='#0d1626';
+    ctx.font=`bold ${fsName}px "Courier New", monospace`;
+    ctx.fillText(nameText, w*0.045, h*0.53);
+    ctx.fillStyle='#1a2540';
+    ctx.font=`bold ${fsSmall}px "Courier New", monospace`;
+    ctx.fillText(displayVariantName, w*0.045, h*0.75);
+    // Small fixed-width barcode accent, well clear of center
+    ctx.fillStyle='#111';
+    let bx=w*0.045; const by=h*0.83, bh=h*0.11;
+    const stripes=[3,1.5,1.5,3,1.5,3,1.5,1.5,3,1.5];
+    stripes.forEach(sw=>{ const pw=sw*(h/70); ctx.fillRect(bx,by,pw,bh); bx+=pw+h*0.02; });
+    // Right column
+    ctx.fillStyle='#0d1626'; ctx.textAlign='right';
+    ctx.font=`bold ${fsBig}px "Courier New", monospace`;
+    ctx.fillText('#'+(card.cardNum||card.jerseyNum||'—'), w*0.955, h*0.28);
+    ctx.fillStyle='#1a2540';
+    ctx.font=`bold ${fsSmall}px "Courier New", monospace`;
+    ctx.fillText('GEM MINT', w*0.955, h*0.48);
+    ctx.fillStyle='#0d1626';
+    ctx.font=`bold ${fsBig}px "Courier New", monospace`;
+    ctx.fillText('10', w*0.955, h*0.68);
+    ctx.fillStyle='#1a2540';
+    ctx.font=`bold ${Math.round(fsSmall*0.82)}px "Courier New", monospace`;
+    ctx.fillText(certText, w*0.955, h*0.86);
+    ctx.textAlign='left';
+  }
+  ctx.strokeStyle=ringColor;
+  ctx.lineWidth=Math.max(3,h*0.045);
+  ctx.strokeRect(ctx.lineWidth/2,ctx.lineWidth/2,w-ctx.lineWidth,h-ctx.lineWidth);
+  ctx.restore();
+}
+
 function downloadCard(side, format){
   format = format || 'png';
+  // When viewing a saved card from the collection, export the WHOLE slab
+  // (label + acrylic border + card) instead of just the bare card — matches
+  // what's actually on screen in that view.
+  if(window._viewingCaseCard){
+    downloadSlabCard(side, format);
+    return;
+  }
   // Step 1: render to offscreen canvas — back face exports as portrait (rotated)
   // to match what the user sees on screen.
   const tmp=document.createElement('canvas');
@@ -5255,6 +5363,66 @@ function downloadCard(side, format){
   a.click();
   setTimeout(()=>{ try{document.body.removeChild(a);}catch(e){} }, 200);
   return filename;
+}
+
+// Slab-framed export — composites the label + acrylic border around the
+// card render, matching what's shown in the collection detail view.
+function downloadSlabCard(side, format){
+  const card=PACK[0];
+  if(!card){ showToast('No card to save', true); return; }
+  const isBack=side!=='front';
+  const par=PAR[card.parallel||'base']||PAR.base;
+  const g=par.glow;
+  const ringColor = g ? `rgb(${g[0]},${g[1]},${g[2]})` : 'rgba(180,180,190,.9)';
+  const border=Math.round(PW*0.02);
+  const labelH=Math.round(PW*0.185);
+  const tmp=document.createElement('canvas');
+  tmp.width=PW+border*2;
+  tmp.height=PH+labelH+border*2;
+  const tctx=tmp.getContext('2d');
+  tctx.fillStyle='#0a0c10'; tctx.fillRect(0,0,tmp.width,tmp.height);
+
+  const mx0=CS.mx, my0=CS.my;
+  CS.mx=0.5; CS.my=0.5;
+  try{
+    if(side==='front'){
+      tctx.save(); tctx.translate(border, border+labelH); drawFront(tctx); tctx.restore();
+    } else {
+      tctx.save();
+      tctx.translate(border+PW/2, border+labelH+PH/2);
+      tctx.rotate(Math.PI/2);
+      tctx.translate(-BPW/2, -BPH/2);
+      drawBack(tctx);
+      tctx.restore();
+    }
+  } catch(drawErr){
+    CS.mx=mx0; CS.my=my0;
+    showToast('Render error: '+drawErr.message, true);
+    return;
+  }
+  CS.mx=mx0; CS.my=my0;
+
+  getHologramImage((holoImg)=>{
+    drawSlabLabelToCanvas(tctx, border, border, PW, labelH, card, isBack, ringColor, holoImg);
+    // Outer acrylic ring around the whole slab
+    tctx.strokeStyle='rgba(200,210,225,.9)';
+    tctx.lineWidth=Math.max(3,border*0.6);
+    tctx.strokeRect(tctx.lineWidth/2,tctx.lineWidth/2,tmp.width-tctx.lineWidth,tmp.height-tctx.lineWidth);
+
+    const mime = format==='jpeg' ? 'image/jpeg' : 'image/png';
+    const quality = format==='jpeg' ? 0.92 : undefined;
+    let dataUrl;
+    try{ dataUrl=tmp.toDataURL(mime, quality); }
+    catch(e){ showToast('Export blocked by browser.', true); return; }
+    const ext = format==='jpeg' ? 'jpg' : 'png';
+    const nameSrc = card.isSpecial ? (card.specialTitle||'CARD') : (card.lastName||'CARD');
+    const name=nameSrc.toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    const filename=`LYBS_${name}_SLAB_${side.toUpperCase()}.${ext}`;
+    const a=document.createElement('a');
+    a.href=dataUrl; a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ try{document.body.removeChild(a);}catch(e){} }, 200);
+  });
 }
 
 /* ── Save Photo button: downloads BOTH front and back as JPEGs ──
