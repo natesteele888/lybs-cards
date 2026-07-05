@@ -155,6 +155,34 @@ body{position:fixed;inset:0}
   100%{opacity:0;transform:translate(calc(-50% + var(--sdx)),calc(-50% + var(--sdy2))) scale(1.3)}}
 
 .screen{position:fixed;inset:0;z-index:1;display:none;flex-direction:column;align-items:center;justify-content:center}
+
+/* Focused "slab detail" view — used when tapping a card from the collection.
+   Keeps the collection shelf visible (dimmed) behind instead of swapping to
+   the full pack-opening backdrop, since this is "look at what I already
+   have," not "open a new pack." The label is a normal-flow child of
+   card-holder itself (sits directly above the canvas, inside the same box)
+   so it reads as one integrated slab object — tap-to-flip and tilt still
+   apply to the whole thing since they're bound to card-holder/canvas as before. */
+#revealScreen.slab-view-mode{
+  z-index:6;
+  background:rgba(5,7,13,.82);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px)}
+body.slab-view-active #bgGlow,
+body.slab-view-active #bgVignette,
+body.slab-view-active #bgSparks{opacity:0}
+.reveal-slab-label{
+  display:none;box-sizing:border-box;
+  padding:5px 9px;
+  align-items:stretch;justify-content:space-between;position:relative;
+  background:linear-gradient(180deg,#eef2f8 0%,#dbe3ef 100%);
+  border:4px solid rgba(180,180,190,.9);border-bottom:none;
+  border-radius:6px 6px 0 0;font-size:7px}
+#revealScreen.slab-view-mode .reveal-slab-label{
+  display:flex;width:min(262px,65vw)}
+#revealScreen.slab-view-mode .card-holder canvas{
+  border:4px solid rgba(180,180,190,.9);border-top:1.5px solid rgba(255,255,255,.5);
+  border-radius:0 0 6px 6px}
 .screen.active{display:flex}
 
 /* ── Top bar ── */
@@ -580,7 +608,7 @@ body{position:fixed;inset:0}
 
 /* Shelf row — 5 slots across with visible ledge at the bottom */
 .shelf-row{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:0 4px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0 4px;
   align-items:end;
   padding-bottom:5px;
   border-bottom:4px solid rgba(140,100,40,.55);
@@ -908,6 +936,7 @@ window.addEventListener('error',function(e){
     <div class="card-row">
       <button class="rv-btn" id="prevBtn" onclick="prevCard()">‹</button>
       <div class="card-holder" id="cardHolder">
+        <div class="reveal-slab-label" id="revealSlabLabel"></div>
         <div class="card-glow-ring" id="glowRing"></div>
         <canvas id="revealCanvas" width="712" height="1000"></canvas>
         <div class="zoom-hint-overlay" id="zoomHintOverlay">👆 TAP &amp; HOLD TO ZOOM IN</div>
@@ -1612,6 +1641,13 @@ function updatePackCounter(){
 }
 
 function goToNextPack(){
+  // Clean up slab-view-mode state in case this was reached from viewing a
+  // saved collection card — otherwise the new pack's reveal effects would
+  // stay incorrectly suppressed.
+  window._viewingCaseCard=false;
+  document.getElementById('revealScreen').classList.remove('slab-view-mode');
+  document.body.classList.remove('slab-view-active');
+  document.getElementById('caseScreen').classList.remove('active');
   // Find the next unopened pack and open it
   const nextIdx = PACKS.findIndex((_,i) => !openedPacks.has(i));
   if(nextIdx >= 0){
@@ -1735,7 +1771,10 @@ function showCard(i){
   // always holo by design, not a random pull — they don't get the
   // theatrical unveil, just the normal instant reveal like a base card would.
   const isGuaranteedSpecial = (card.id==='special_allstar_trio' || card.id==='special_team_photo');
-  const isSpecialPull = (parKey==='ice' || parKey==='holo') && !isGuaranteedSpecial;
+  // Viewing an already-saved card from the collection should never replay
+  // the pack-opening theatrics — that's for actually pulling the card, not
+  // for looking at what you already have.
+  const isSpecialPull = (parKey==='ice' || parKey==='holo') && !isGuaranteedSpecial && !window._viewingCaseCard;
   if(isSpecialPull){
     playSpecialUnveil(i);
   } else {
@@ -1883,32 +1922,40 @@ function renderCardNow(i){
     // show in playSpecialUnveil right before this runs — skip the generic
     // whoosh and the new spark burst here so they don't layer on top of it.
 
-    // Cracked Ice 1-of-1 background ambience — loops the whole time that
-    // specific card is showing, stops the moment any other card is shown.
-    if(parKey==='ice') startIceLoop(); else stopIceLoop(0.4);
+    // None of the "new pull" effects below should replay when someone is just
+    // looking at a card they already saved — that's what made re-opening a
+    // collection card feel like getting it all over again.
+    if(!window._viewingCaseCard){
+      // Cracked Ice 1-of-1 background ambience — loops the whole time that
+      // specific card is showing, stops the moment any other card is shown.
+      if(parKey==='ice') startIceLoop(); else stopIceLoop(0.4);
 
-    // Generic "card builds in" whoosh — fires immediately, synced with the
-    // card actually appearing (not delayed until its scale animation ends),
-    // and now plays on the very first card too. Still suppressed for the
-    // swipe next/prev flow (the quick click sound already covers that) and
-    // for theatrical ice/holo pulls (already covered above).
-    if(!_suppressFlyInSound && !isTheatricalPull){
-      playSound('cardFlyIn');
-    }
-    _suppressFlyInSound=false;
+      // Generic "card builds in" whoosh — fires immediately, synced with the
+      // card actually appearing (not delayed until its scale animation ends),
+      // and now plays on the very first card too. Still suppressed for the
+      // swipe next/prev flow (the quick click sound already covers that) and
+      // for theatrical ice/holo pulls (already covered above).
+      if(!_suppressFlyInSound && !isTheatricalPull){
+        playSound('cardFlyIn');
+      }
+      _suppressFlyInSound=false;
 
-    // NEW: small electric spark/ember burst behind every non-base card as it
-    // builds in (Red/Blue/Black/Purple/Gold/guaranteed-specials, etc.) —
-    // separate from the whoosh, paired with its own quick-fading electric sound.
-    if(parKey!=='base' && !isTheatricalPull){
-      spawnCardSparkBurst(holder, parKey);
-    }
+      // NEW: small electric spark/ember burst behind every non-base card as it
+      // builds in (Red/Blue/Black/Purple/Gold/guaranteed-specials, etc.) —
+      // separate from the whoosh, paired with its own quick-fading electric sound.
+      if(parKey!=='base' && !isTheatricalPull){
+        spawnCardSparkBurst(holder, parKey);
+      }
 
-    // Guaranteed Holo Foil specials (team photo, All-Star trio) skip the
-    // theatrical unveil entirely, so they get a level-up sound as their
-    // own quieter acknowledgement instead.
-    if(isGuaranteedSpecial){
-      playSound('holoNoIntro', {fadeOutAt: 2.6, fadeOutDur: 0.4});
+      // Guaranteed Holo Foil specials (team photo, All-Star trio) skip the
+      // theatrical unveil entirely, so they get a level-up sound as their
+      // own quieter acknowledgement instead.
+      if(isGuaranteedSpecial){
+        playSound('holoNoIntro', {fadeOutAt: 2.6, fadeOutDur: 0.4});
+      }
+    } else {
+      _suppressFlyInSound=false;
+      stopIceLoop(0.2);
     }
     // Hide the swipe hint once the user navigates past the first card
   }
@@ -5534,7 +5581,7 @@ function renderCaseGrid(grid){
     grid.innerHTML='<div class="case-empty">No cards yet — open a pack and<br>tap ★ to save one!</div>';
     return;
   }
-  const COLS=5, ROWS=4, TOTAL=COLS*ROWS;
+  const COLS=4, ROWS=4, TOTAL=COLS*ROWS;
   let dragSrcIdx=null;
 
   function saveOrder(snaps){ localStorage.setItem('lybs_collection',JSON.stringify(snaps)); }
@@ -5614,7 +5661,7 @@ function renderCaseGrid(grid){
     if(!firstRow) return;
     const rowW=firstRow.clientWidth;
     if(!rowW) return;
-    const GAP=4, COLS=5;
+    const GAP=4, COLS=4;
     let cardW=(rowW-(GAP*(COLS-1)))/COLS;
     const maxW=window.innerHeight*0.30*0.712; // same landscape safety cap as the CSS max-width
     cardW=Math.min(cardW,maxW);
@@ -5670,11 +5717,21 @@ function renderCardTo(canvas,card){
 }
 
 function viewCaseCard(card){
+  // Set BEFORE showCard/renderCardNow run, so the "don't replay pack-opening
+  // effects" gating actually applies to this very first render too.
+  window._viewingCaseCard=true;
+
   // Populate PACK with just this card so the reveal screen can display it
   PACK=[card]; packIdx=0;
-  document.getElementById('caseScreen').classList.remove('active');
+  // Collection stays visible (dimmed) behind — this is "look at what I
+  // already have," not a fresh pack-opening backdrop.
+  document.getElementById('caseScreen').classList.add('active');
+  const revealScreenEl=document.getElementById('revealScreen');
+  revealScreenEl.classList.add('slab-view-mode');
+  document.body.classList.add('slab-view-active');
   const tb=document.getElementById('topbar'); if(tb) tb.style.display='flex'; // keep visible for ← COLLECTION button
-  document.getElementById('revealScreen').classList.add('active');
+  revealScreenEl.classList.add('active');
+  updateRevealSlabLabel(card);
   showCard(0);
 
   // Save button stays as stroke-btn 📷 SAVE
@@ -5692,20 +5749,11 @@ function viewCaseCard(card){
     cBtn.onclick=()=>openRemoveConfirm(card);
   }
 
-  // Show "OPEN NEXT PACK" if packs remain, otherwise "← BACK TO COLLECTION"
+  // Dropped entirely from this view — no "OPEN NEXT PACK" here anymore.
+  // Frees up real estate for the bigger slab, and keeps this view purely
+  // about the one saved card; leaving via ← COLLECTION is the only way out.
   const oaBtn=document.getElementById('openAnotherBtn');
-  if(oaBtn){
-    const morePacksLeft = PACKS.some((_,idx)=>!openedPacks.has(idx));
-    if(morePacksLeft){
-      oaBtn.textContent='OPEN NEXT PACK →';
-      oaBtn.style.display='';
-      oaBtn.onclick=goToNextPack;
-    } else {
-      oaBtn.textContent='← BACK TO COLLECTION';
-      oaBtn.style.display='';
-      oaBtn.onclick=backToCase;
-    }
-  }
+  if(oaBtn) oaBtn.style.display='none';
 
   // Show ← COLLECTION in the topbar top-right corner
   const navBtn=document.getElementById('collectionBtn');
@@ -5719,11 +5767,74 @@ function viewCaseCard(card){
   const giftBtn2=document.getElementById('giftBtn');
   if(giftBtn2){ giftBtn2.style.display=''; }
 
-  window._viewingCaseCard=true;
+  setupRelivePressHold(card);
+}
+
+// Fills in the PSA-style label bar shown above the card in slab-view mode —
+// same fields/logic as the collection grid's own slab label.
+function updateRevealSlabLabel(card){
+  const el=document.getElementById('revealSlabLabel');
+  if(!el) return;
+  const par=PAR[card.parallel||'base']||PAR.base;
+  const g=par.glow;
+  const ringColor = g ? `rgb(${g[0]},${g[1]},${g[2]})` : 'rgba(180,180,190,.9)';
+  el.style.borderColor=ringColor;
+  const LABEL_NAME_OVERRIDES = { 'MONTACHUSETT ALL-STAR': 'MONT. ALL-STAR' };
+  const displayVariantName = par.name!=='BASE' ? (LABEL_NAME_OVERRIDES[par.name]||par.name) : 'BASE';
+  const nameText=(card.firstName&&card.lastName)?`${card.firstName} ${card.lastName}`.toUpperCase():(card.specialTitle||card.id||'').toUpperCase();
+  const savedMs = card.savedAt ? new Date(card.savedAt).getTime() : Date.now();
+  const certText = String(Math.abs(savedMs)).slice(-9).padStart(9,'0');
+  el.innerHTML=`
+    <div class="cc-label-left">
+      <div class="cc-label-year">2026 STEELE CARDS</div>
+      <div class="cc-label-name">${nameText}</div>
+      <div class="cc-label-variant">${displayVariantName}</div>
+      <div class="cc-barcode"></div>
+    </div>
+    <div class="cc-label-right">
+      <div class="cc-label-num">#${card.cardNum||card.jerseyNum||'—'}</div>
+      <div class="cc-label-quality">GEM MINT</div>
+      <div class="cc-label-grade">10</div>
+      <div class="cc-label-cert">${certText}</div>
+    </div>
+    <div class="cc-hologram"></div>`;
+}
+
+// Press-and-hold on the card (slab-view only) deliberately replays the
+// original pack-opening effects for that card — a way to "relive the
+// opening" on purpose, without it happening automatically just from looking.
+let _reliveHoldTimer=null;
+function setupRelivePressHold(card){
+  const holder=document.getElementById('cardHolder');
+  if(!holder || holder._reliveWired) return;
+  holder._reliveWired=true;
+  const start=(e)=>{
+    if(!window._viewingCaseCard) return;
+    clearTimeout(_reliveHoldTimer);
+    _reliveHoldTimer=setTimeout(()=>{ relivePull(); }, 550);
+  };
+  const cancel=()=>{ clearTimeout(_reliveHoldTimer); };
+  holder.addEventListener('touchstart', start, {passive:true});
+  holder.addEventListener('touchend', cancel);
+  holder.addEventListener('touchmove', cancel);
+  holder.addEventListener('mousedown', start);
+  holder.addEventListener('mouseup', cancel);
+  holder.addEventListener('mouseleave', cancel);
+}
+function relivePull(){
+  if(!window._viewingCaseCard) return;
+  const card=PACK[0];
+  if(!card) return;
+  const wasViewing=window._viewingCaseCard;
+  window._viewingCaseCard=false; // briefly let the real pack-opening effects fire
+  showCard(0);
+  window._viewingCaseCard=wasViewing;
 }
 
 function backToCase(){
   window._viewingCaseCard=false;
+  document.getElementById('revealScreen').classList.remove('slab-view-mode');
+  document.body.classList.remove('slab-view-active');
   // Restore button styles and callbacks
   const btn=document.getElementById('saveBtn');
   btn.style='';btn.onclick=savePhotoJPEG;btn.classList.remove('saved');
