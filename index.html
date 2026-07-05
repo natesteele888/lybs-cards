@@ -606,6 +606,12 @@ body{position:fixed;inset:0}
   border-radius:6px;
   transition:transform .18s,filter .18s,opacity .15s;
   transform:perspective(400px) rotateX(3deg);transform-origin:bottom center;
+  /* Caps how wide (and via the aspect-ratio-driven acrylic, how tall) a card
+     can grow when the viewport is wide but short — landscape orientation —
+     where 1/5th of the screen WIDTH alone could make each card taller than
+     the screen actually has room for, causing rows to overlap. 30vh*0.712
+     keeps roughly 3 shelf-rows' worth of vertical room per card max. */
+  max-width:calc(30vh * 0.712);
   /* Outer slab shell — thick clear acrylic look */
   box-shadow:
     0 0 0 1.5px rgba(255,255,255,.55),   /* polished outer edge */
@@ -662,9 +668,15 @@ body{position:fixed;inset:0}
     inset 2px 0 3px rgba(255,255,255,.15),      /* left inner edge */
     inset -2px 0 3px rgba(255,255,255,.15)}     /* right inner edge */
 
-/* Inner card sleeve/gasket — the recessed cavity the card sits in */
+/* Inner card sleeve/gasket — the recessed cavity the card sits in.
+   Uses the padding-top percentage technique instead of the `aspect-ratio`
+   property — aspect-ratio isn't supported in some older mobile webviews
+   (e.g. embedded browsers inside messaging apps), which was collapsing
+   this box to zero height and throwing off every card's size inconsistently.
+   padding-top:% is resolved against the element's own width and has been
+   universally supported for well over a decade. */
 .case-acrylic-inner{
-  position:relative;
+  position:relative;width:100%;height:0;padding-top:140.45%; /* 1000/712 */
   background:rgba(245,250,255,.06);
   border-radius:2px;
   border:1px solid rgba(180,200,230,.25);
@@ -673,7 +685,7 @@ body{position:fixed;inset:0}
     inset 0 0 0 1px rgba(0,0,30,.12);   /* inner edge darkening */
   overflow:hidden}
 
-.case-acrylic-inner canvas{width:100%;height:100%;display:block}
+.case-acrylic-inner canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 /* Polished surface sheen — diagonal light catching the acrylic face */
 .case-acrylic::after{
@@ -5432,7 +5444,6 @@ function makeCaseCard(card, snapIndex){
   const acrylic=document.createElement('div');acrylic.className='case-acrylic';
   // Inner recessed cavity / gasket
   const inner=document.createElement('div');inner.className='case-acrylic-inner';
-  inner.style.cssText='aspect-ratio:712/1000';
   const cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
   inner.appendChild(cv);
   acrylic.appendChild(inner);
