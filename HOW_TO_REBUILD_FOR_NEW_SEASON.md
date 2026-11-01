@@ -36,7 +36,7 @@ this doc and call out only what's changed.
 
 - **`index.html`** — the complete, self-contained app. One file, no backend,
   works for every kid on the roster.
-- **`player_links.csv`** — every player's name and their personal pack link,
+- **`player_links.csv`** (kept on your computer only — `.gitignore` blocks it, because it lists players' full names) — every player's name and their personal pack link,
   ready to copy into a text or email once the file is hosted.
 
 ## Hosting it (one-time per season, ~2 minutes)

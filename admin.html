@@ -366,7 +366,7 @@ window.addEventListener('unhandledrejection',function(e){
     <input type="password" id="pwInput" placeholder="Passcode or password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:1px;font-size:14px">
     <button class="lc-btn" onclick="doLogin()">ENTER PORTAL</button>
     <div class="lc-err" id="loginErr"></div>
-    <div style="font-family:'Oswald',sans-serif;font-size:11px;color:#999;margin-top:10px;line-height:1.5">Passcode <b style="color:#C5973A">lybs2026</b> enters the builder.<br>Add your admin email + password to also save to the cloud.</div>
+    <div style="font-family:'Oswald',sans-serif;font-size:11px;color:#999;margin-top:10px;line-height:1.5">Passcode enters the builder.<br>Add your admin email + password to also save to the cloud.</div>
     <div id="fbDiag" style="font-family:monospace;font-size:9px;color:#666;margin-top:6px;line-height:1.4"></div>
   </div>
 </div>
@@ -3162,7 +3162,7 @@ async function doLogin(){
   }
 
   // Nothing valid entered
-  errEl.innerHTML='Enter passcode <b>lybs2026</b> in the password box to enter,<br>or your admin email + password to also enable cloud save.';
+  errEl.innerHTML='Enter the team passcode in the password box to enter,<br>or your admin email + password to also enable cloud save.';
 }
 
 function enterAdmin(){

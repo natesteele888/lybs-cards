@@ -1,0 +1,5 @@
+
+# Never commit player lists, rosters, exports or macOS metadata
+*.csv
+._*
+.DS_Store
