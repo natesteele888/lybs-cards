@@ -363,10 +363,10 @@ window.addEventListener('unhandledrejection',function(e){
     <h1>STEELE CARDS</h1>
     <p>Admin Portal · Authorized Access Only</p>
     <input type="email" id="emailInput" placeholder="Admin email (optional — for cloud save)" autocomplete="email" style="letter-spacing:1px;font-size:13px;text-transform:none">
-    <input type="password" id="pwInput" placeholder="Passcode or password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:1px;font-size:14px">
+    <input type="password" id="pwInput" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:1px;font-size:14px">
     <button class="lc-btn" onclick="doLogin()">ENTER PORTAL</button>
     <div class="lc-err" id="loginErr"></div>
-    <div style="font-family:'Oswald',sans-serif;font-size:11px;color:#999;margin-top:10px;line-height:1.5">Passcode <b style="color:#C5973A">lybs2026</b> enters the builder.<br>Add your admin email + password to also save to the cloud.</div>
+    <div style="font-family:'Oswald',sans-serif;font-size:11px;color:#999;margin-top:10px;line-height:1.5">Sign in with your admin email and password.</div>
     <div id="fbDiag" style="font-family:monospace;font-size:9px;color:#666;margin-top:6px;line-height:1.4"></div>
   </div>
 </div>
@@ -992,7 +992,6 @@ let rPending=false, sCnt=0, sCntP=0, pCntP=0;
 let pD='',sD='',lD='',mD='',pS='',sS='',lS='',mS='';
 let sigHasMark=false;  // true only after user actually draws a stroke
 let pCache=[];
-const PW2='lybs2026';
 
 // Preloaded layer images
 const LAYERS={};
@@ -3114,21 +3113,13 @@ async function doLogin(){
   const pass=document.getElementById('pwInput').value;
   const errEl=document.getElementById('loginErr');
 
-  // Offline passcode path — always works, no network needed.
-  // Enter the passcode in the PASSWORD field (leave email blank) to go straight in.
-  if(!email && pass==='lybs2026'){
-    enterAdmin();
-    return;
-  }
-
   // If they entered an email + password, TRY Firebase auth (needed for saving to the cloud),
-  // but never hard-block: if it fails, tell them and still let them work locally.
+  // and stay on this screen if it fails.
   if(email && pass){
     errEl.textContent='Signing in...';
     const ar=(typeof getAuthOrReason==='function')?getAuthOrReason():{auth:window._auth};
     if(!ar.auth){
-      errEl.innerHTML='Could not reach Firebase ('+ (ar.reason||'auth unavailable') +').<br><span style="font-size:11px">Entering local mode — you can build &amp; download cards, but cloud save is off.</span>';
-      setTimeout(enterAdmin,1800);
+      errEl.innerHTML='Could not reach Firebase ('+ (ar.reason||'auth unavailable') +'). Try again when you are online.';
       return;
     }
     try{
@@ -3141,14 +3132,13 @@ async function doLogin(){
       enterAdmin();
     }catch(e){
       console.error('sign-in failed',e);
-      errEl.innerHTML='Sign-in failed ('+(e.code||e.message)+').<br><span style="font-size:11px">Entering local mode — cloud save may not work until signed in.</span>';
-      setTimeout(enterAdmin,2000);
+      errEl.innerHTML='Sign-in failed ('+(e.code||e.message)+'). Check your email and password.';
     }
     return;
   }
 
   // Nothing valid entered
-  errEl.innerHTML='Enter passcode <b>lybs2026</b> in the password box to enter,<br>or your admin email + password to also enable cloud save.';
+  errEl.innerHTML='Enter your admin email and password.';
 }
 
 function enterAdmin(){
