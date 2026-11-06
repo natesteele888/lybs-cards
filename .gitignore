@@ -1,0 +1,7 @@
+# Never commit player data, photos, rosters or exports
+*.csv
+*.png
+*.jpg
+*.zip
+._*
+.DS_Store
