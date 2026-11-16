@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Steele Cards</title><meta name="robots" content="noindex,nofollow,noimageindex">
+<meta name="theme-color" content="#05070d">
+<style>
+:root{--bg:#05070d;--ink:#fff;--gold:#E2B32C;--blue:#2563eb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}
+.shop{position:relative;width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.shop::-webkit-scrollbar{display:none}
+/* Wide screens: the whole shop fits. Phones: the shop stays tall enough to tap and pans sideways. */
+.scene{position:relative;width:100%;min-width:calc(min(78vh,640px) * 1.776);aspect-ratio:1671/941}
+.scene img{display:block;width:100%;height:100%;user-select:none;-webkit-user-drag:none}
+.hot{position:absolute;display:block;border-radius:10px;outline:none;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 0 0 0 rgba(226,179,44,0);transition:box-shadow .2s,background .2s;cursor:pointer}
+.hot:hover,.hot:focus-visible{box-shadow:0 0 0 3px var(--gold),0 0 24px rgba(226,179,44,.6);background:rgba(226,179,44,.08)}
+.hot.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,179,44,0)}50%{box-shadow:0 0 0 3px rgba(226,179,44,.9),0 0 26px rgba(226,179,44,.55)}}
+.tag{position:absolute;left:50%;bottom:-6px;transform:translate(-50%,100%);white-space:nowrap;
+  font:700 11px/1 system-ui;letter-spacing:.06em;text-transform:uppercase;background:rgba(5,7,13,.85);
+  color:var(--gold);padding:5px 8px;border-radius:999px;border:1px solid rgba(226,179,44,.5);pointer-events:none}
+.box{left:59.2%;top:58.2%;width:10.9%;height:16.2%}
+.lybs{left:72.7%;top:8.5%;width:10.5%;height:34.5%}
+.monty{left:84.1%;top:3.7%;width:14.1%;height:39.9%}
+.chalk{left:87.1%;top:59%;width:12.3%;height:29.2%}
+.hint{text-align:center;color:#9aa3b2;font-size:13px;margin:10px 16px 0}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:640px;margin:14px auto 28px;padding:0 16px}
+.quick button{min-height:48px;border-radius:12px;border:1px solid #263042;background:#0d1320;color:#fff;font:600 15px system-ui;cursor:pointer}
+.quick button.primary{grid-column:1/-1;background:var(--blue);border-color:var(--blue)}
+@media (min-width:900px){.quick{grid-template-columns:repeat(4,minmax(0,1fr))}.quick button.primary{grid-column:auto}.hint{display:none}}
+@media (prefers-reduced-motion:reduce){.hot.pulse{animation:none}}
+</style></head>
+<body>
+<div class="shop" id="shop">
+  <div class="scene">
+    <img src="steele-cards-shop-branded.png" alt="The Steele Cards shop" width="1671" height="941">
+    <a class="hot box pulse" data-go="pack" role="button" tabindex="0" aria-label="Open a pack"><span class="tag">Open a pack</span></a>
+    <a class="hot lybs" data-go="lybs" role="button" tabindex="0" aria-label="LYBS 2026 set"><span class="tag">LYBS 2026</span></a>
+    <a class="hot monty" data-go="monty" role="button" tabindex="0" aria-label="Montachusett 11U 2026 set"><span class="tag">Montachusett 11U</span></a>
+    <a class="hot chalk" data-go="newest" role="button" tabindex="0" aria-label="Newest series"><span class="tag">New series</span></a>
+  </div>
+</div>
+<p class="hint">Swipe to look around the shop. Tap the glowing box to open a pack.</p>
+<div class="quick">
+  <button class="primary" data-go="pack">Open a pack</button>
+  <button data-go="lybs">LYBS 2026 set</button>
+  <button data-go="monty">Montachusett 11U set</button>
+  <button data-go="newest">New series</button>
+</div>
+<script>
+// Where each part of the shop goes. The front page that hosts this screen sets window.SHOP_GO
+// (see README.md); these defaults only stand in so the page works on its own.
+var SHOP_GO = window.SHOP_GO || {
+  pack:   function(){ location.hash = "code"; },   // front page: show the pack-code box ("use the link your coach sent")
+  lybs:   function(){ location.hash = "lybs"; },   // front page: open the LYBS 2026 set
+  monty:  function(){ location.hash = "monty"; },  // front page: open the Montachusett 11U 2026 set
+  newest: function(){ location.hash = "newest"; }  // front page: open the newest series
+};
+document.querySelectorAll("[data-go]").forEach(function(el){
+  function go(e){ e.preventDefault(); var f = SHOP_GO[el.getAttribute("data-go")]; if (f) f(); }
+  el.addEventListener("click", go);
+  el.addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " ") go(e); });
+});
+// On a phone the shop is wider than the screen: start with the table and the box in view.
+(function(){ var s = document.getElementById("shop");
+  function center(){ if (s.scrollWidth > s.clientWidth) s.scrollLeft = (s.scrollWidth - s.clientWidth) * 0.62; }
+  var img = s.querySelector("img"); if (img.complete) center(); else img.addEventListener("load", center);
+})();
+</script>
+</body></html>
