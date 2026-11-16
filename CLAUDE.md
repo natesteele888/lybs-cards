@@ -14,3 +14,12 @@ This app is one of several that share parts and lessons through the private
   want, add a dated entry to `nate-brain/lessons.md`. If you change a shared part
   here, update its entry in `parts.md`.
 - Know-how only in nate-brain: never copy names, contact info, stats or secrets into it.
+
+## Ballclub uses the Card Maker too
+
+LYBS Ballclub's Roster "See card" (`natesteele888/lybs-ballclub`,
+`js/card-photos.js`, `KIT_BASE`) loads `card-kit/card-kit.js`,
+`card-kit/steele-card.js` and `card-kit/layers/` from this repo by path on
+github.io and calls `SteeleCardKit.cardData`, `SteeleCard.loadLayers` and
+`SteeleCard.render`. Keep those paths and names, or change Ballclub in the
+same session.
