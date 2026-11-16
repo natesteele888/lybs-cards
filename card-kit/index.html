@@ -3,7 +3,8 @@
 <title>Steele Cards Card Maker</title><meta name="robots" content="noindex,nofollow,noimageindex">
 <meta name="theme-color" content="#05070d">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Michroma&family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,wght@1,400;1,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Michroma&family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,wght@1,400;1,700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Michroma&family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,wght@1,400;1,700&display=swap"></noscript>
 <style>
 :root{--bg:#05070d;--panel:#0d1330;--line:#24306a;--text:#fff;--muted:#aab3d6;--gold:#E2B32C}
 *{box-sizing:border-box}
@@ -171,6 +172,8 @@ input[type=range]{min-height:32px;padding:0;accent-color:var(--gold)}
 
   SC.loadLayers(".").then(() => {
     draw();
+    // The font stylesheet loads without blocking the page, so redraw whenever a font finishes arriving.
+    if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", draw);
     if (document.fonts && document.fonts.load) Promise.all(["italic 58px Anton", "italic 24px Michroma", "500 12px Oswald", "italic 12px 'Source Serif 4'"].map(f => document.fonts.load(f))).then(draw, () => {});
   });
   window.__cardMaker = { S, draw, opts };
