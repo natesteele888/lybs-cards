@@ -3,102 +3,177 @@
 <title>Steele Cards Card Maker</title><meta name="robots" content="noindex,nofollow,noimageindex">
 <meta name="theme-color" content="#05070d">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Michroma&family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,wght@1,400;1,700&display=swap">
 <style>
-:root{--bg:#05070d;--panel:#0d1330;--line:#24306a;--text:#fff;--muted:#aab3d6;--blue:#1B3FD8;--silver:#C9D1D6}
+:root{--bg:#05070d;--panel:#0d1330;--line:#24306a;--text:#fff;--muted:#aab3d6;--gold:#E2B32C}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,-apple-system,"Segoe UI",sans-serif}
-header{padding:16px;text-align:center;font:400 28px Anton,Impact,sans-serif;letter-spacing:.04em}
+body{margin:0;background:radial-gradient(ellipse at top,#121a44 0,var(--bg) 60%);color:var(--text);font:16px system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+header{padding:16px 16px 8px;text-align:center;font:400 28px Anton,Impact,sans-serif;letter-spacing:.04em}
 header small{display:block;font:500 13px system-ui,sans-serif;color:var(--muted);letter-spacing:0;margin-top:4px}
-main{max-width:980px;margin:0 auto;padding:0 16px 32px;display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
-@media(min-width:820px){main{grid-template-columns:minmax(0,1fr) 380px}}
-.stage{display:grid;gap:12px;justify-items:center}
-canvas{width:100%;max-width:420px;height:auto;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
-.flip{display:flex;gap:8px}
-button,.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:12px 16px;font:600 15px system-ui,sans-serif;min-height:44px;cursor:pointer}
-button[aria-pressed=true],.primary{background:var(--blue);border-color:var(--blue)}
+main{max-width:1000px;margin:0 auto;padding:0 16px 32px;display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:840px){main{grid-template-columns:minmax(0,1fr) 400px}}
+.stage{display:grid;gap:12px;justify-items:center;align-content:start}
+.wrap{width:100%;max-width:400px;perspective:1200px}
+.card3d{transition:transform .08s linear;transform-style:preserve-3d}
+canvas{display:block;width:100%;height:auto;box-shadow:0 18px 50px rgba(0,0,0,.7);touch-action:none;cursor:grab}
+canvas.dragging{cursor:grabbing}
+.hint{font-size:13px;color:var(--muted);margin:0;text-align:center}
+.btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button{appearance:none;border:2px solid var(--gold);background:transparent;color:var(--gold);border-radius:999px;padding:10px 18px;font:600 15px Oswald,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;min-height:44px;cursor:pointer}
+button.on,button.primary{background:var(--gold);color:#111}
 form{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;align-content:start}
+h2{margin:4px 0 0;font:600 14px Oswald,sans-serif;letter-spacing:.08em;color:var(--gold);text-transform:uppercase}
 label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
 input,select{width:100%;min-height:44px;border-radius:8px;border:1px solid var(--line);background:#060a1f;color:var(--text);padding:8px 10px;font:16px system-ui,sans-serif}
-input[type=color]{padding:2px}
-input[type=range]{min-height:32px}
+input[type=range]{min-height:32px;padding:0;accent-color:var(--gold)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.note{font-size:13px;color:var(--muted);margin:0}
-#msg{min-height:1.2em;font-size:14px;color:#ffd166}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pills button{padding:6px 12px;min-height:36px;font-size:13px}
+#msg{min-height:1.2em;font-size:14px;color:#ffd166;margin:0;text-align:center}
 </style></head>
 <body>
-<header>STEELE CARDS CARD MAKER<small>Try a card here. Your photo stays on this phone: nothing is uploaded or saved.</small></header>
+<header>STEELE CARDS CARD MAKER<small>Your photo stays on this phone: nothing is uploaded or saved.</small></header>
 <main>
   <section class="stage">
-    <canvas id="card" width="750" height="1050" aria-label="Card preview"></canvas>
-    <div class="flip">
-      <button type="button" id="showFront" aria-pressed="true">Front</button>
-      <button type="button" id="showBack" aria-pressed="false">Back</button>
-      <button type="button" id="save" class="primary">Save picture</button>
+    <div class="wrap"><div class="card3d" id="tilt"><canvas id="card" width="712" height="1000" aria-label="Card preview"></canvas></div></div>
+    <p class="hint" id="hint">Add a photo, then drag it on the card to place it. Tap the card to flip it.</p>
+    <div class="btns">
+      <button type="button" id="showFront" class="on">Front</button>
+      <button type="button" id="showBack">Back</button>
+      <button type="button" id="save" class="primary">Save photo</button>
     </div>
     <p id="msg" role="status"></p>
   </section>
-  <form id="f" autocomplete="off">
-    <label>Photo<input type="file" id="photo" accept="image/*"></label>
-    <div class="row"><label>Zoom<input type="range" id="zoom" min="1" max="3" step="0.05" value="1"></label>
-      <label>Up / down<input type="range" id="dy" min="-1" max="1" step="0.02" value="0"></label></div>
-    <label>Left / right<input type="range" id="dx" min="-1" max="1" step="0.02" value="0"></label>
+  <form id="f" autocomplete="off" onsubmit="return false">
+    <h2>Photo</h2>
+    <label>Player photo<input type="file" id="photo" accept="image/*"></label>
+    <label>Size <span id="scaleVal">130%</span><input type="range" id="scale" min="50" max="300" step="1" value="130"></label>
+    <div class="row"><label>Left / right<input type="range" id="ox" min="-350" max="350" step="1" value="0"></label>
+      <label>Up / down<input type="range" id="oy" min="-450" max="450" step="1" value="0"></label></div>
+    <div class="btns"><button type="button" id="reset">Reset photo</button></div>
+    <h2>Player</h2>
     <div class="row"><label>First name<input id="first" value="Sample"></label><label>Last name<input id="last" value="Player"></label></div>
     <div class="row3"><label>Number<input id="number" inputmode="numeric" value="00"></label>
       <label>Position<input id="position" value="SS/P"></label>
-      <label>Bats/Throws<select id="bt"><option></option><option>R/R</option><option>L/L</option><option>L/R</option><option>R/L</option><option>S/R</option><option>S/L</option></select></label></div>
+      <label>Bats/Throws<select id="bt"><option>R/R</option><option>L/L</option><option>L/R</option><option>R/L</option><option>S/R</option><option>S/L</option></select></label></div>
     <div class="row"><label>Team<input id="team" value="Sample Team"></label><label>Division<input id="division" value="Majors"></label></div>
-    <div class="row"><label>Set<input id="setName" value="LYBS"></label><label>Season<input id="season" value="2026"></label></div>
-    <div class="row3"><label>Main color<input type="color" id="primary" value="#1B3FD8"></label>
-      <label>Dark color<input type="color" id="deep" value="#0A1033"></label>
-      <label>Trim color<input type="color" id="accent" value="#C9D1D6"></label></div>
-    <p class="note">In the team app this fills itself from the roster once the board approves a photo.</p>
+    <label>Card number<input id="cardNo" inputmode="numeric" value="1"></label>
+    <h2>Finish</h2>
+    <div class="pills" id="pars"></div>
+    <p class="hint">Tilt the phone (or move the mouse over the card) to see the foil and Cracked Ice move.</p>
   </form>
 </main>
 <script src="card-kit.js"></script>
+<script src="steele-card.js"></script>
 <script>
 (function () {
-  const K = window.SteeleCardKit, $ = id => document.getElementById(id), canvas = $("card");
-  let side = "front", photo = null;
-  const ids = ["first", "last", "number", "position", "bt", "team", "division", "setName", "season", "primary", "deep", "accent", "zoom", "dx", "dy"];
+  const K = window.SteeleCardKit, SC = window.SteeleCard, $ = id => document.getElementById(id);
+  const canvas = $("card"), tilt = $("tilt");
+  const FINISHES = ["base", "ice", "holo", "rainbow", "bubbles", "numbered", "red", "blue", "gold", "black", "silver", "green", "purple", "orange", "openingday"];
+  const S = { side: "front", parallel: "base", photo: null, imgScale: 1.3, imgOffsetX: 0, imgOffsetY: 0, rotX: 0, rotY: 0, mx: .5, my: .5 };
+  let queued = false;
+
   function data() {
-    return K.cardData(
-      { first: $("first").value, last: $("last").value, number: $("number").value, position: $("position").value, batsThrows: $("bt").value },
-      { name: $("team").value, division: $("division").value, primary: $("primary").value, deep: $("deep").value, accent: $("accent").value },
-      { name: $("setName").value, season: $("season").value });
+    return K.cardData({ first: $("first").value, last: $("last").value, number: $("number").value, position: $("position").value, batsThrows: $("bt").value },
+      { name: $("team").value, division: $("division").value }, { name: "LYBS", season: "2026", cardNo: $("cardNo").value });
   }
-  function draw() {
-    const d = data();
-    if (side === "front") K.drawFront(canvas, d, photo, { zoom: +$("zoom").value, dx: +$("dx").value, dy: +$("dy").value });
-    else K.drawBack(canvas, d);
-    $("showFront").setAttribute("aria-pressed", side === "front"); $("showBack").setAttribute("aria-pressed", side === "back");
+  function opts(side) {
+    return { side, parallel: S.parallel, data: data(), photo: S.photo, imgScale: S.imgScale, imgOffsetX: S.imgOffsetX, imgOffsetY: S.imgOffsetY,
+      rotX: S.rotX, rotY: S.rotY, mx: S.mx, my: S.my };
   }
-  ids.forEach(id => $(id).addEventListener("input", draw));
-  $("showFront").onclick = () => { side = "front"; draw(); };
-  $("showBack").onclick = () => { side = "back"; draw(); };
+  function draw() { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; SC.render(canvas, opts(S.side)); }); }
+  function sync() {
+    $("scale").value = Math.round(S.imgScale * 100); $("scaleVal").textContent = Math.round(S.imgScale * 100) + "%";
+    $("ox").value = Math.round(S.imgOffsetX); $("oy").value = Math.round(S.imgOffsetY);
+  }
+  function setSide(s) { S.side = s; $("showFront").classList.toggle("on", s === "front"); $("showBack").classList.toggle("on", s === "back"); draw(); }
+
+  // finish pills
+  FINISHES.forEach(k => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = SC.PAR[k].name; b.dataset.k = k;
+    if (k === S.parallel) b.classList.add("on");
+    b.onclick = () => { S.parallel = k; document.querySelectorAll("#pars button").forEach(x => x.classList.toggle("on", x.dataset.k === k)); setSide("front"); };
+    $("pars").appendChild(b);
+  });
+
+  ["first", "last", "number", "position", "bt", "team", "division", "cardNo"].forEach(id => $(id).addEventListener("input", draw));
+  $("scale").addEventListener("input", () => { S.imgScale = $("scale").value / 100; sync(); draw(); });
+  $("ox").addEventListener("input", () => { S.imgOffsetX = +$("ox").value; draw(); });
+  $("oy").addEventListener("input", () => { S.imgOffsetY = +$("oy").value; draw(); });
+  $("reset").onclick = () => { S.imgScale = 1.3; S.imgOffsetX = 0; S.imgOffsetY = 0; sync(); draw(); };
+  $("showFront").onclick = () => setSide("front");
+  $("showBack").onclick = () => setSide("back");
+
   $("photo").addEventListener("change", async e => {
     const file = e.target.files && e.target.files[0]; if (!file) return;
     $("msg").textContent = "Getting the photo ready…";
     try {
       const cleaned = await K.cleanPhoto(file);
-      photo = await K.loadImage(cleaned.dataUrl);
-      $("zoom").value = 1; $("dx").value = 0; $("dy").value = 0; side = "front";
-      $("msg").textContent = "Photo ready. Location and camera details were removed.";
-      draw();
+      S.photo = await K.loadImage(cleaned.dataUrl);
+      S.imgScale = 1.3; S.imgOffsetX = 0; S.imgOffsetY = 0; sync(); setSide("front");
+      $("msg").textContent = "Photo ready. Location and camera details were removed. Drag it on the card to place it.";
     } catch (err) { $("msg").textContent = err.message || "Couldn't use that photo. Try another."; }
   });
-  $("save").onclick = () => {
-    canvas.toBlob(b => {
+
+  // drag the photo on the card (card pixels), tap to flip, hover to tilt
+  let drag = null;
+  const toCard = () => SC.PW / canvas.getBoundingClientRect().width;
+  canvas.addEventListener("pointerdown", e => {
+    drag = { x: e.clientX, y: e.clientY, ox: S.imgOffsetX, oy: S.imgOffsetY, moved: false };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", e => {
+    if (drag) {
+      const k = toCard(), dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
+      if (drag.moved && S.photo && S.side === "front") { canvas.classList.add("dragging"); S.imgOffsetX = drag.ox + dx; S.imgOffsetY = drag.oy + dy; sync(); draw(); }
+      return;
+    }
+    if (e.pointerType !== "mouse") return;
+    const r = canvas.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width, my = (e.clientY - r.top) / r.height;
+    setTilt((0.5 - my) * 20, (mx - 0.5) * 28);
+  });
+  function endDrag() {
+    if (!drag) return;
+    if (!drag.moved) setSide(S.side === "front" ? "back" : "front");
+    drag = null; canvas.classList.remove("dragging");
+  }
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+  canvas.addEventListener("pointerleave", e => { if (!drag && e.pointerType === "mouse") setTilt(0, 0); });
+
+  function setTilt(rx, ry) {
+    S.rotX = Math.max(-10, Math.min(10, rx)); S.rotY = Math.max(-14, Math.min(14, ry));
+    S.mx = 0.5 + S.rotY / 28 * 0.5; S.my = 0.5 - S.rotX / 20 * 0.5;
+    tilt.style.transform = "rotateX(" + S.rotX.toFixed(2) + "deg) rotateY(" + S.rotY.toFixed(2) + "deg)";
+    draw();
+  }
+  let base = null;
+  window.addEventListener("deviceorientation", e => {
+    if (e.beta == null || drag) return;
+    if (!base) base = { b: e.beta, g: e.gamma };
+    setTilt((e.beta - base.b) * -0.5, (e.gamma - base.g) * 0.7);
+  });
+
+  // Save photo: front and back as JPEGs
+  function saveSide(side) {
+    const c = document.createElement("canvas");
+    SC.render(c, Object.assign(opts(side), { rotX: 0, rotY: 0, mx: .5, my: .5 }));
+    return new Promise(ok => c.toBlob(b => {
       const a = document.createElement("a"), d = data();
       a.href = URL.createObjectURL(b);
-      a.download = ("steele-card-" + (d.last || d.first || "player") + "-" + side).toLowerCase().replace(/[^a-z0-9-]+/g, "-") + ".png";
-      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    }, "image/png");
-  };
-  draw();
-  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load("40px Anton"), document.fonts.load("500 30px Oswald")]).then(draw, () => {});
-  window.__cardMaker = { draw, get photo() { return photo; } };
+      a.download = ("steele-card-" + (d.last || d.first || "player") + "-" + side).toLowerCase().replace(/[^a-z0-9-]+/g, "-") + ".jpg";
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => { URL.revokeObjectURL(a.href); ok(); }, 600);
+    }, "image/jpeg", 0.92));
+  }
+  $("save").onclick = async () => { await saveSide("front"); await saveSide("back"); };
+
+  SC.loadLayers(".").then(() => {
+    draw();
+    if (document.fonts && document.fonts.load) Promise.all(["italic 58px Anton", "italic 24px Michroma", "500 12px Oswald", "italic 12px 'Source Serif 4'"].map(f => document.fonts.load(f))).then(draw, () => {});
+  });
+  window.__cardMaker = { S, draw, opts };
 })();
 </script>
 </body></html>

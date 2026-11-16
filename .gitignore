@@ -6,3 +6,11 @@
 ._*
 .DS_Store
 card-kit/tests/shots/
+# Card template art only (no people): the seven layers the Steele Cards renderer draws with
+!card-kit/layers/bg.jpg
+!card-kit/layers/banner.png
+!card-kit/layers/frame.png
+!card-kit/layers/shadow.png
+!card-kit/layers/logo.png
+!card-kit/layers/mac.png
+!card-kit/layers/photo_mask.png
