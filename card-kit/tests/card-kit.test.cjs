@@ -74,6 +74,10 @@ function jpegWithExif() {
     for (const f of Object.values(SC.LAYER_FILES)) assert.ok(fs.existsSync(path.join(ROOT, "layers", f)), "layer " + f);
   });
 
+  await t("Red, Blue and Black tint at 80%", () => {
+    for (const k of ["red", "blue", "black"]) assert.strictEqual(SC.PAR[k].tint[3], 0.8, k);
+  });
+
   let canvas;
   try { canvas = require("@napi-rs/canvas"); } catch (e) { console.log("SKIP drawing checks (no @napi-rs/canvas on NODE_PATH)"); }
   if (canvas) {

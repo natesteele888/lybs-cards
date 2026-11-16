@@ -5,7 +5,9 @@
    June 2026): the woven background, the LYBS side banner, the notched photo window, the white stitched frame
    and blue position bar, the Knights logo chrome, Anton italic name, Michroma position, the MAC badge, and the
    parallels (tints, Rainbow Foil, Holo Foil, Cracked Ice, Bubble Prizm, Gold Numbered, Opening Day...).
-   The back is the builder's landscape stat-sheet back. Only three things changed: offscreen canvases come from
+   The back is the builder's landscape stat-sheet back. Red, Blue and Black tint at 80% (the builder had 40%,
+   40% and 52%), per Nathan's rule that colored parallels must clearly read as colored. Otherwise only three
+   things changed: offscreen canvases come from
    _mk() so the same code runs in Node tests, the Gold Numbered serial reads CS instead of form fields, and
    everything lives inside this wrapper instead of on the page.
 
@@ -50,8 +52,8 @@ const POS_X = 506, POS_Y = 942, POS_MAXW = 152;
 const PAR = {
   base:        {name:'BASE',          sw:'#aaaaaa', tint:null,               glow:null},
   silver:      {name:'SILVER',        sw:'#c8c8d0', tint:[200,200,215,0.30], glow:[200,200,220]},
-  blue:        {name:'BLUE',          sw:'#1a4aaa', tint:[20,70,210,0.40],   glow:[40,100,220]},
-  red:         {name:'RED',           sw:'#cc1122', tint:[200,15,35,0.40],   glow:[200,20,40]},
+  blue:        {name:'BLUE',          sw:'#1a4aaa', tint:[20,70,210,0.80],   glow:[40,100,220]},
+  red:         {name:'RED',           sw:'#cc1122', tint:[200,15,35,0.80],   glow:[200,20,40]},
   gold:        {name:'GOLD',          sw:'#c09020', tint:[190,140,15,0.38],  glow:[195,145,35]},
   green:       {name:'GREEN',         sw:'#0a6a2a', tint:[15,140,55,0.38],   glow:[15,145,55]},
   orange:      {name:'ORANGE',        sw:'#cc4400', tint:[200,75,10,0.38],   glow:[205,80,15]},
@@ -60,7 +62,7 @@ const PAR = {
   holo:        {name:'HOLO FOIL',     sw:'holo',    tint:null,               glow:[70,155,255]},
   sandglitter: {name:'SANDGLITTER',   sw:'#ffd700', tint:[215,165,0,0.32],   glow:[255,200,0]},
   diamante:    {name:'DIAMANTE',      sw:'#b0d8f8', tint:[115,175,235,0.28], glow:[155,205,255]},
-  black:       {name:'BLACK 1/1',     sw:'#222222', tint:[0,0,0,0.52],       glow:null},
+  black:       {name:'BLACK 1/1',     sw:'#222222', tint:[0,0,0,0.80],       glow:null},
   auto:        {name:'CERTIFIED AUTO',sw:'#cc0018', tint:[195,8,28,0.38],   glow:[200,15,45]},
   ice:         {name:'CRACKED ICE',     sw:'ice',     tint:null,               glow:[180,220,255]},
   numbered:    {name:'GOLD NUMBERED',   sw:'#c8a020', tint:[180,130,0,0.25],   glow:[220,180,40]},
