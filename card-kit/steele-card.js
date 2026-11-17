@@ -42,6 +42,30 @@ const MASK = {
 
 // Name text bounds (from layer 08): left=324 top=829 right=664 bottom=901
 const NAME_X = 324, NAME_Y = 886, NAME_MAXW = 308;
+const NAME_ONE_LINE_MIN = 40; // below this a one-line name reads too small, so it splits
+
+// Where the front's name goes: [{ text, size, y, squeeze }], one line or two, baseline y.
+// squeeze < 1 narrows a word too long to fit even at the smallest size, instead of letting it
+// run off the card.
+function nameLayout(ctx, fn, ln) {
+  const fit = (text, start, min) => {
+    let size = start;
+    ctx.font = `italic ${size}px Anton,sans-serif`;
+    while (ctx.measureText(text).width > NAME_MAXW && size > min) { size -= 2; ctx.font = `italic ${size}px Anton,sans-serif`; }
+    const m = ctx.measureText(text);
+    return { text, size, squeeze: m.width > NAME_MAXW ? NAME_MAXW / m.width : 1, ascent: m.actualBoundingBoxAscent || size * 0.8 };
+  };
+  const one = fit(fn ? fn + ' ' + ln : ln, 58, fn ? NAME_ONE_LINE_MIN : 22);
+  if (!fn || one.squeeze === 1) return [{ text: one.text, size: one.size, y: NAME_Y, squeeze: one.squeeze }];
+  const last = fit(ln, 52, 30);
+  const first = fit(fn, Math.max(20, Math.round(last.size * 0.66)), 18);
+  // first name's baseline sits a clear gap above the top of the last name's capitals
+  const gap = Math.max(8, Math.round(last.size * 0.16));
+  return [
+    { text: first.text, size: first.size, y: Math.round(NAME_Y - last.ascent - gap), squeeze: first.squeeze },
+    { text: last.text, size: last.size, y: NAME_Y, squeeze: last.squeeze },
+  ];
+}
 
 // Position text bounds (from layer 07): left=506 top=917 right=656 bottom=950
 const POS_X = 506, POS_Y = 942, POS_MAXW = 152;
@@ -179,7 +203,6 @@ function drawFront(ctx){
   const d=CS.data;
   const fn=(d.firstName||'').toUpperCase();
   const ln=(d.lastName||'PLAYER NAME').toUpperCase();
-  const fullName=fn?fn+' '+ln:ln;
   const posText=(d.position||'POSITION').toUpperCase();
   const abbr=((d.team||'').substring(0,3)||'LYB').toUpperCase();
 
@@ -259,10 +282,9 @@ function drawFront(ctx){
   ctx.restore();
 
   // ── LAYER 08: PLAYER NAME — Anton (Hackensack-style), bold italic, all caps ──
+  // One line when it fits at a readable size. A long name goes on two lines (first name smaller,
+  // with room above the last name), and no name ever runs past the frame. See nameLayout().
   ctx.save();
-  let nfs=58;
-  ctx.font=`italic ${nfs}px Anton,sans-serif`;
-  while(ctx.measureText(fullName).width>NAME_MAXW&&nfs>22){nfs-=2;ctx.font=`italic ${nfs}px Anton,sans-serif`;}
   ctx.textAlign='left'; ctx.lineJoin='round';
   // Soft drop shadow — single offset, light opacity
   ctx.shadowColor='rgba(0,0,0,0.65)';
@@ -270,7 +292,12 @@ function drawFront(ctx){
   ctx.shadowOffsetX=2;
   ctx.shadowOffsetY=2;
   ctx.fillStyle='#ffffff';
-  ctx.fillText(fullName,NAME_X,NAME_Y);
+  nameLayout(ctx,fn,ln).forEach(L=>{
+    ctx.font=`italic ${L.size}px Anton,sans-serif`;
+    ctx.save(); ctx.translate(NAME_X,L.y); ctx.scale(L.squeeze,1);
+    ctx.fillText(L.text,0,0);
+    ctx.restore();
+  });
   // Reset shadow
   ctx.shadowColor='transparent';
   ctx.shadowBlur=0;
@@ -908,5 +935,6 @@ function render(canvas, opts) {
 }
 function photoBox() { return { x: MASK.x4, y: MASK.y0, w: MASK.x1 - MASK.x4, h: MASK.y2 - MASK.y0 }; }
 
-return { PW, PH, PAR, MASK, LAYER_FILES, loadLayers, setLayers, setCanvasFactory, render, photoBox, toCardData };
+return { PW, PH, PAR, MASK, LAYER_FILES, loadLayers, setLayers, setCanvasFactory, render, photoBox, toCardData,
+  _test: { nameLayout, NAME_MAXW, NAME_Y } };
 });

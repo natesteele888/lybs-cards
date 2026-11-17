@@ -154,6 +154,38 @@ function jpegWithExif() {
       const c = createCanvas(10, 10); SC.render(c, { data: long, photo: img });
       fs.writeFileSync(path.join(shots, "front-long.png"), await c.encode("png"));
     });
+
+    await t("a short name stays on one line, a long one splits and stays inside the frame", () => {
+      const ctx = createCanvas(10, 10).getContext("2d");
+      const L = SC._test.nameLayout;
+      const short = L(ctx, "SAMPLE", "PLAYER");
+      assert.strictEqual(short.length, 1);
+      assert.strictEqual(short[0].squeeze, 1);
+      const long = L(ctx, "SAMPLEWITHAVERYLONGNAME", "PLAYERWITHANEVERYEVENLONGERNAME");
+      assert.strictEqual(long.length, 2);
+      assert.ok(long[0].y < long[1].y && long[1].y === SC._test.NAME_Y, "first name above last");
+      assert.ok(long[0].size < long[1].size, "first name smaller");
+      long.forEach(l => {
+        ctx.font = "italic " + l.size + "px Anton,sans-serif";
+        assert.ok(ctx.measureText(l.text).width * l.squeeze <= SC._test.NAME_MAXW + 0.5, l.text + " fits");
+      });
+      // the last name's capitals start below the first name's baseline, with a gap
+      ctx.font = "italic " + long[1].size + "px Anton,sans-serif";
+      const top = long[1].y - ctx.measureText(long[1].text).actualBoundingBoxAscent;
+      assert.ok(top - long[0].y >= 8, "gap between the two lines");
+      const noFirst = L(ctx, "", "PLAYERWITHANEVERYEVENLONGERNAMEANDMORE");
+      assert.strictEqual(noFirst.length, 1);
+    });
+
+    await t("a two-word name that is a bit long splits rather than shrinking tiny", async () => {
+      const mid = K.cardData({ first: "Samplefirstname", last: "Sampleplayersurname" }, { name: "Sample Team" });
+      const c = createCanvas(10, 10); SC.render(c, { data: mid, photo: img });
+      fs.writeFileSync(path.join(shots, "front-mid.png"), await c.encode("png"));
+      const ctx = createCanvas(10, 10).getContext("2d");
+      const lay = SC._test.nameLayout(ctx, "SAMPLEFIRSTNAME", "SAMPLEPLAYERSURNAME");
+      assert.strictEqual(lay.length, 2);
+      lay.forEach(l => assert.ok(l.size >= 20, l.text + " at " + l.size + "px"));
+    });
   }
 
   console.log(fail ? fail + " failed, " + pass + " passed" : "all passed (" + pass + ")");
